@@ -1,0 +1,20 @@
+# Credentials
+stock-stracker-*.json
+
+# Cache files
+*_cache.json
+
+# Generated outputs
+*.xlsx
+nasdaqlisted.txt
+otherlisted.txt
+
+# Logs
+run.log
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
