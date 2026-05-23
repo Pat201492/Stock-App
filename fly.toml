@@ -1,0 +1,50 @@
+app = "stock-app-pat"
+primary_region = "ewr"
+
+[build]
+
+[env]
+  PORT    = "8080"
+  DB_PATH = "/data/stocks.db"
+
+[http_service]
+  internal_port       = 8080
+  force_https         = true
+  auto_stop_machines  = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory   = "1gb"
+  cpu_kind = "shared"
+  cpus     = 1
+
+[[mounts]]
+  source      = "stock_data"
+  destination = "/data"
+  initial_size = "5gb"
+
+[[processes]]
+  name    = "web"
+  command = "python server.py"
+
+# Cron machine: runs pipeline nightly at 2am UTC, then exits
+[[machines]]
+  name     = "pipeline-cron"
+  schedule = "0 2 * * *"
+  command  = "python scheduler.py"
+
+[checks]
+  [checks.health]
+    grace_period = "10s"
+    interval     = "30s"
+    method       = "GET"
+    path         = "/api/health"
+    port         = 8080
+    timeout      = "5s"
+    type         = "http"

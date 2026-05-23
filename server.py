@@ -313,13 +313,15 @@ def run_pipeline(from_script: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    import uvicorn
-    import webbrowser
+    import uvicorn, webbrowser
 
-    def _open_browser():
-        import time
-        time.sleep(1.5)
-        webbrowser.open("http://localhost:8000")
+    PORT     = int(os.environ.get("PORT", 8000))
+    IS_LOCAL = PORT == 8000 and not os.environ.get("FLY_APP_NAME")
 
-    threading.Thread(target=_open_browser, daemon=True).start()
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
+    if IS_LOCAL:
+        def _open_browser():
+            time.sleep(1.5)
+            webbrowser.open(f"http://localhost:{PORT}")
+        threading.Thread(target=_open_browser, daemon=True).start()
+
+    uvicorn.run("server:app", host="0.0.0.0", port=PORT, reload=False)
