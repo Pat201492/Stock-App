@@ -9,9 +9,35 @@ async function init() {
     fetch(`/api/live/price/${ticker}`).then(r => r.json()).catch(() => null),
   ]);
 
+  // Stock not in DB yet — still show live data if available
   if (!detail || detail.error) {
-    document.getElementById("stock-header").innerHTML = `<div class='empty'>Stock "${ticker}" not found in database.</div>`;
-    return;
+    if (livePrice && livePrice.price) {
+      detail = {
+        stock: {
+          ticker,
+          name:    livePrice.name    || ticker,
+          sector:  livePrice.sector  || "",
+          mkt_cap: null,
+          price:   livePrice.price,
+          change:  livePrice.change,
+          change_pct: livePrice.change_pct,
+          market_state: livePrice.market_state,
+        },
+        fundamentals: {},
+        valuation: {},
+      };
+      document.getElementById("stock-header").insertAdjacentHTML("beforebegin",
+        `<div style="background:#451a03;color:#fde68a;padding:10px 16px;border-radius:8px;
+                     font-size:13px;margin-bottom:16px">
+          ⚠ This stock isn't in the database yet — run the pipeline to get full analysis.
+          Showing live price only.
+        </div>`
+      );
+    } else {
+      document.getElementById("stock-header").innerHTML =
+        `<div class='empty'>Stock "${ticker}" not found. Run the pipeline to populate data.</div>`;
+      return;
+    }
   }
 
   // Inject live price into detail before rendering

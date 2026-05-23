@@ -75,7 +75,17 @@ async function loadStocks() {
 function renderTable(stocks) {
   const tbody = document.getElementById("stocks-body");
   if (!stocks.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty">No stocks match your filters.</div></td></tr>`;
+    const isFiltered = state.sector || state.cap_size || state.search || state.min_score;
+    tbody.innerHTML = isFiltered
+      ? `<tr><td colspan="10"><div class="empty">No stocks match your filters.</div></td></tr>`
+      : `<tr><td colspan="10"><div class="empty">
+           <strong>Database is empty.</strong><br><br>
+           Click <strong>↻ Refresh Data</strong> in the top-right to run the pipeline.<br>
+           <span style="color:var(--muted);font-size:12px">
+             This fetches 2,500 stocks from NASDAQ, Yahoo Finance, and SEC EDGAR.<br>
+             First run takes ~6 hours. Subsequent runs are incremental (~30 min).
+           </span>
+         </div></td></tr>`;
     return;
   }
   tbody.innerHTML = stocks.map(s => `

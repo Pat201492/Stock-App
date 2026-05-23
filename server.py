@@ -3,7 +3,7 @@ server.py — FastAPI web server for Stock Tracker
 Run: python server.py
 Dashboard: http://localhost:8000
 """
-import os, subprocess, sys, threading
+import os, subprocess, sys, threading, time
 from datetime import datetime
 from typing import Optional
 import yfinance as yf
@@ -37,6 +37,22 @@ def stock_page(ticker: str):
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+def health():
+    try:
+        db = next(get_db())
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.close()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "db":     "ok" if db_ok else "error",
+        "time":   datetime.utcnow().isoformat(),
+    }
+
 
 @app.get("/api/stats")
 def stats(db: Session = Depends(get_db)):
@@ -201,28 +217,42 @@ def price_history(ticker: str, days: int = 365, db: Session = Depends(get_db)):
 
 # ── Live data (fetched fresh from Yahoo Finance on every call) ────────────────
 
+def _yf_info_with_retry(ticker, retries=2, delay=1.5):
+    """Fetch yfinance info with retry on transient errors."""
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            return yf.Ticker(ticker).info or {}
+        except Exception as e:
+            last_err = e
+            if attempt < retries:
+                time.sleep(delay)
+    raise last_err
+
+
 @app.get("/api/live/price/{ticker}")
 def live_price(ticker: str):
     """Current price, change, volume — fetched live from Yahoo Finance."""
     try:
-        t    = yf.Ticker(ticker.upper())
-        info = t.info or {}
+        info    = _yf_info_with_retry(ticker.upper())
         price   = info.get("currentPrice") or info.get("regularMarketPrice")
         prev    = info.get("previousClose") or info.get("regularMarketPreviousClose")
-        change  = round(price - prev, 2)         if price and prev else None
+        change  = round(price - prev, 2)              if price and prev else None
         chg_pct = round((price - prev) / prev * 100, 2) if price and prev else None
         return {
-            "ticker":        ticker.upper(),
-            "price":         price,
-            "prev_close":    prev,
-            "change":        change,
-            "change_pct":    chg_pct,
-            "volume":        info.get("volume") or info.get("regularMarketVolume"),
-            "market_state":  info.get("marketState", "CLOSED"),
-            "fetched_at":    datetime.utcnow().isoformat(),
+            "ticker":       ticker.upper(),
+            "price":        price,
+            "prev_close":   prev,
+            "change":       change,
+            "change_pct":   chg_pct,
+            "volume":       info.get("volume") or info.get("regularMarketVolume"),
+            "market_state": info.get("marketState", "CLOSED"),
+            "name":         info.get("longName") or info.get("shortName"),
+            "sector":       info.get("sector"),
+            "fetched_at":   datetime.utcnow().isoformat(),
         }
     except Exception as e:
-        return JSONResponse(status_code=502, content={"error": str(e)})
+        return JSONResponse(status_code=502, content={"error": f"Yahoo Finance unavailable: {e}"})
 
 
 @app.get("/api/live/news/{ticker}")
@@ -266,7 +296,9 @@ def run_pipeline(from_script: Optional[str] = None):
             cmd = [sys.executable, os.path.join(script_dir, "run.py")]
             if from_script:
                 cmd += ["--from", from_script]
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=script_dir)
+            env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+            result = subprocess.run(cmd, capture_output=True, text=True,
+                                    cwd=script_dir, env=env)
             _pipeline_status["last_result"] = (
                 "success" if result.returncode == 0
                 else f"failed: {result.stderr[-500:]}"
@@ -282,4 +314,12 @@ def run_pipeline(from_script: Optional[str] = None):
 
 if __name__ == "__main__":
     import uvicorn
+    import webbrowser
+
+    def _open_browser():
+        import time
+        time.sleep(1.5)
+        webbrowser.open("http://localhost:8000")
+
+    threading.Thread(target=_open_browser, daemon=True).start()
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)

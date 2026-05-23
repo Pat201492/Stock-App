@@ -39,7 +39,7 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import yfinance as yf
-from data_utils import sf, fmt, ratio, load_cache, save_cache, run_batches
+from data_utils import sf, fmt, ratio, load_cache, save_cache, run_batches, score_stock
 
 FUNDAMENTALS_FILE = "fundamentals.json"
 CACHE_FILE        = "model_cache.json"
@@ -986,7 +986,6 @@ def main():
                 and m3_result.get("m3_fair_value")  is not None):
             all3_ok += 1
 
-        from data_utils import score_stock
         merged = {**s, **dcf_result, **comps_result, **m3_result}
         # Provide valuation dicts score_stock expects
         _dcf   = {"dcf_upside_pct": dcf_result.get("dcf_upside_pct"),

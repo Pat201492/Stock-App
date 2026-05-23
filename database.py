@@ -6,7 +6,18 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = "sqlite:///stocks.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    # WAL mode: readers don't block writers and vice versa
+    # This prevents lock errors when pipeline runs while server is live
+)
+
+from sqlalchemy import event
+@event.listens_for(engine, "connect")
+def _set_wal_mode(dbapi_conn, _):
+    dbapi_conn.execute("PRAGMA journal_mode=WAL")
+    dbapi_conn.execute("PRAGMA busy_timeout=5000")
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
