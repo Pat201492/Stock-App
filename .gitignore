@@ -4,6 +4,9 @@ stock-stracker-*.json
 # Cache files
 *_cache.json
 
+# Database (local only)
+stocks.db
+
 # Generated outputs
 *.xlsx
 nasdaqlisted.txt

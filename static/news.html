@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Feed — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+    <h2 style="font-size:20px;font-weight:700">Market News Feed</h2>
+    <span id="article-count" style="color:var(--muted);font-size:13px"></span>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <input type="text" id="ticker-filter" placeholder="Filter by ticker…"
+             style="background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                    color:var(--text);padding:6px 12px;font-size:13px;outline:none;width:160px"
+             oninput="filterNews()" />
+      <select id="sentiment-filter" onchange="filterNews()"
+              style="background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                     color:var(--text);padding:6px 12px;font-size:13px;outline:none">
+        <option value="">All Sentiment</option>
+        <option value="pos">Positive</option>
+        <option value="neg">Negative</option>
+        <option value="neu">Neutral</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px">Sent.</th>
+          <th style="width:80px">Ticker</th>
+          <th>Headline</th>
+          <th style="width:140px">Publisher</th>
+          <th style="width:110px">Date</th>
+        </tr>
+      </thead>
+      <tbody id="news-body">
+        <tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading news…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;justify-content:center;margin-top:16px;gap:8px">
+    <button class="btn btn-outline btn-sm" id="btn-more" onclick="loadMore()" style="display:none">Load More</button>
+  </div>
+
+</div>
+
+<script>
+let allArticles = [];
+let displayed   = 0;
+const BATCH     = 100;
+
+async function init() {
+  const data = await fetch("/api/news?limit=500").then(r => r.json()).catch(() => []);
+  allArticles = data;
+  displayed   = 0;
+  renderBatch();
+  document.getElementById("article-count").textContent = `${data.length} articles`;
+}
+
+function renderBatch() {
+  const filtered = applyFilters();
+  const slice    = filtered.slice(0, displayed + BATCH);
+  displayed = slice.length;
+
+  const tbody = document.getElementById("news-body");
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty">No articles match your filters.</div></td></tr>`;
+    document.getElementById("btn-more").style.display = "none";
+    return;
+  }
+
+  tbody.innerHTML = slice.map(a => {
+    const sentColor = a.sentiment > 0.05 ? "#22c55e" : a.sentiment < -0.05 ? "#ef4444" : "#94a3b8";
+    const sentLabel = a.sentiment > 0.05 ? "▲" : a.sentiment < -0.05 ? "▼" : "●";
+    const date = a.published_at ? new Date(a.published_at).toLocaleDateString() : "—";
+    return `
+      <tr>
+        <td style="text-align:center;color:${sentColor};font-size:16px">${sentLabel}</td>
+        <td>
+          <a href="/stock/${a.ticker}" class="ticker-cell">${a.ticker}</a>
+        </td>
+        <td>
+          <a href="${a.url}" target="_blank" rel="noopener"
+             style="color:var(--text);font-size:13px;line-height:1.4">${a.title}</a>
+        </td>
+        <td class="muted" style="font-size:12px">${a.publisher || "—"}</td>
+        <td class="muted" style="font-size:12px">${date}</td>
+      </tr>
+    `;
+  }).join("");
+
+  document.getElementById("btn-more").style.display =
+    displayed < filtered.length ? "inline-block" : "none";
+}
+
+function applyFilters() {
+  const ticker  = document.getElementById("ticker-filter").value.trim().toUpperCase();
+  const sentSel = document.getElementById("sentiment-filter").value;
+  return allArticles.filter(a => {
+    if (ticker && !a.ticker.includes(ticker)) return false;
+    if (sentSel === "pos" && a.sentiment <= 0.05)  return false;
+    if (sentSel === "neg" && a.sentiment >= -0.05)  return false;
+    if (sentSel === "neu" && (a.sentiment > 0.05 || a.sentiment < -0.05)) return false;
+    return true;
+  });
+}
+
+function filterNews() {
+  displayed = 0;
+  renderBatch();
+}
+
+function loadMore() {
+  renderBatch();
+}
+
+init();
+</script>
+</body>
+</html>

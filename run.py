@@ -1,17 +1,17 @@
 """
-run.py — Manual pipeline runner
-================================
-Runs scripts in the correct order with timing and logging.
+run.py — Pipeline runner
+=========================
+Runs scripts in order with timing and logging.
+All scripts are incremental — only stale data is re-fetched.
 
 Usage:
-  python3 run.py                       # full pipeline
-  python3 run.py --skip-universe       # skip universe.py
-  python3 run.py --only-sheets         # sheets.py only (instant)
-  python3 run.py --only-deepdive       # deepdive.py only
-  python3 run.py --from fundamentals   # start from fundamentals onwards
-  python3 run.py --from model          # start from model onwards
-  python3 run.py --from sheets         # sheets + deepdive
+  python run.py                       # full pipeline
+  python run.py --skip-universe       # skip universe discovery
+  python run.py --from fundamentals   # start from fundamentals onwards
+  python run.py --from model          # model + news only
+  python run.py --from news           # news + prices only
 
+Pipeline: universe → fundamentals → model → news
 Log: run.log (appended each run)
 """
 
@@ -19,7 +19,7 @@ import argparse, subprocess, sys, os, time
 from datetime import datetime
 
 LOG_FILE = "run.log"
-SCRIPTS  = ["universe.py", "fundamentals.py", "model.py", "sheets.py", "deepdive.py"]
+SCRIPTS  = ["universe.py", "fundamentals.py", "model.py", "news.py"]
 DIV      = "=" * 58
 
 
@@ -55,10 +55,8 @@ def run_script(script):
 def parse_args():
     p = argparse.ArgumentParser(description="Stock Tracker pipeline runner")
     p.add_argument("--skip-universe",  action="store_true")
-    p.add_argument("--only-sheets",    action="store_true")
-    p.add_argument("--only-deepdive",  action="store_true")
     p.add_argument("--from", dest="from_script", metavar="SCRIPT",
-                   choices=["universe", "fundamentals", "model", "sheets", "deepdive"])
+                   choices=["universe", "fundamentals", "model", "news"])
     return p.parse_args()
 
 
@@ -66,20 +64,10 @@ def main():
     args    = parse_args()
     scripts = list(SCRIPTS)
 
-    if   args.only_sheets:    scripts = ["sheets.py"]
-    elif args.only_deepdive:  scripts = ["deepdive.py"]
-    elif args.skip_universe:  scripts = [s for s in scripts if s != "universe.py"]
+    if   args.skip_universe: scripts = [s for s in scripts if s != "universe.py"]
     elif args.from_script:
         idx     = [s.replace(".py", "") for s in scripts].index(args.from_script)
         scripts = scripts[idx:]
-
-    # Skip deepdive silently if no tickers saved (don't block the pipeline)
-    if "deepdive.py" in scripts:
-        dd_list = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "deepdive_tickers.json")
-        if not os.path.exists(dd_list):
-            scripts = [s for s in scripts if s != "deepdive.py"]
-            # Will silently skip — user hasn't added any tickers yet
 
     log(DIV)
     log(f"  Stock Tracker — Pipeline Run")

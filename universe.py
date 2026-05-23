@@ -36,6 +36,7 @@ TARGET       = 2500
 ENRICH_BATCH = 50
 SLEEP_SEC    = 2
 MAX_RETRIES  = 3
+STALE_DAYS   = 7   # re-enrich if DB record older than this
 
 NASDAQ_API_URL  = "https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&offset=0&download=true"
 NASDAQ_FTP_URLS = [
@@ -374,10 +375,27 @@ def _enrich_batch(batch, cache):
     return failed
 
 
+def _fresh_in_db(tickers):
+    """Return set of tickers already in the stocks DB table and recently updated."""
+    try:
+        from database import SessionLocal, Stock
+        from datetime import datetime as _dt
+        db = SessionLocal()
+        rows = db.query(Stock.ticker, Stock.last_updated).filter(Stock.ticker.in_(tickers)).all()
+        db.close()
+        return {t for t, upd in rows if upd and (_dt.utcnow() - upd).days < STALE_DAYS}
+    except Exception:
+        return set()
+
+
 def enrich(tickers, cache):
-    need = [t for t in tickers if t not in cache]
+    fresh = _fresh_in_db(tickers)
+    need = [t for t in tickers if t not in cache and t not in fresh]
+    skipped = len(tickers) - len(need)
+    if skipped:
+        print(f"  Skipping {skipped} tickers (fresh in DB or cache)")
     if not need:
-        print(f"  All {len(tickers)} tickers already in cache")
+        print(f"  All {len(tickers)} tickers are fresh — nothing to enrich")
         return cache
 
     total = len(need)
@@ -469,6 +487,9 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump({"generated": datetime.now().isoformat(), "total": len(universe), "stocks": universe}, f, indent=2)
 
+    # ── Save to database ──────────────────────────────────────────
+    _save_to_db(universe)
+
     # ── Summary ───────────────────────────────────────────────────
     caps = Counter(s["cap_size"] for s in universe)
     secs = Counter(s.get("sector", "Unknown") for s in universe)
@@ -486,6 +507,33 @@ def main():
 
     if len(universe) < TARGET:
         print(f"\n⚠️  Got {len(universe)}/{TARGET}. Re-run to continue — cache persists.")
+
+
+def _save_to_db(universe):
+    try:
+        from database import SessionLocal, Stock, init_db, upsert
+        from datetime import datetime as _dt
+        init_db()
+        db = SessionLocal()
+        for s in universe:
+            upsert(db, Stock, {
+                "ticker":       s["ticker"],
+                "name":         s.get("name", ""),
+                "sector":       s.get("sector", "Unknown"),
+                "industry":     s.get("industry", "Unknown"),
+                "country":      s.get("country", "Unknown"),
+                "mkt_cap":      s.get("mkt_cap", 0),
+                "cap_size":     s.get("cap_size", "Micro Cap"),
+                "price":        s.get("price", 0),
+                "exchange":     s.get("exchange", ""),
+                "rank":         s.get("rank", 9999),
+                "last_updated": _dt.utcnow(),
+            })
+        db.commit()
+        db.close()
+        print(f"  ✅ Saved {len(universe)} stocks to database")
+    except Exception as e:
+        print(f"  ⚠️  DB save failed: {e}")
 
 
 if __name__ == "__main__":

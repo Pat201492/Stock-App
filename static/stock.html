@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Detail — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="breadcrumb"><a href="/">← Back to Screener</a></div>
+
+  <!-- Header -->
+  <div class="stock-header" id="stock-header">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Valuation models -->
+  <div class="grid-3" id="val-grid" style="display:none">
+    <div class="card val-card" id="dcf-card">
+      <div class="model-name">DCF Model</div>
+      <div class="fair-value" id="dcf-fv">—</div>
+      <div class="upside" id="dcf-up">—</div>
+      <div class="signal" id="dcf-sig">—</div>
+    </div>
+    <div class="card val-card" id="comps-card">
+      <div class="model-name">Comparable Companies</div>
+      <div class="fair-value" id="comps-fv">—</div>
+      <div class="upside" id="comps-up">—</div>
+      <div class="signal" id="comps-sig">—</div>
+    </div>
+    <div class="card val-card" id="m3-card">
+      <div class="model-name">EPV / Graham</div>
+      <div class="fair-value" id="m3-fv">—</div>
+      <div class="upside" id="m3-up">—</div>
+      <div class="signal" id="m3-sig">—</div>
+    </div>
+  </div>
+
+  <!-- Price chart -->
+  <div class="card" style="margin-bottom:20px" id="chart-card" style="display:none">
+    <div class="card-title">Price History (1Y)</div>
+    <div class="chart-container">
+      <canvas id="price-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Fundamentals -->
+  <div class="grid-2" id="fund-grid" style="display:none">
+    <div class="card">
+      <div class="card-title">Income & Profitability</div>
+      <div class="metrics-grid" id="metrics-income"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Growth (CAGRs)</div>
+      <div class="metrics-grid" id="metrics-growth"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Balance Sheet & Leverage</div>
+      <div class="metrics-grid" id="metrics-balance"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Rule #1 Metrics</div>
+      <div class="metrics-grid" id="metrics-rule1"></div>
+    </div>
+  </div>
+
+  <!-- News -->
+  <div class="card" id="news-card" style="display:none">
+    <div class="card-title">Recent News</div>
+    <div id="news-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+  </div>
+</div>
+
+<script src="/static/stock.js"></script>
+</body>
+</html>

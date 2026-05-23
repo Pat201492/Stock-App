@@ -48,7 +48,8 @@ OUTPUT_FILE       = "model.json"
 BATCH_SIZE  = 50
 SLEEP_SEC   = 2
 MAX_RETRIES = 2
-MIN_PEERS   = 5  # minimum peers for comps; expands to sector if below this
+MIN_PEERS   = 5
+STALE_DAYS  = 7   # recompute valuation if older than this
 
 # ── DCF parameters ────────────────────────────────────────────────────────────
 DCF_YEARS      = 10
@@ -861,26 +862,76 @@ def _print_assumptions():
     print()
 
 
+def _stale_valuation_tickers(tickers):
+    """Return tickers whose valuation is missing or older than fundamentals."""
+    try:
+        from database import SessionLocal, Fundamentals, Valuation
+        from datetime import datetime as _dt
+        db = SessionLocal()
+        fund_rows = {r.ticker: r.last_updated
+                     for r in db.query(Fundamentals.ticker, Fundamentals.last_updated)
+                     .filter(Fundamentals.ticker.in_(tickers)).all()}
+        val_rows  = {r.ticker: r.last_updated
+                     for r in db.query(Valuation.ticker, Valuation.last_updated)
+                     .filter(Valuation.ticker.in_(tickers)).all()}
+        db.close()
+        stale = []
+        for t in tickers:
+            f_upd = fund_rows.get(t)
+            v_upd = val_rows.get(t)
+            if v_upd is None:
+                stale.append(t)
+            elif f_upd and f_upd > v_upd:
+                stale.append(t)
+            elif v_upd and (_dt.utcnow() - v_upd).days >= STALE_DAYS:
+                stale.append(t)
+        return set(stale)
+    except Exception:
+        return set(tickers)
+
+
 def main():
     print("=" * 55)
     print("  model.py — DCF + Comps + EPV/Graham")
     print("=" * 55)
     _print_assumptions()
 
+    # Load fundamentals — prefer DB, fall back to JSON
     try:
-        with open(FUNDAMENTALS_FILE) as f:
-            fund = json.load(f)
-        stocks = fund["stocks"]
-        print(f"Loaded {len(stocks)} stocks from {FUNDAMENTALS_FILE}")
-    except FileNotFoundError:
-        print(f"❌ {FUNDAMENTALS_FILE} not found — run fundamentals.py first")
-        return
+        from database import SessionLocal, Fundamentals, init_db
+        init_db()
+        db = SessionLocal()
+        rows = db.query(Fundamentals).all()
+        db.close()
+        if rows:
+            from datetime import datetime as _dt
+            def _row_to_dict(r):
+                # Exclude datetime columns — they confuse numeric helpers downstream
+                return {c.name: getattr(r, c.name)
+                        for c in r.__table__.columns
+                        if not isinstance(getattr(r, c.name), _dt)}
+            stocks = [_row_to_dict(r) for r in rows]
+            print(f"Loaded {len(stocks)} stocks from DB")
+        else:
+            raise ValueError("DB empty")
+    except Exception:
+        try:
+            with open(FUNDAMENTALS_FILE) as f:
+                fund = json.load(f)
+            stocks = fund["stocks"]
+            print(f"Loaded {len(stocks)} stocks from {FUNDAMENTALS_FILE}")
+        except FileNotFoundError:
+            print(f"❌ {FUNDAMENTALS_FILE} not found — run fundamentals.py first")
+            return
 
-    # ── Momentum fetch ────────────────────────────────────────────────────────
-    # load_cache / save_cache from data_utils replaces the duplicate
-    # load_mom_cache / save_mom_cache helpers that were here before.
+    all_tickers = [s["ticker"] for s in stocks]
+    stale = _stale_valuation_tickers(all_tickers)
+    fresh_count = len(all_tickers) - len(stale)
+    print(f"Fresh valuations (skip): {fresh_count}  |  Stale (recompute): {len(stale)}")
+
+    # ── Momentum fetch — always refresh for ALL stocks (live prices) ──────────
     mom_cache = load_cache(CACHE_FILE)
-    tickers   = [s["ticker"] for s in stocks]
+    tickers   = all_tickers
     print(f"\nMomentum cache: {len(mom_cache)} done  |  "
           f"Remaining: {len([t for t in tickers if t not in mom_cache])}")
 
@@ -912,12 +963,15 @@ def main():
     sizes = [len(v) for v in peer_groups.values()]
     print(f"  Avg peers per stock: {round(sum(sizes) / len(sizes)) if sizes else 0}")
 
-    # ── Run all three models ───────────────────────────────────────────────────
+    # ── Run all three models — only for stale tickers ─────────────────────────
     print("Running DCF + Comps + EPV/Graham valuations …")
     results = []
     dcf_ok = comps_ok = m3_ok = all3_ok = 0
 
     for s in stocks:
+        # Always update momentum fields in DB; skip heavy models if fresh
+        if s["ticker"] not in stale:
+            continue
         ticker       = s["ticker"]
         peers        = peer_groups.get(ticker, [])
         dcf_result   = calc_dcf(s)
@@ -932,16 +986,25 @@ def main():
                 and m3_result.get("m3_fair_value")  is not None):
             all3_ok += 1
 
+        from data_utils import score_stock
+        merged = {**s, **dcf_result, **comps_result, **m3_result}
+        # Provide valuation dicts score_stock expects
+        _dcf   = {"dcf_upside_pct": dcf_result.get("dcf_upside_pct"),
+                  "dcf_mos_price":  dcf_result.get("dcf_mos_price")}
+        _comps = {"comps_upside_pct": comps_result.get("comps_upside_pct")}
+        _m3    = {"m3_upside_pct": m3_result.get("m3_upside_pct")}
+        scorecard = score_stock(merged, dcf=_dcf, comps=_comps, m3=_m3)
         results.append({
-            **s,
-            **dcf_result,
-            **comps_result,
-            **m3_result,
-            "combined_signal": combined_signal(
+            **merged,
+            "combined_signal":  combined_signal(
                 dcf_result["dcf_signal"],
                 comps_result["comps_signal"],
                 m3_result.get("m3_signal"),
             ),
+            "score_composite": scorecard["composite"],
+            "score_label":     scorecard["rec_label"],
+            "score_stars":     scorecard["rec_stars"],
+            "avg_upside":      scorecard["avg_upside"],
         })
 
     out = {
@@ -956,6 +1019,8 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(out, f, indent=2)
 
+    _save_to_db(results)
+
     print(f"\n✅ Model saved: {len(results)} stocks → {OUTPUT_FILE}")
     print(f"   DCF computed:        {dcf_ok}   ({round(dcf_ok/len(results)*100)}%)")
     print(f"   Comps computed:      {comps_ok}   ({round(comps_ok/len(results)*100)}%)")
@@ -969,6 +1034,45 @@ def main():
     print("\nCombined Signal Summary:")
     for k, v in sorted(sigs.items(), key=lambda x: x[1], reverse=True):
         print(f"  {k}: {v}")
+
+
+def _save_to_db(results):
+    # Map from result dict keys → Valuation column names
+    _FIELD_MAP = {
+        "dcf_intrinsic":    "dcf_fair_value",
+        "dcf_mos_price":    "dcf_mos_price",
+        "dcf_upside_pct":   "dcf_upside_pct",
+        "dcf_signal":       "dcf_signal",
+        "dcf_wacc":         "dcf_wacc",
+        "dcf_growth_rate":  "dcf_growth",
+        "comps_fair_value": "comps_fair_value",
+        "comps_upside_pct": "comps_upside_pct",
+        "comps_signal":     "comps_signal",
+        "comps_peer_count": "comps_peers",
+        "m3_fair_value":    "m3_fair_value",
+        "m3_upside_pct":    "m3_upside_pct",
+        "m3_signal":        "m3_signal",
+        "score_composite":  "score_composite",
+        "score_label":      "score_label",
+        "score_stars":      "score_stars",
+        "avg_upside":       "avg_upside",
+    }
+    try:
+        from database import SessionLocal, Valuation, init_db, upsert
+        from datetime import datetime as _dt
+        init_db()
+        db = SessionLocal()
+        for s in results:
+            row = {"ticker": s["ticker"], "last_updated": _dt.utcnow()}
+            for src, dst in _FIELD_MAP.items():
+                if src in s and s[src] is not None:
+                    row[dst] = s[src]
+            upsert(db, Valuation, row)
+        db.commit()
+        db.close()
+        print(f"  ✅ Saved {len(results)} valuations to database")
+    except Exception as e:
+        print(f"  ⚠️  DB save failed: {e}")
 
 
 if __name__ == "__main__":

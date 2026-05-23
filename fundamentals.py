@@ -33,6 +33,7 @@ OUTPUT_FILE   = "fundamentals.json"
 BATCH_SIZE    = 20
 SLEEP_SEC     = 3
 MAX_RETRIES   = 2
+STALE_DAYS    = 7   # re-fetch if DB record older than this
 
 
 # ── Shared series builder ─────────────────────────────────────────────────────
@@ -497,27 +498,72 @@ def fetch_batch(tickers):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _fresh_tickers(tickers):
+    """Return set of tickers already in DB updated within STALE_DAYS."""
+    try:
+        from database import SessionLocal, Fundamentals
+        from datetime import datetime as _dt, timezone
+        cutoff = _dt.utcnow().replace(tzinfo=None)
+        db = SessionLocal()
+        rows = (
+            db.query(Fundamentals.ticker, Fundamentals.last_updated)
+            .filter(Fundamentals.ticker.in_(tickers))
+            .all()
+        )
+        db.close()
+        fresh = set()
+        for ticker, updated in rows:
+            if updated and (_dt.utcnow() - updated).days < STALE_DAYS:
+                fresh.add(ticker)
+        return fresh
+    except Exception:
+        return set()
+
+
 def main():
     print("=" * 55)
     print("  fundamentals.py")
     print("=" * 55)
 
+    # Load universe — prefer DB, fall back to JSON
     try:
-        with open(UNIVERSE_FILE) as f:
-            uni = json.load(f)
-        uni_map = {s["ticker"]: s for s in uni["stocks"]}
-        tickers = [s["ticker"] for s in uni["stocks"]]
-        print(f"Universe: {len(tickers)} tickers")
-    except FileNotFoundError:
-        print(f"❌ {UNIVERSE_FILE} not found — run universe.py first")
-        return
+        from database import SessionLocal, Stock, init_db
+        init_db()
+        db = SessionLocal()
+        rows = db.query(Stock.ticker, Stock.name, Stock.sector, Stock.industry,
+                        Stock.cap_size, Stock.rank).order_by(Stock.rank).all()
+        db.close()
+        if rows:
+            uni_map = {r.ticker: {"ticker": r.ticker, "name": r.name,
+                                  "sector": r.sector, "industry": r.industry,
+                                  "cap_size": r.cap_size, "rank": r.rank}
+                       for r in rows}
+            tickers = [r.ticker for r in rows]
+            print(f"Universe: {len(tickers)} tickers (from DB)")
+        else:
+            raise ValueError("DB empty")
+    except Exception:
+        try:
+            with open(UNIVERSE_FILE) as f:
+                uni = json.load(f)
+            uni_map = {s["ticker"]: s for s in uni["stocks"]}
+            tickers = [s["ticker"] for s in uni["stocks"]]
+            print(f"Universe: {len(tickers)} tickers (from JSON)")
+        except FileNotFoundError:
+            print(f"❌ {UNIVERSE_FILE} not found — run universe.py first")
+            return
+
+    # Skip tickers that are fresh in the DB
+    fresh = _fresh_tickers(tickers)
+    stale = [t for t in tickers if t not in fresh]
+    print(f"Fresh (skip): {len(fresh)}  |  Stale (fetch): {len(stale)}")
 
     cache = load_cache(CACHE_FILE)
-    print(f"Cache: {len(cache)} done  |  Remaining: {len([t for t in tickers if t not in cache])}")
+    print(f"JSON cache: {len(cache)} entries")
 
     # run_batches handles the main loop + retry pass — no duplicate loop needed
     cache = run_batches(
-        items=tickers,
+        items=stale,
         fetch_fn=fetch_batch,
         cache=cache,
         cache_path=CACHE_FILE,
@@ -561,10 +607,49 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(out, f, indent=2)
 
+    _save_to_db(final)
+
     print(f"\n✅ Fundamentals: {len(final)} stocks → {OUTPUT_FILE}")
     print("\nData Quality:")
     for k, v in quality_buckets.items():
         print(f"  {k}: {v}")
+
+
+def _save_to_db(stocks):
+    _FUND_FIELDS = [
+        "name","sector","industry","cap_size","rank","price",
+        "rev_now","gross_profit","operating_income","net_income","ebitda",
+        "eps_ttm","eps_fwd","operating_cf","capex","fcf","fcf_3yr_avg_raw",
+        "total_debt","cash","equity","shares","bvps","net_debt","mkt_cap_raw",
+        "pe","fwd_pe","ev_ebitda","ps","pb","peg",
+        "d_to_e","d_to_ebitda","int_cov","curr_ratio",
+        "roic","roe","roa","gross_margin","op_margin","net_margin","fcf_margin",
+        "rev_cagr_1y","rev_cagr_3y","rev_cagr_5y","rev_cagr_10y",
+        "eps_cagr_1y","eps_cagr_3y","eps_cagr_5y","eps_cagr_10y",
+        "fcf_cagr_1y","fcf_cagr_3y","fcf_cagr_5y","fcf_cagr_10y",
+        "bvps_cagr_1y","bvps_cagr_3y","bvps_cagr_5y","bvps_cagr_10y",
+        "roic_avg_1y","roic_avg_3y","roic_avg_5y","roic_avg_10y","roic_improving",
+        "rule1_roic","rule1_eps","rule1_sales","rule1_equity","rule1_fcf",
+        "rule1_passes","longevity_score","longevity_rank",
+        "data_quality","next_earnings","eps_surprise",
+        "analyst_mean","analyst_rec","num_analysts","ret_1y","rsi","ma_ratio",
+    ]
+    try:
+        from database import SessionLocal, Fundamentals, init_db, upsert
+        from datetime import datetime as _dt
+        init_db()
+        db = SessionLocal()
+        for s in stocks:
+            row = {"ticker": s["ticker"], "last_updated": _dt.utcnow()}
+            for f in _FUND_FIELDS:
+                if f in s:
+                    row[f] = s[f]
+            upsert(db, Fundamentals, row)
+        db.commit()
+        db.close()
+        print(f"  ✅ Saved {len(stocks)} fundamentals to database")
+    except Exception as e:
+        print(f"  ⚠️  DB save failed: {e}")
 
 
 if __name__ == "__main__":
