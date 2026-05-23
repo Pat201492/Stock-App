@@ -6,6 +6,8 @@ stock-stracker-*.json
 
 # Database (local only)
 stocks.db
+stocks.db-shm
+stocks.db-wal
 
 # Generated outputs
 *.xlsx
