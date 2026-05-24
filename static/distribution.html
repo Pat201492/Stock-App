@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Score Distribution — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/distribution" class="active">Score Distribution</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Score Distribution</h2>
+  <p style="color:var(--muted);margin-bottom:24px;font-size:13px">
+    How scores are spread across all <span id="total-scored">—</span> scored stocks
+  </p>
+
+  <!-- Threshold summary cards -->
+  <div class="threshold-cards" id="threshold-cards">
+    <div class="loading"><div class="spinner"></div>Loading…</div>
+  </div>
+
+  <!-- Histogram -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Score Histogram (10-point buckets)</div>
+    <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">
+      Mean: <span id="stat-mean">—</span> &nbsp;·&nbsp;
+      P25: <span id="stat-p25">—</span> &nbsp;·&nbsp;
+      Median: <span id="stat-p50">—</span> &nbsp;·&nbsp;
+      P75: <span id="stat-p75">—</span>
+    </div>
+    <div id="histogram"></div>
+  </div>
+
+  <!-- By label -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">By Recommendation Label</div>
+    <div id="by-label"></div>
+  </div>
+
+  <!-- By sector -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">By Sector — Average Score</div>
+    <div id="by-sector" style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="color:var(--muted);text-align:left">
+            <th style="padding:6px 8px">Sector</th>
+            <th style="padding:6px 8px;text-align:right"># Stocks</th>
+            <th style="padding:6px 8px;text-align:right">Avg Score</th>
+            <th style="padding:6px 8px;text-align:right"># BUY+</th>
+            <th style="padding:6px 8px;text-align:right">% BUY+</th>
+          </tr>
+        </thead>
+        <tbody id="sector-body">
+          <tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const LABEL_COLORS = {
+  "STRONG BUY": "#22c55e",
+  "BUY":        "#3b82f6",
+  "WATCHLIST":  "#f59e0b",
+  "HOLD":       "#f97316",
+  "CAUTION":    "#ef4444",
+  "AVOID":      "#7f1d1d",
+};
+
+async function init() {
+  const data = await fetch("/api/stats/distribution").then(r => r.json()).catch(() => null);
+  if (!data) {
+    document.querySelector(".container").innerHTML += `<div class="empty">Failed to load distribution data.</div>`;
+    return;
+  }
+
+  const { histogram, by_label, by_sector, threshold_pass, stats } = data;
+
+  document.getElementById("total-scored").textContent = stats.total_scored.toLocaleString();
+  document.getElementById("stat-mean").textContent = stats.mean ?? "—";
+  document.getElementById("stat-p25").textContent  = stats.p25  ?? "—";
+  document.getElementById("stat-p50").textContent  = stats.p50  ?? "—";
+  document.getElementById("stat-p75").textContent  = stats.p75  ?? "—";
+
+  // Threshold cards
+  document.getElementById("threshold-cards").innerHTML = threshold_pass.map(t => `
+    <div class="threshold-card">
+      <div class="t-label">${t.label}</div>
+      <div class="t-count">${t.count.toLocaleString()}</div>
+      <div class="t-pct">${t.pct}% of universe</div>
+    </div>
+  `).join("");
+
+  // Histogram
+  const maxCount = Math.max(...histogram.map(h => h.count), 1);
+  document.getElementById("histogram").innerHTML = histogram.map(h => {
+    const pct = Math.round(h.count / maxCount * 100);
+    const bucket = parseInt(h.range);
+    const color = bucket >= 70 ? "#22c55e" : bucket >= 55 ? "#3b82f6" : bucket >= 40 ? "#f59e0b" : "#ef4444";
+    return `
+      <div class="dist-bar-row">
+        <span class="dist-bar-label">${h.range}</span>
+        <div class="dist-bar-track">
+          <div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <span class="dist-bar-count">${h.count.toLocaleString()}</span>
+      </div>`;
+  }).join("");
+
+  // By label
+  const maxLabelCount = Math.max(...by_label.map(l => l.count), 1);
+  document.getElementById("by-label").innerHTML = by_label.map(l => {
+    const pct = Math.round(l.count / maxLabelCount * 100);
+    const color = LABEL_COLORS[l.label] || "#94a3b8";
+    return `
+      <div class="dist-bar-row">
+        <span class="dist-bar-label" style="width:100px;text-align:right;color:${color};font-weight:600">${l.label}</span>
+        <div class="dist-bar-track">
+          <div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <span class="dist-bar-count">${l.count.toLocaleString()} <span style="color:var(--muted)">(${l.pct}%)</span></span>
+      </div>`;
+  }).join("");
+
+  // By sector
+  document.getElementById("sector-body").innerHTML = by_sector.map(s => {
+    const buyPct = s.count > 0 ? (s.buy_count / s.count * 100).toFixed(1) : "0.0";
+    const scoreColor = s.avg_score >= 55 ? "#22c55e" : s.avg_score >= 40 ? "#f59e0b" : "#ef4444";
+    return `
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:7px 8px">${s.sector}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--muted)">${s.count}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:600;color:${scoreColor}">${s.avg_score}</td>
+        <td style="padding:7px 8px;text-align:right">${s.buy_count}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--muted)">${buyPct}%</td>
+      </tr>`;
+  }).join("");
+}
+
+init();
+</script>
+</body>
+</html>
