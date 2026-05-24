@@ -16,9 +16,16 @@ from sqlalchemy import func, or_, text
 
 from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, SessionLocal
 from data_utils import score_stock
+from politicians_database import (
+    get_pol_db, init_pol_db,
+    Politician, Committee, CommitteeMembership,
+    CongressionalTrade, InsiderTrade, PolTickerMetadata,
+    SessionLocal as PolSessionLocal,
+)
 
 app = FastAPI(title="Stock Tracker")
 init_db()
+init_pol_db()
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
