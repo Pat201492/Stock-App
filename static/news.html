@@ -113,10 +113,14 @@ async function refreshNews() {
 
   await fetch("/api/pipeline/run?from_script=news", { method: "POST" }).catch(() => null);
 
-  // Poll until pipeline done
+  // Wait 2s for server to flip running=true before polling
+  let seenRunning = false;
+  await new Promise(r => setTimeout(r, 2000));
+
   const poll = setInterval(async () => {
     const status = await fetch("/api/pipeline/status").then(r => r.json()).catch(() => null);
-    if (!status || !status.running) {
+    if (status && status.running) seenRunning = true;
+    if (seenRunning && status && !status.running) {
       clearInterval(poll);
       document.getElementById("running-state").style.display = "none";
       document.getElementById("btn-refresh").disabled = false;
