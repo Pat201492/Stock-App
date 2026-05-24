@@ -297,6 +297,43 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { text-align: center; padding: 48px; color: var(--muted); }
 
+/* ── Score breakdown ─────────────────────────────────────────── */
+.score-category { margin-bottom: 20px; }
+.score-cat-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.score-cat-name  { font-weight: 600; font-size: 13px; min-width: 160px; }
+.score-cat-weight { color: var(--muted); font-size: 11px; min-width: 60px; }
+.score-cat-bar   { flex: 1; height: 8px !important; }
+.score-cat-pts   { font-weight: 700; font-size: 13px; min-width: 44px; text-align: right; }
+.score-items     { margin-left: 8px; }
+.score-item {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0; font-size: 12px;
+}
+.score-item-label { width: 160px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.score-bar-track  { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.score-bar-fill   { height: 100%; border-radius: 3px; transition: width .4s; }
+.score-item-val   { width: 70px; text-align: right; color: var(--text); }
+.score-item-pts   { width: 36px; text-align: right; color: var(--muted); font-size: 11px; }
+
+/* ── Distribution page ───────────────────────────────────────── */
+.dist-bar-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; }
+.dist-bar-label { width: 80px; color: var(--muted); text-align: right; font-size: 12px; }
+.dist-bar-track { flex: 1; height: 18px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.dist-bar-fill  { height: 100%; border-radius: 4px; background: var(--accent); transition: width .4s; }
+.dist-bar-count { width: 50px; color: var(--text); font-size: 12px; }
+.threshold-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.threshold-card  {
+  flex: 1; min-width: 160px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; text-align: center;
+}
+.threshold-card .t-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.threshold-card .t-count { font-size: 28px; font-weight: 700; color: var(--text); }
+.threshold-card .t-pct   { font-size: 13px; color: var(--accent); }
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .grid-3 { grid-template-columns: 1fr; }

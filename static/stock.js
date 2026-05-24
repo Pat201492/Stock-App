@@ -2,11 +2,12 @@ const ticker = location.pathname.split("/").pop().toUpperCase();
 document.title = `${ticker} — Stock Tracker`;
 
 async function init() {
-  const [detail, news, prices, livePrice] = await Promise.all([
+  const [detail, news, prices, livePrice, scoreData] = await Promise.all([
     fetch(`/api/stocks/${ticker}`).then(r => r.json()).catch(() => null),
     fetch(`/api/live/news/${ticker}`).then(r => r.json()).catch(() => []),
     fetch(`/api/price/${ticker}`).then(r => r.json()).catch(() => []),
     fetch(`/api/live/price/${ticker}`).then(r => r.json()).catch(() => null),
+    fetch(`/api/stocks/${ticker}/score`).then(r => r.json()).catch(() => null),
   ]);
 
   // Stock not in DB yet — still show live data if available
@@ -49,6 +50,7 @@ async function init() {
   }
   renderHeader(detail);
   renderValuations(detail.valuation);
+  renderScoreBreakdown(scoreData);
   renderFundamentals(detail.fundamentals);
   renderNews(news);
   if (prices.length) renderChart(prices);
@@ -107,6 +109,41 @@ function renderValuations(v) {
     }
     document.getElementById(`${id}-sig`).textContent = sig || "";
   });
+}
+
+// ── Score breakdown ───────────────────────────────────────────────────────────
+function renderScoreBreakdown(data) {
+  if (!data || data.error || !data.categories) return;
+  const card = document.getElementById("score-card");
+  card.style.display = "block";
+
+  const html = data.categories.map(cat => {
+    const pct   = cat.score;
+    const color = cat.score >= 70 ? "var(--green)" : cat.score >= 50 ? "var(--yellow)" : "var(--red)";
+    const itemsHtml = cat.items.map(it => {
+      const itPct = it.max > 0 ? Math.round(it.score / it.max * 100) : 0;
+      return `
+        <div class="score-item">
+          <span class="score-item-label">${it.label}</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${itPct}%;background:${color}"></div></div>
+          <span class="score-item-val">${it.display}</span>
+          <span class="score-item-pts">${it.score}/${it.max}</span>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="score-category">
+        <div class="score-cat-header">
+          <span class="score-cat-name">${cat.name}</span>
+          <span class="score-cat-weight">${cat.weight}% weight</span>
+          <div class="score-bar-track score-cat-bar"><div class="score-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="score-cat-pts" style="color:${color}">${cat.score}/100</span>
+        </div>
+        <div class="score-items">${itemsHtml}</div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("score-breakdown").innerHTML = html;
 }
 
 // ── Fundamentals ──────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 
 from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory
+from data_utils import score_stock
 
 app = FastAPI(title="Stock Tracker")
 init_db()
@@ -310,6 +311,130 @@ def run_pipeline(from_script: Optional[str] = None):
 
     threading.Thread(target=_run, daemon=True).start()
     return {"started": True}
+
+
+# ── Score breakdown ───────────────────────────────────────────────────────────
+
+@app.get("/api/stocks/{ticker}/score")
+def get_score_breakdown(ticker: str, db: Session = Depends(get_db)):
+    ticker = ticker.upper()
+    fund = db.query(Fundamentals).filter(Fundamentals.ticker == ticker).first()
+    if not fund:
+        return JSONResponse(status_code=404, content={"error": "No fundamentals data"})
+    val = db.query(Valuation).filter(Valuation.ticker == ticker).first()
+
+    stock_dict = {col.name: getattr(fund, col.name) for col in fund.__table__.columns
+                  if not isinstance(getattr(fund, col.name), datetime)}
+    dcf   = {"dcf_upside_pct": val.dcf_upside_pct, "dcf_mos_price": val.dcf_mos_price} if val else {}
+    comps = {"comps_upside_pct": val.comps_upside_pct} if val else {}
+    m3    = {"m3_upside_pct": val.m3_upside_pct} if val else {}
+
+    result = score_stock(stock_dict, dcf=dcf, comps=comps, m3=m3)
+
+    categories_out = []
+    for cat_name, cat in result["categories"].items():
+        categories_out.append({
+            "name":   cat_name,
+            "weight": cat["weight"],
+            "score":  cat["score"],
+            "items":  [{"label": it[0], "score": it[1], "max": it[2], "display": it[3]}
+                       for it in cat["items"]],
+        })
+
+    return {
+        "ticker":     ticker,
+        "composite":  result["composite"],
+        "label":      result["rec_label"],
+        "avg_upside": result["avg_upside"],
+        "categories": categories_out,
+    }
+
+
+# ── Score distribution ────────────────────────────────────────────────────────
+
+@app.get("/api/stats/distribution")
+def score_distribution(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+
+    total = db.query(func.count(Valuation.ticker)).filter(
+        Valuation.score_composite.isnot(None)).scalar() or 1
+
+    # 10-point histogram buckets
+    hist_rows = db.execute(text("""
+        SELECT (score_composite / 10) * 10 AS bucket, COUNT(*) AS cnt
+        FROM valuations WHERE score_composite IS NOT NULL
+        GROUP BY bucket ORDER BY bucket
+    """)).fetchall()
+    bucket_map = {r[0]: r[1] for r in hist_rows}
+    histogram = [{"range": f"{b}-{b+9}", "count": bucket_map.get(b, 0)} for b in range(0, 100, 10)]
+
+    # P25 / P50 / P75 from histogram walk
+    cumulative, p25, p50, p75 = 0, None, None, None
+    for b in range(0, 100, 10):
+        cumulative += bucket_map.get(b, 0)
+        if p25 is None and cumulative >= total * 0.25: p25 = b + 5
+        if p50 is None and cumulative >= total * 0.50: p50 = b + 5
+        if p75 is None and cumulative >= total * 0.75: p75 = b + 5
+
+    stats_row = db.execute(text("""
+        SELECT ROUND(AVG(score_composite),1), MIN(score_composite), MAX(score_composite)
+        FROM valuations WHERE score_composite IS NOT NULL
+    """)).fetchone()
+
+    # By label
+    label_rows = db.execute(text("""
+        SELECT score_label, COUNT(*) FROM valuations
+        WHERE score_label IS NOT NULL GROUP BY score_label
+    """)).fetchall()
+    label_order = ["STRONG BUY", "BUY", "WATCHLIST", "HOLD", "CAUTION", "AVOID"]
+    label_map = {r[0]: r[1] for r in label_rows}
+    by_label = [{"label": lbl, "count": label_map.get(lbl, 0),
+                 "pct": round(label_map.get(lbl, 0) / total * 100, 1)}
+                for lbl in label_order]
+
+    # By sector
+    sector_rows = db.execute(text("""
+        SELECT s.sector, COUNT(*) AS cnt,
+               ROUND(AVG(v.score_composite), 1) AS avg_score,
+               SUM(CASE WHEN v.score_composite >= 70 THEN 1 ELSE 0 END) AS buy_count
+        FROM stocks s JOIN valuations v ON s.ticker = v.ticker
+        WHERE s.sector IS NOT NULL AND s.sector NOT IN ('Unknown','')
+          AND v.score_composite IS NOT NULL
+        GROUP BY s.sector ORDER BY avg_score DESC
+    """)).fetchall()
+    by_sector = [{"sector": r[0], "count": r[1], "avg_score": r[2], "buy_count": r[3]}
+                 for r in sector_rows]
+
+    # Threshold pass rates
+    threshold_pass = []
+    for threshold, label in [(55, "WATCHLIST+"), (70, "BUY+"), (85, "STRONG BUY")]:
+        cnt = db.query(func.count(Valuation.ticker)).filter(
+            Valuation.score_composite >= threshold).scalar() or 0
+        threshold_pass.append({"threshold": threshold, "label": label,
+                                "count": cnt, "pct": round(cnt / total * 100, 1)})
+
+    return {
+        "histogram":      histogram,
+        "by_label":       by_label,
+        "by_sector":      by_sector,
+        "threshold_pass": threshold_pass,
+        "stats": {
+            "mean":        stats_row[0],
+            "min_score":   stats_row[1],
+            "max_score":   stats_row[2],
+            "p25":         p25,
+            "p50":         p50,
+            "p75":         p75,
+            "total_scored": total,
+        },
+    }
+
+
+# ── Extra page routes ─────────────────────────────────────────────────────────
+
+@app.get("/distribution")
+def distribution_page():
+    return FileResponse(os.path.join(STATIC_DIR, "distribution.html"))
 
 
 if __name__ == "__main__":
