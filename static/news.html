@@ -25,6 +25,7 @@
     <h2 style="font-size:20px;font-weight:700">Market News Feed</h2>
     <span id="article-count" style="color:var(--muted);font-size:13px"></span>
     <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-outline btn-sm" id="btn-refresh" onclick="refreshNews()">↻ Refresh News</button>
       <input type="text" id="ticker-filter" placeholder="Filter by ticker…"
              style="background:var(--surface);border:1px solid var(--border);border-radius:8px;
                     color:var(--text);padding:6px 12px;font-size:13px;outline:none;width:160px"
@@ -40,6 +41,24 @@
     </div>
   </div>
 
+  <!-- Empty state shown when news table has 0 rows -->
+  <div id="empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);
+       border-radius:8px;padding:48px;text-align:center;margin-bottom:20px">
+    <div style="font-size:32px;margin-bottom:16px">📰</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px">No news articles yet</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:24px">
+      The news pipeline hasn't run or returned no results.<br>Click below to fetch news now.
+    </div>
+    <button class="btn btn-primary" onclick="refreshNews()">Fetch News Now</button>
+  </div>
+
+  <div id="running-state" style="display:none;background:var(--surface);border:1px solid var(--border);
+       border-radius:8px;padding:48px;text-align:center;margin-bottom:20px">
+    <div class="spinner" style="margin:0 auto 16px"></div>
+    <div style="color:var(--muted);font-size:13px">Fetching news… this takes ~30 seconds</div>
+  </div>
+
+  <div id="table-section">
   <div class="table-wrap">
     <table>
       <thead>
@@ -60,6 +79,7 @@
   <div style="display:flex;justify-content:center;margin-top:16px;gap:8px">
     <button class="btn btn-outline btn-sm" id="btn-more" onclick="loadMore()" style="display:none">Load More</button>
   </div>
+  </div><!-- end table-section -->
 
 </div>
 
@@ -72,8 +92,41 @@ async function init() {
   const data = await fetch("/api/news?limit=500").then(r => r.json()).catch(() => []);
   allArticles = data;
   displayed   = 0;
-  renderBatch();
-  document.getElementById("article-count").textContent = `${data.length} articles`;
+
+  if (data.length === 0) {
+    document.getElementById("empty-state").style.display = "block";
+    document.getElementById("table-section").style.display = "none";
+    document.getElementById("article-count").textContent = "0 articles";
+  } else {
+    document.getElementById("empty-state").style.display = "none";
+    document.getElementById("table-section").style.display = "block";
+    renderBatch();
+    document.getElementById("article-count").textContent = `${data.length} articles`;
+  }
+}
+
+async function refreshNews() {
+  document.getElementById("empty-state").style.display = "none";
+  document.getElementById("table-section").style.display = "none";
+  document.getElementById("running-state").style.display = "block";
+  document.getElementById("btn-refresh").disabled = true;
+
+  await fetch("/api/pipeline/run?from_script=news", { method: "POST" }).catch(() => null);
+
+  // Wait 2s for server to flip running=true before polling
+  let seenRunning = false;
+  await new Promise(r => setTimeout(r, 2000));
+
+  const poll = setInterval(async () => {
+    const status = await fetch("/api/pipeline/status").then(r => r.json()).catch(() => null);
+    if (status && status.running) seenRunning = true;
+    if (seenRunning && status && !status.running) {
+      clearInterval(poll);
+      document.getElementById("running-state").style.display = "none";
+      document.getElementById("btn-refresh").disabled = false;
+      await init();
+    }
+  }, 3000);
 }
 
 function renderBatch() {
