@@ -23,7 +23,11 @@ init_db()
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-_pipeline_status = {"running": False, "last_run": None, "last_result": None}
+_pipeline_status = {
+    "running": False, "last_run": None, "last_result": None,
+    "current_script": None, "script_index": 0, "script_total": 4,
+    "pct_overall": 0, "log_tail": [],
+}
 
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
@@ -284,33 +288,81 @@ def live_news(ticker: str, limit: int = 10):
 def pipeline_status():
     return _pipeline_status
 
+_SCRIPTS_ALL = ["universe", "fundamentals", "model", "news"]
+
+def _parse_progress(line: str, script_total: int, scripts_run: list):
+    import re
+    m = re.search(r"Starting (\w+)\.py", line)
+    if m:
+        name = m.group(1)
+        if name in scripts_run:
+            idx = scripts_run.index(name)
+            _pipeline_status["current_script"] = f"{name}.py"
+            _pipeline_status["script_index"]   = idx
+            _pipeline_status["pct_overall"]    = int(idx / script_total * 100)
+        return
+    m = re.search(r"✅ (\w+)\.py completed", line)
+    if m:
+        name = m.group(1)
+        if name in scripts_run:
+            idx = scripts_run.index(name)
+            _pipeline_status["pct_overall"] = int((idx + 1) / script_total * 100)
+
+
 @app.post("/api/pipeline/run")
 def run_pipeline(from_script: Optional[str] = None):
     if _pipeline_status["running"]:
         return JSONResponse(status_code=409, content={"error": "Pipeline already running"})
 
+    scripts_run = (
+        _SCRIPTS_ALL[_SCRIPTS_ALL.index(from_script):]
+        if from_script and from_script in _SCRIPTS_ALL
+        else list(_SCRIPTS_ALL)
+    )
+    script_total = len(scripts_run)
+
     def _run():
-        _pipeline_status["running"] = True
-        _pipeline_status["last_run"] = datetime.utcnow().isoformat()
+        _pipeline_status["running"]        = True
+        _pipeline_status["last_run"]       = datetime.utcnow().isoformat()
+        _pipeline_status["current_script"] = None
+        _pipeline_status["script_index"]   = 0
+        _pipeline_status["script_total"]   = script_total
+        _pipeline_status["pct_overall"]    = 0
+        _pipeline_status["log_tail"]       = []
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             cmd = [sys.executable, os.path.join(script_dir, "run.py")]
             if from_script:
                 cmd += ["--from", from_script]
             env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
-            result = subprocess.run(cmd, capture_output=True, text=True,
-                                    cwd=script_dir, env=env)
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding="utf-8", errors="replace",
+                bufsize=1, cwd=script_dir, env=env,
+            )
+            for line in proc.stdout:
+                line = line.rstrip()
+                _pipeline_status["log_tail"] = (_pipeline_status["log_tail"] + [line])[-20:]
+                _parse_progress(line, script_total, scripts_run)
+            proc.wait()
             _pipeline_status["last_result"] = (
-                "success" if result.returncode == 0
-                else f"failed: {result.stderr[-500:]}"
+                "success" if proc.returncode == 0
+                else f"failed (exit {proc.returncode})"
             )
         except Exception as e:
             _pipeline_status["last_result"] = f"error: {e}"
         finally:
-            _pipeline_status["running"] = False
+            _pipeline_status["running"]        = False
+            _pipeline_status["pct_overall"]    = 100 if _pipeline_status["last_result"] == "success" else _pipeline_status["pct_overall"]
+            _pipeline_status["current_script"] = None
 
     threading.Thread(target=_run, daemon=True).start()
     return {"started": True}
+
+
+@app.get("/api/pipeline/log")
+def pipeline_log():
+    return {"lines": _pipeline_status["log_tail"]}
 
 
 # ── Score breakdown ───────────────────────────────────────────────────────────
