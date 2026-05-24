@@ -61,7 +61,7 @@
 </div>
 
 <script>
-const bioguide = location.pathname.split("/").pop();
+const bioguide = location.pathname.split("/").filter(Boolean).pop();
 
 function fmtAmt(min, max) {
   if (min == null) return "—";
