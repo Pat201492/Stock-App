@@ -92,7 +92,7 @@ def _parse_form4_xml(xml_text, filing_id, filed_date):
             ).hexdigest()
 
             trades.append(dict(
-                filing_id         = trade_hash,
+                filing_id         = trade_hash,   # unique per transaction row within filing
                 ticker            = ticker,
                 company_name      = company,
                 insider_name      = insider_name,

@@ -107,18 +107,17 @@ def ingest(full_refresh=False):
                 continue
 
             # Upsert politician stub (full ingest_committees.py fills details)
-            if not db.query(Politician).filter(Politician.bioguide_id == bioguide).first():
-                db.add(Politician(
-                    bioguide_id=bioguide,
-                    first_name=first,
-                    last_name=last,
-                    chamber="senate",
-                    party=row.get("party", ""),
-                    state=row.get("state", ""),
-                    active=True,
-                ))
+            db.merge(Politician(
+                bioguide_id=bioguide,
+                first_name=first,
+                last_name=last,
+                chamber="senate",
+                party=row.get("party", ""),
+                state=row.get("state", ""),
+                active=True,
+            ))
 
-            db.add(CongressionalTrade(
+            db.merge(CongressionalTrade(
                 trade_id         = trade_id,
                 bioguide_id      = bioguide,
                 ticker           = ticker,

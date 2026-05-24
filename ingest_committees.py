@@ -117,10 +117,13 @@ def ingest():
                 bio = m.get("bioguide")
                 if not bio:
                     continue
+                # Use a fixed sentinel date for current memberships so
+                # re-runs don't grow the table — actual start dates aren't
+                # in the membership YAML, only in terms data.
                 db.merge(CommitteeMembership(
                     bioguide_id  = bio,
                     committee_id = cid,
-                    start_date   = date.today(),
+                    start_date   = date(2000, 1, 1),
                     role         = m.get("title", "Member"),
                     end_date     = None,
                 ))
