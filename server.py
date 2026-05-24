@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, text
 
-from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory
+from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, SessionLocal
 from data_utils import score_stock
 
 app = FastAPI(title="Stock Tracker")
@@ -431,7 +431,7 @@ def score_distribution(db: Session = Depends(get_db)):
 # ── Debug / health check ──────────────────────────────────────────────────────
 
 @app.get("/api/debug/health")
-def debug_health(db: Session = Depends(get_db)):
+def debug_health():
     import concurrent.futures, urllib.request, urllib.error
 
     results = []
@@ -447,8 +447,12 @@ def debug_health(db: Session = Depends(get_db)):
         return {"name": name, "status": status, "detail": detail, "latency_ms": ms}
 
     def check_db():
-        count = db.execute(text("SELECT COUNT(*) FROM stocks")).scalar()
-        return "ok", f"{count} stocks in DB"
+        s = SessionLocal()
+        try:
+            count = s.execute(text("SELECT COUNT(*) FROM stocks")).scalar()
+            return "ok", f"{count} stocks in DB"
+        finally:
+            s.close()
 
     def check_ftp_nasdaq():
         req = urllib.request.urlopen(
@@ -470,11 +474,15 @@ def debug_health(db: Session = Depends(get_db)):
         return ("ok" if price else "error"), f"AAPL ${price:.2f}" if price else "no price"
 
     def check_news():
-        count = db.execute(text("SELECT COUNT(*) FROM news")).scalar()
-        if count == 0:
-            return "warn", "0 articles — run news pipeline"
-        newest = db.execute(text("SELECT MAX(published_at) FROM news")).scalar()
-        return "ok", f"{count} articles, newest {newest}"
+        s = SessionLocal()
+        try:
+            count = s.execute(text("SELECT COUNT(*) FROM news")).scalar()
+            if count == 0:
+                return "warn", "0 articles — run news pipeline"
+            newest = s.execute(text("SELECT MAX(published_at) FROM news")).scalar()
+            return "ok", f"{count} articles, newest {newest}"
+        finally:
+            s.close()
 
     def check_run_log():
         log_path = os.path.join(os.path.dirname(__file__), "run.log")
