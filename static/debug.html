@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debug — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/distribution">Score Distribution</a>
+    <a href="/audit">Data Audit</a>
+    <a href="/debug" class="active">Debug</a>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-outline btn-sm" onclick="runChecks()">↻ Re-run Checks</button>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Connection Diagnostics</h2>
+  <p style="color:var(--muted);margin-bottom:24px;font-size:13px">Live health checks for all external dependencies</p>
+
+  <div id="checks-grid" class="grid-2">
+    <div class="loading"><div class="spinner"></div>Running checks…</div>
+  </div>
+</div>
+
+<script>
+async function runChecks() {
+  document.getElementById("checks-grid").innerHTML =
+    `<div class="loading"><div class="spinner"></div>Running checks…</div>`;
+
+  const data = await fetch("/api/debug/health").then(r => r.json()).catch(() => null);
+  if (!data) {
+    document.getElementById("checks-grid").innerHTML =
+      `<div class="empty">Failed to run health checks.</div>`;
+    return;
+  }
+
+  document.getElementById("checks-grid").innerHTML = data.checks.map(c => {
+    const dot   = c.status === "ok" ? "#22c55e" : c.status === "warn" ? "#f59e0b" : "#ef4444";
+    const badge = c.status === "ok" ? "badge-buy" : c.status === "warn" ? "badge-watchlist" : "badge-caution";
+    return `
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${dot};flex-shrink:0"></div>
+          <span style="font-weight:600;font-size:14px;flex:1">${c.name}</span>
+          <span class="badge ${badge}" style="text-transform:uppercase">${c.status}</span>
+          <span style="font-size:11px;color:var(--muted)">${c.latency_ms}ms</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);padding-left:22px">${c.detail}</div>
+      </div>`;
+  }).join("");
+}
+
+runChecks();
+</script>
+</body>
+</html>

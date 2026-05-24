@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Audit — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/distribution">Score Distribution</a>
+    <a href="/audit" class="active">Data Audit</a>
+    <a href="/debug">Debug</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Data Audit</h2>
+  <p style="color:var(--muted);margin-bottom:24px;font-size:13px">
+    Data quality, staleness, and completeness across <span id="total-stocks">—</span> tracked stocks
+  </p>
+
+  <!-- Stale & Completeness -->
+  <div class="grid-2" style="margin-bottom:20px" id="stale-grid">
+    <div class="loading"><div class="spinner"></div>Loading…</div>
+  </div>
+
+  <!-- Script Last Run -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Script Last Run</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tbody id="script-body">
+        <tr><td colspan="3"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Data Quality Distribution -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Data Quality Distribution (10-point buckets)</div>
+    <div id="dq-histogram"></div>
+  </div>
+
+  <!-- Null Fields -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Null Field Rates</div>
+    <div id="null-fields"></div>
+  </div>
+
+  <!-- Outliers -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Outliers & Anomalies</div>
+    <div id="outliers"></div>
+  </div>
+</div>
+
+<script>
+function age(ts) {
+  if (!ts) return "never";
+  const diff = Date.now() - new Date(ts).getTime();
+  const h = Math.floor(diff / 3600000);
+  if (h < 24)  return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function ageColor(ts, warnDays = 2) {
+  if (!ts) return "var(--red)";
+  const days = (Date.now() - new Date(ts).getTime()) / 86400000;
+  return days > warnDays * 2 ? "var(--red)" : days > warnDays ? "var(--yellow)" : "var(--green)";
+}
+
+async function init() {
+  const data = await fetch("/api/audit").then(r => r.json()).catch(() => null);
+  if (!data) {
+    document.querySelector(".container").innerHTML += `<div class="empty">Failed to load audit data.</div>`;
+    return;
+  }
+
+  document.getElementById("total-stocks").textContent = data.total_stocks.toLocaleString();
+
+  // Stale & Completeness
+  const sc = data.score_completeness;
+  const st = data.stale_counts;
+  document.getElementById("stale-grid").innerHTML = `
+    <div class="card">
+      <div class="card-title">Staleness (> 7 days)</div>
+      ${[
+        ["Stocks", st.stocks_stale_7d],
+        ["Fundamentals", st.fundamentals_stale_7d],
+        ["Valuations", st.valuations_stale_7d],
+      ].map(([label, count]) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span style="color:var(--muted)">${label}</span>
+          <span style="font-weight:600;color:${count > 0 ? 'var(--yellow)' : 'var(--green)'}">${count.toLocaleString()}</span>
+        </div>
+      `).join("")}
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px">
+        <span style="color:var(--muted)">News (> 2 days)</span>
+        <span style="font-weight:600;color:${st.news_stale_2d > 0 ? 'var(--yellow)' : 'var(--green)'}">${st.news_stale_2d.toLocaleString()}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Score Completeness</div>
+      ${[
+        ["No Valuation", sc.no_valuation],
+        ["No Fundamentals", sc.no_fundamentals],
+        ["Score Null", sc.score_null],
+      ].map(([label, count]) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span style="color:var(--muted)">${label}</span>
+          <span style="font-weight:600;color:${count > 0 ? 'var(--yellow)' : 'var(--green)'}">${count.toLocaleString()}</span>
+        </div>
+      `).join("")}
+    </div>`;
+
+  // Script last run
+  const sl = data.script_last_run;
+  document.getElementById("script-body").innerHTML = [
+    ["universe.py",       sl.universe],
+    ["fundamentals.py",   sl.fundamentals],
+    ["model.py",          sl.model],
+    ["news.py",           sl.news],
+  ].map(([name, ts]) => `
+    <tr style="border-top:1px solid var(--border)">
+      <td style="padding:8px;font-weight:600">${name}</td>
+      <td style="padding:8px;color:var(--muted);font-size:12px">${ts ? ts.slice(0, 16).replace("T", " ") : "never"}</td>
+      <td style="padding:8px;text-align:right;font-weight:600;color:${ageColor(ts)}">${age(ts)}</td>
+    </tr>
+  `).join("");
+
+  // Data quality histogram
+  const maxDQ = Math.max(...data.data_quality.distribution.map(d => d.count), 1);
+  document.getElementById("dq-histogram").innerHTML = data.data_quality.distribution.map(d => {
+    const pct   = Math.round(d.count / maxDQ * 100);
+    const start = parseInt(d.range);
+    const color = start >= 80 ? "#22c55e" : start >= 60 ? "#f59e0b" : "#ef4444";
+    return `
+      <div class="dist-bar-row">
+        <span class="dist-bar-label">${d.range}</span>
+        <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="dist-bar-count">${d.count.toLocaleString()}</span>
+      </div>`;
+  }).join("");
+
+  // Null fields
+  const nullTotal = data.total_stocks;
+  const maxNull = Math.max(...Object.values(data.null_fields).map(f => f.null_count), 1);
+  document.getElementById("null-fields").innerHTML = Object.entries(data.null_fields).map(([field, f]) => {
+    const pct = Math.round(f.null_count / maxNull * 100);
+    const color = f.pct > 50 ? "#ef4444" : f.pct > 20 ? "#f59e0b" : "#94a3b8";
+    return `
+      <div class="dist-bar-row">
+        <span class="dist-bar-label" style="width:110px">${field}</span>
+        <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="dist-bar-count" style="width:90px">${f.null_count.toLocaleString()} <span style="color:var(--muted)">(${f.pct}%)</span></span>
+      </div>`;
+  }).join("");
+
+  // Outliers
+  const out = data.outliers;
+  document.getElementById("outliers").innerHTML = [
+    ["P/E > 1000",      out.pe_above_1000],
+    ["D/E > 10",        out.d_to_e_above_10],
+    ["ROIC > 100%",     out.roic_above_100],
+    ["Negative Equity", out.negative_equity],
+  ].map(([label, count]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--muted)">${label}</span>
+      <span style="font-weight:700;color:${count > 0 ? 'var(--yellow)' : 'var(--green)'}">${count.toLocaleString()} stocks</span>
+    </div>
+  `).join("");
+}
+
+init();
+</script>
+</body>
+</html>
