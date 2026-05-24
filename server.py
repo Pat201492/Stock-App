@@ -661,6 +661,48 @@ def data_audit(db: Session = Depends(get_db)):
     }
 
 
+# ── Political data refresh trigger ───────────────────────────────────────────
+
+_pol_status = {"running": False, "last_run": None, "last_result": None}
+
+@app.get("/api/pol/status")
+def pol_status():
+    return _pol_status
+
+@app.post("/api/pol/refresh")
+def pol_refresh(step: Optional[str] = None):
+    if _pol_status["running"]:
+        return JSONResponse(status_code=409, content={"error": "Already running"})
+
+    def _run():
+        _pol_status["running"]  = True
+        _pol_status["last_run"] = datetime.utcnow().isoformat()
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            cmd = [sys.executable, os.path.join(script_dir, "pol_refresh.py")]
+            if step:
+                cmd.append(f"--{step}")
+            env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding="utf-8", errors="replace",
+                bufsize=1, cwd=script_dir, env=env,
+            )
+            for line in proc.stdout:
+                pass
+            proc.wait()
+            _pol_status["last_result"] = (
+                "success" if proc.returncode == 0 else f"failed (exit {proc.returncode})"
+            )
+        except Exception as e:
+            _pol_status["last_result"] = f"error: {e}"
+        finally:
+            _pol_status["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"started": True}
+
+
 # ── Extra page routes ─────────────────────────────────────────────────────────
 
 @app.get("/distribution")
