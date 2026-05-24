@@ -12,9 +12,9 @@ from fastapi import FastAPI, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 
-from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory
+from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, SessionLocal
 from data_utils import score_stock
 
 app = FastAPI(title="Stock Tracker")
@@ -354,8 +354,6 @@ def get_score_breakdown(ticker: str, db: Session = Depends(get_db)):
 
 @app.get("/api/stats/distribution")
 def score_distribution(db: Session = Depends(get_db)):
-    from sqlalchemy import text
-
     total = db.query(func.count(Valuation.ticker)).filter(
         Valuation.score_composite.isnot(None)).scalar() or 1
 
@@ -430,11 +428,193 @@ def score_distribution(db: Session = Depends(get_db)):
     }
 
 
+# ── Debug / health check ──────────────────────────────────────────────────────
+
+@app.get("/api/debug/health")
+def debug_health():
+    import concurrent.futures, urllib.request, urllib.error
+
+    results = []
+
+    def _check(name, fn):
+        import time as _time
+        t0 = _time.monotonic()
+        try:
+            status, detail = fn()
+        except Exception as e:
+            status, detail = "error", str(e)[:120]
+        ms = round((_time.monotonic() - t0) * 1000)
+        return {"name": name, "status": status, "detail": detail, "latency_ms": ms}
+
+    def check_db():
+        s = SessionLocal()
+        try:
+            count = s.execute(text("SELECT COUNT(*) FROM stocks")).scalar()
+            return "ok", f"{count} stocks in DB"
+        finally:
+            s.close()
+
+    def check_ftp_nasdaq():
+        req = urllib.request.urlopen(
+            "https://ftp.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", timeout=8)
+        lines = req.read().decode("utf-8").splitlines()
+        return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+
+    def check_ftp_other():
+        req = urllib.request.urlopen(
+            "https://ftp.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", timeout=8)
+        lines = req.read().decode("utf-8").splitlines()
+        return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+
+    def check_yfinance():
+        import yfinance as _yf
+        t = _yf.Ticker("AAPL")
+        info = t.fast_info
+        price = getattr(info, "last_price", None)
+        return ("ok" if price else "error"), f"AAPL ${price:.2f}" if price else "no price"
+
+    def check_news():
+        s = SessionLocal()
+        try:
+            count = s.execute(text("SELECT COUNT(*) FROM news")).scalar()
+            if count == 0:
+                return "warn", "0 articles — run news pipeline"
+            newest = s.execute(text("SELECT MAX(published_at) FROM news")).scalar()
+            return "ok", f"{count} articles, newest {newest}"
+        finally:
+            s.close()
+
+    def check_run_log():
+        log_path = os.path.join(os.path.dirname(__file__), "run.log")
+        if not os.path.exists(log_path):
+            return "warn", "run.log not found"
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+        last = next((l.strip() for l in reversed(lines) if l.strip()), "empty")
+        return "ok", last[:100]
+
+    checks = [
+        ("Database", check_db),
+        ("NASDAQ FTP — nasdaqlisted", check_ftp_nasdaq),
+        ("NASDAQ FTP — otherlisted", check_ftp_other),
+        ("yfinance AAPL spot", check_yfinance),
+        ("News freshness", check_news),
+        ("run.log", check_run_log),
+    ]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(_check, name, fn): name for name, fn in checks}
+        for fut in concurrent.futures.as_completed(futures):
+            results.append(fut.result())
+
+    results.sort(key=lambda r: ["error", "warn", "ok"].index(r["status"]))
+    return {"checks": results}
+
+
+# ── Data audit ────────────────────────────────────────────────────────────────
+
+@app.get("/api/audit")
+def data_audit(db: Session = Depends(get_db)):
+    total = db.execute(text("SELECT COUNT(*) FROM stocks")).scalar() or 1
+
+    # Data quality distribution
+    dq_rows = db.execute(text("""
+        SELECT CAST(data_quality / 10 AS INTEGER) * 10 AS bucket, COUNT(*) AS cnt
+        FROM fundamentals WHERE data_quality IS NOT NULL
+        GROUP BY bucket ORDER BY bucket
+    """)).fetchall()
+    dq_map = {r[0]: r[1] for r in dq_rows}
+    dq_dist = [{"range": f"{b}-{b+9}", "count": dq_map.get(b, 0)} for b in range(0, 100, 10)]
+
+    # Stale counts (> 7 days old)
+    stale = db.execute(text("""
+        SELECT
+          (SELECT COUNT(*) FROM stocks       WHERE last_updated < datetime('now','-7 days')) AS stocks_stale,
+          (SELECT COUNT(*) FROM fundamentals WHERE last_updated < datetime('now','-7 days')) AS fund_stale,
+          (SELECT COUNT(*) FROM valuations   WHERE last_updated < datetime('now','-7 days')) AS val_stale,
+          (SELECT COUNT(*) FROM news         WHERE published_at < datetime('now','-2 days')) AS news_stale
+    """)).fetchone()
+
+    # Null fields
+    null_fields = {}
+    for field in ["roic", "fcf", "eps_cagr_5y", "rev_cagr_5y", "d_to_e",
+                  "int_cov", "gross_margin", "pe", "ev_ebitda"]:
+        cnt = db.execute(text(
+            f"SELECT COUNT(*) FROM fundamentals WHERE {field} IS NULL"
+        )).scalar()
+        null_fields[field] = {"null_count": cnt, "pct": round(cnt / total * 100, 1)}
+
+    # Script last run (proxy: max last_updated per table)
+    script_last = db.execute(text("""
+        SELECT
+          (SELECT MAX(last_updated) FROM stocks)       AS universe,
+          (SELECT MAX(last_updated) FROM fundamentals) AS fundamentals,
+          (SELECT MAX(last_updated) FROM valuations)   AS model,
+          (SELECT MAX(last_updated) FROM news)         AS news
+    """)).fetchone()
+
+    # Outliers
+    outliers = db.execute(text("""
+        SELECT
+          (SELECT COUNT(*) FROM fundamentals WHERE pe > 1000)        AS pe_above_1000,
+          (SELECT COUNT(*) FROM fundamentals WHERE d_to_e > 10)      AS d_to_e_above_10,
+          (SELECT COUNT(*) FROM fundamentals WHERE roic > 100)       AS roic_above_100,
+          (SELECT COUNT(*) FROM fundamentals WHERE equity < 0)       AS negative_equity
+    """)).fetchone()
+
+    # Score completeness
+    completeness = db.execute(text("""
+        SELECT
+          (SELECT COUNT(*) FROM stocks s WHERE NOT EXISTS
+            (SELECT 1 FROM valuations v WHERE v.ticker = s.ticker)) AS no_valuation,
+          (SELECT COUNT(*) FROM stocks s WHERE NOT EXISTS
+            (SELECT 1 FROM fundamentals f WHERE f.ticker = s.ticker)) AS no_fundamentals,
+          (SELECT COUNT(*) FROM valuations WHERE score_composite IS NULL) AS score_null
+    """)).fetchone()
+
+    return {
+        "data_quality": {"distribution": dq_dist},
+        "stale_counts": {
+            "stocks_stale_7d":      stale[0],
+            "fundamentals_stale_7d": stale[1],
+            "valuations_stale_7d":  stale[2],
+            "news_stale_2d":        stale[3],
+        },
+        "null_fields": null_fields,
+        "script_last_run": {
+            "universe":     script_last[0],
+            "fundamentals": script_last[1],
+            "model":        script_last[2],
+            "news":         script_last[3],
+        },
+        "outliers": {
+            "pe_above_1000":   outliers[0],
+            "d_to_e_above_10": outliers[1],
+            "roic_above_100":  outliers[2],
+            "negative_equity": outliers[3],
+        },
+        "score_completeness": {
+            "no_valuation":    completeness[0],
+            "no_fundamentals": completeness[1],
+            "score_null":      completeness[2],
+        },
+        "total_stocks": total,
+    }
+
+
 # ── Extra page routes ─────────────────────────────────────────────────────────
 
 @app.get("/distribution")
 def distribution_page():
     return FileResponse(os.path.join(STATIC_DIR, "distribution.html"))
+
+@app.get("/debug")
+def debug_page():
+    return FileResponse(os.path.join(STATIC_DIR, "debug.html"))
+
+@app.get("/audit")
+def audit_page():
+    return FileResponse(os.path.join(STATIC_DIR, "audit.html"))
 
 
 if __name__ == "__main__":
