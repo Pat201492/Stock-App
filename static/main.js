@@ -27,10 +27,26 @@ async function loadStats() {
 function updatePipelineStatus(p) {
   const el = document.getElementById("pipeline-status");
   if (!p) return;
-  if (p.running) { el.textContent = "⟳ Pipeline running…"; el.style.color = "var(--yellow)"; }
-  else if (p.last_result === "success") { el.textContent = "✓ Data up to date"; el.style.color = "var(--green)"; }
-  else if (p.last_result) { el.textContent = "⚠ Last run failed"; el.style.color = "var(--red)"; }
-  else { el.textContent = ""; }
+  if (p.running) {
+    const pct     = p.pct_overall ?? 0;
+    const script  = p.current_script ? ` — ${p.current_script}` : "";
+    const total   = p.script_total  ?? 4;
+    const idx     = p.script_index  ?? 0;
+    el.innerHTML  = `
+      <span style="color:var(--yellow)">⟳ Running${script} (${idx + (p.current_script ? 1 : 0)}/${total})</span>
+      <div style="display:inline-block;width:120px;height:6px;background:var(--border);
+                  border-radius:3px;vertical-align:middle;margin-left:8px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:var(--yellow);border-radius:3px;
+                    transition:width .5s"></div>
+      </div>
+      <span style="color:var(--muted);margin-left:4px">${pct}%</span>`;
+  } else if (p.last_result === "success") {
+    el.innerHTML = `<span style="color:var(--green)">✓ Data up to date</span>`;
+  } else if (p.last_result) {
+    el.innerHTML = `<span style="color:var(--red)">⚠ Last run failed</span>`;
+  } else {
+    el.innerHTML = "";
+  }
 }
 
 // ── Sectors ───────────────────────────────────────────────────────────────────
@@ -184,7 +200,7 @@ function pollPipeline() {
       loadStats();
       loadStocks();
     }
-  }, 5000);
+  }, 2000);
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
