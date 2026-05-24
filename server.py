@@ -703,6 +703,266 @@ def pol_refresh(step: Optional[str] = None):
     return {"started": True}
 
 
+# ── Political API ─────────────────────────────────────────────────────────────
+
+@app.get("/api/pol/stats")
+def pol_stats(db: Session = Depends(get_pol_db)):
+    return {
+        "total_politicians":   db.query(func.count(Politician.bioguide_id)).scalar() or 0,
+        "total_congressional": db.query(func.count(CongressionalTrade.trade_id)).scalar() or 0,
+        "total_insider":       db.query(func.count(InsiderTrade.filing_id)).scalar() or 0,
+        "total_committees":    db.query(func.count(Committee.committee_id)).scalar() or 0,
+    }
+
+
+@app.get("/api/pol/trades")
+def pol_trades(
+    ticker:   Optional[str] = None,
+    bioguide: Optional[str] = None,
+    chamber:  Optional[str] = None,
+    txn_type: Optional[str] = None,
+    days:     Optional[int] = None,
+    sort:     str = "transaction_date",
+    order:    str = "desc",
+    limit:    int = 100,
+    offset:   int = 0,
+    db: Session = Depends(get_pol_db),
+):
+    q = db.query(CongressionalTrade, Politician).outerjoin(
+        Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
+    )
+    if ticker:   q = q.filter(CongressionalTrade.ticker == ticker.upper())
+    if bioguide: q = q.filter(CongressionalTrade.bioguide_id == bioguide)
+    if chamber:  q = q.filter(Politician.chamber == chamber)
+    if txn_type: q = q.filter(CongressionalTrade.transaction_type == txn_type)
+    if days:
+        from datetime import date as _d, timedelta as _td
+        q = q.filter(CongressionalTrade.transaction_date >= _d.today() - _td(days=days))
+
+    sort_col = {
+        "transaction_date": CongressionalTrade.transaction_date,
+        "disclosure_date":  CongressionalTrade.disclosure_date,
+        "amount":           CongressionalTrade.amount_max,
+        "ticker":           CongressionalTrade.ticker,
+    }.get(sort, CongressionalTrade.transaction_date)
+    q = q.order_by(sort_col.desc() if order == "desc" else sort_col)
+
+    total = q.count()
+    rows  = q.offset(offset).limit(limit).all()
+
+    result = []
+    for trade, pol in rows:
+        result.append({
+            "trade_id":         trade.trade_id,
+            "ticker":           trade.ticker,
+            "asset_description":trade.asset_description,
+            "transaction_date": trade.transaction_date.isoformat() if trade.transaction_date else None,
+            "disclosure_date":  trade.disclosure_date.isoformat()  if trade.disclosure_date  else None,
+            "transaction_type": trade.transaction_type,
+            "amount_min":       trade.amount_min,
+            "amount_max":       trade.amount_max,
+            "owner":            trade.owner,
+            "bioguide_id":      trade.bioguide_id,
+            "politician_name":  f"{pol.first_name} {pol.last_name}" if pol else trade.bioguide_id,
+            "chamber":          pol.chamber if pol else None,
+            "party":            pol.party   if pol else None,
+            "state":            pol.state   if pol else None,
+        })
+    return {"total": total, "trades": result}
+
+
+@app.get("/api/pol/politician/{bioguide_id}")
+def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
+    pol = db.query(Politician).filter(Politician.bioguide_id == bioguide_id).first()
+    if not pol:
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+
+    committees = db.query(Committee, CommitteeMembership).join(
+        CommitteeMembership, Committee.committee_id == CommitteeMembership.committee_id
+    ).filter(CommitteeMembership.bioguide_id == bioguide_id).all()
+
+    trades_q = db.query(CongressionalTrade).filter(
+        CongressionalTrade.bioguide_id == bioguide_id
+    ).order_by(CongressionalTrade.transaction_date.desc())
+    total_trades = trades_q.count()
+    recent = trades_q.limit(50).all()
+
+    # Top tickers traded
+    top_tickers = db.execute(
+        text("""
+            SELECT ticker, COUNT(*) as cnt,
+                   SUM((amount_min + amount_max) / 2) as total_vol
+            FROM congressional_trades
+            WHERE bioguide_id = :bio
+            GROUP BY ticker ORDER BY cnt DESC LIMIT 10
+        """), {"bio": bioguide_id}
+    ).fetchall()
+
+    return {
+        "politician": {
+            "bioguide_id": pol.bioguide_id,
+            "first_name":  pol.first_name,
+            "last_name":   pol.last_name,
+            "chamber":     pol.chamber,
+            "party":       pol.party,
+            "state":       pol.state,
+            "district":    pol.district,
+            "active":      pol.active,
+        },
+        "committees": [
+            {"committee_id": c.committee_id, "name": c.name, "role": m.role}
+            for c, m in committees
+        ],
+        "total_trades": total_trades,
+        "top_tickers":  [{"ticker": r[0], "count": r[1], "volume": r[2]} for r in top_tickers],
+        "recent_trades": [
+            {
+                "trade_id":         t.trade_id,
+                "ticker":           t.ticker,
+                "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
+                "transaction_type": t.transaction_type,
+                "amount_min":       t.amount_min,
+                "amount_max":       t.amount_max,
+            } for t in recent
+        ],
+    }
+
+
+@app.get("/api/pol/leaderboard")
+def pol_leaderboard(
+    metric: str = "ticker_count",   # 'ticker_count' | 'politician_volume' | 'sector_volume'
+    days:   int = 30,
+    limit:  int = 20,
+    db: Session = Depends(get_pol_db),
+):
+    from datetime import date as _d, timedelta as _td
+    since = _d.today() - _td(days=days)
+
+    if metric == "ticker_count":
+        rows = db.execute(text("""
+            SELECT ticker, COUNT(*) AS cnt,
+                   SUM((amount_min + amount_max) / 2) AS vol
+            FROM congressional_trades
+            WHERE transaction_date >= :since
+            GROUP BY ticker ORDER BY cnt DESC LIMIT :lim
+        """), {"since": since, "lim": limit}).fetchall()
+        return {"items": [{"ticker": r[0], "trade_count": r[1], "volume": r[2]} for r in rows]}
+
+    if metric == "politician_volume":
+        rows = db.execute(text("""
+            SELECT t.bioguide_id, COUNT(*) AS cnt,
+                   SUM((t.amount_min + t.amount_max) / 2) AS vol
+            FROM congressional_trades t
+            WHERE t.transaction_date >= :since
+            GROUP BY t.bioguide_id ORDER BY vol DESC LIMIT :lim
+        """), {"since": since, "lim": limit}).fetchall()
+        items = []
+        for r in rows:
+            pol = db.query(Politician).filter(Politician.bioguide_id == r[0]).first()
+            items.append({
+                "bioguide_id": r[0],
+                "name":   f"{pol.first_name} {pol.last_name}" if pol else r[0],
+                "party":  pol.party  if pol else None,
+                "state":  pol.state  if pol else None,
+                "chamber":pol.chamber if pol else None,
+                "trade_count": r[1],
+                "volume":      r[2],
+            })
+        return {"items": items}
+
+    return JSONResponse(status_code=400, content={"error": f"Unknown metric: {metric}"})
+
+
+@app.get("/api/pol/ticker/{ticker}")
+def pol_ticker(ticker: str, db: Session = Depends(get_pol_db)):
+    ticker = ticker.upper()
+    trades = db.query(CongressionalTrade, Politician).outerjoin(
+        Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
+    ).filter(CongressionalTrade.ticker == ticker).order_by(
+        CongressionalTrade.transaction_date.desc()
+    ).all()
+
+    return {
+        "ticker": ticker,
+        "trades": [
+            {
+                "trade_id":         t.trade_id,
+                "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
+                "transaction_type": t.transaction_type,
+                "amount_min":       t.amount_min,
+                "amount_max":       t.amount_max,
+                "bioguide_id":      t.bioguide_id,
+                "politician_name":  f"{p.first_name} {p.last_name}" if p else t.bioguide_id,
+                "chamber":          p.chamber if p else None,
+                "party":            p.party   if p else None,
+            } for t, p in trades
+        ],
+    }
+
+
+# ── Insider trades API ───────────────────────────────────────────────────────
+
+@app.get("/api/insider/trades")
+def insider_trades(
+    ticker:   Optional[str] = None,
+    txn_type: Optional[str] = None,
+    days:     Optional[int] = None,
+    limit:    int = 100,
+    offset:   int = 0,
+    db: Session = Depends(get_pol_db),
+):
+    q = db.query(InsiderTrade)
+    if ticker:   q = q.filter(InsiderTrade.ticker == ticker.upper())
+    if txn_type: q = q.filter(InsiderTrade.transaction_type == txn_type)
+    if days:
+        from datetime import date as _d, timedelta as _td
+        q = q.filter(InsiderTrade.transaction_date >= _d.today() - _td(days=days))
+    q = q.order_by(InsiderTrade.transaction_date.desc())
+
+    total = q.count()
+    rows  = q.offset(offset).limit(limit).all()
+    return {
+        "total": total,
+        "trades": [
+            {
+                "filing_id":         t.filing_id,
+                "ticker":            t.ticker,
+                "company_name":      t.company_name,
+                "insider_name":      t.insider_name,
+                "insider_title":     t.insider_title,
+                "transaction_date":  t.transaction_date.isoformat() if t.transaction_date else None,
+                "transaction_type":  t.transaction_type,
+                "shares":            t.shares,
+                "price_per_share":   t.price_per_share,
+                "total_value":       t.total_value,
+                "shares_owned_after":t.shares_owned_after,
+            } for t in rows
+        ],
+    }
+
+
+@app.get("/api/insider/ticker/{ticker}")
+def insider_ticker(ticker: str, db: Session = Depends(get_pol_db)):
+    ticker = ticker.upper()
+    rows = db.query(InsiderTrade).filter(InsiderTrade.ticker == ticker).order_by(
+        InsiderTrade.transaction_date.desc()).limit(100).all()
+    return {
+        "ticker": ticker,
+        "trades": [
+            {
+                "filing_id":        t.filing_id,
+                "insider_name":     t.insider_name,
+                "insider_title":    t.insider_title,
+                "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
+                "transaction_type": t.transaction_type,
+                "shares":           t.shares,
+                "price_per_share":  t.price_per_share,
+                "total_value":      t.total_value,
+            } for t in rows
+        ],
+    }
+
+
 # ── Extra page routes ─────────────────────────────────────────────────────────
 
 @app.get("/distribution")
