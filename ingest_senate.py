@@ -105,6 +105,7 @@ def ingest(full_refresh=False):
             if trade_id in existing_ids:
                 skipped += 1
                 continue
+            existing_ids.add(trade_id)   # dedupe within this run too
 
             # Upsert politician stub (full ingest_committees.py fills details)
             db.merge(Politician(
