@@ -80,6 +80,7 @@ def ingest(full_refresh=False):
         inserted = 0
         skipped  = 0
         bad      = 0
+        seen_pols = set()
 
         for row in raw:
             ticker = (row.get("ticker") or "").strip().upper()
@@ -108,15 +109,17 @@ def ingest(full_refresh=False):
             existing_ids.add(trade_id)   # dedupe within this run too
 
             # Upsert politician stub (full ingest_committees.py fills details)
-            db.merge(Politician(
-                bioguide_id=bioguide,
-                first_name=first,
-                last_name=last,
-                chamber="senate",
-                party=row.get("party", ""),
-                state=row.get("state", ""),
-                active=True,
-            ))
+            if bioguide not in seen_pols:
+                db.merge(Politician(
+                    bioguide_id=bioguide,
+                    first_name=first,
+                    last_name=last,
+                    chamber="senate",
+                    party=row.get("party", ""),
+                    state=row.get("state", ""),
+                    active=True,
+                ))
+                seen_pols.add(bioguide)
 
             db.merge(CongressionalTrade(
                 trade_id         = trade_id,
