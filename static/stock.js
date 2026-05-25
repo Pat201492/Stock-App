@@ -308,7 +308,8 @@ function renderPoliticalTrades(data) {
         ${trades.map(t => {
           const txnColor = t.transaction_type === "purchase" ? "#22c55e"
                          : t.transaction_type && t.transaction_type.startsWith("sale") ? "#ef4444" : "#94a3b8";
-          const mid = t.amount_min != null ? (t.amount_min + t.amount_max) / 2 : null;
+          const mid = (t.amount_min != null && t.amount_max != null)
+                      ? (t.amount_min + t.amount_max) / 2 : null;
           const amt = mid == null ? "—" : mid >= 1e6 ? `$${(mid/1e6).toFixed(1)}M`
                     : mid >= 1e3 ? `$${(mid/1e3).toFixed(0)}K` : `$${mid.toFixed(0)}`;
           return `
