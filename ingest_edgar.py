@@ -125,15 +125,17 @@ def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False):
     skipped  = 0
     filings  = []
 
+    # form.idx is fixed-width. Use regex: form_type, company, cik, date, path
+    row_re = re.compile(r"^(\S+)\s+.+?\s+(\d+)\s+(\d{4}-\d{2}-\d{2})\s+(\S+)\s*$")
     for line in idx_text.splitlines():
-        if not line.startswith("4 ") and not line.startswith("4/A "):
+        if not (line.startswith("4 ") or line.startswith("4/A ")):
             continue
-        parts = line.split("|")
-        if len(parts) < 5:
+        m = row_re.match(line)
+        if not m:
             continue
-        form_type  = parts[0].strip()
-        filed_str  = parts[3].strip()
-        idx_path   = parts[4].strip()
+        form_type, cik, filed_str, idx_path = m.group(1), m.group(2), m.group(3), m.group(4)
+        if form_type not in ("4", "4/A"):
+            continue
         try:
             filed_date = date.fromisoformat(filed_str)
         except ValueError:
