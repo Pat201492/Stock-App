@@ -110,8 +110,9 @@ nav {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow-x: auto;
 }
+.table-wrap table { min-width: 900px; }
 table { width: 100%; border-collapse: collapse; }
 th {
   padding: 11px 14px;

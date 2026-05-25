@@ -977,6 +977,18 @@ def debug_page():
 def audit_page():
     return FileResponse(os.path.join(STATIC_DIR, "audit.html"))
 
+@app.get("/politicians")
+def politicians_page():
+    return FileResponse(os.path.join(STATIC_DIR, "politicians.html"))
+
+@app.get("/politician/{bioguide_id}")
+def politician_detail_page(bioguide_id: str):
+    return FileResponse(os.path.join(STATIC_DIR, "politician_detail.html"))
+
+@app.get("/insiders")
+def insiders_page():
+    return FileResponse(os.path.join(STATIC_DIR, "insiders.html"))
+
 
 if __name__ == "__main__":
     import uvicorn, webbrowser
