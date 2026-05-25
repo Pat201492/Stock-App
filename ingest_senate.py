@@ -9,7 +9,7 @@ from politicians_database import init_pol_db, SessionLocal, CongressionalTrade, 
 
 SENATE_DATA_URL = (
     "https://raw.githubusercontent.com/timothycarambat/"
-    "senate-stock-watcher-data/master/data/all_transactions.json"
+    "senate-stock-watcher-data/master/aggregate/all_transactions.json"
 )
 
 AMOUNT_MAP = {
