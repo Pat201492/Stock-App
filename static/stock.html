@@ -91,6 +91,24 @@
     <div class="card-title">Recent News</div>
     <div id="news-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
   </div>
+
+  <!-- Congressional trades -->
+  <div class="card" id="pol-card" style="display:none;margin-top:20px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Congressional Trades</span>
+      <a href="/politicians" style="font-size:11px;color:var(--accent)">View all →</a>
+    </div>
+    <div id="pol-list"></div>
+  </div>
+
+  <!-- Insider trades (Form 4) -->
+  <div class="card" id="insider-card" style="display:none;margin-top:20px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Insider Trades (Form 4)</span>
+      <a href="/insiders" style="font-size:11px;color:var(--accent)">View all →</a>
+    </div>
+    <div id="insider-list"></div>
+  </div>
 </div>
 
 <script src="/static/stock.js"></script>
