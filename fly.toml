@@ -11,6 +11,7 @@ primary_region = 'ewr'
 [env]
   PORT = "8080"
   DB_PATH = "/data/stocks.db"
+  POL_DB_PATH = "/data/politicians.db"
 
 [http_service]
   internal_port = 8080
