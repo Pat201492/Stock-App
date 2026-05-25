@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Congressional Trades — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/distribution">Score Distribution</a>
+    <a href="/politicians" class="active">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+    <a href="/audit">Data Audit</a>
+    <a href="/debug">Debug</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Congressional Trades</h2>
+  <p style="color:var(--muted);margin-bottom:24px;font-size:13px">
+    Senate stock disclosures from STOCK Act filings —
+    <span id="pol-total">—</span> trades across <span id="pol-pol-count">—</span> politicians
+  </p>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="label">Total Trades</div><div class="value" id="stat-trades">—</div></div>
+    <div class="stat-card"><div class="label">Politicians</div><div class="value" id="stat-politicians">—</div></div>
+    <div class="stat-card"><div class="label">Committees</div><div class="value" id="stat-committees">—</div></div>
+    <div class="stat-card"><div class="label">Insider Filings</div><div class="value" id="stat-insider">—</div></div>
+  </div>
+
+  <!-- Sub-tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border)">
+    <button class="sub-tab active" data-tab="feed"  onclick="switchTab('feed')">Trade Feed</button>
+    <button class="sub-tab"        data-tab="board" onclick="switchTab('board')">Leaderboards</button>
+  </div>
+
+  <!-- Trade feed tab -->
+  <div id="tab-feed">
+    <div class="filters">
+      <input type="text" id="ticker-filter" placeholder="Filter by ticker…" oninput="loadFeed()" />
+      <select id="txn-filter" onchange="loadFeed()">
+        <option value="">All Types</option>
+        <option value="purchase">Purchase</option>
+        <option value="sale_full">Sale (Full)</option>
+        <option value="sale_partial">Sale (Partial)</option>
+      </select>
+      <select id="days-filter" onchange="loadFeed()">
+        <option value="">All Time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last year</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
+      <span id="feed-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Politician</th>
+            <th>Party/State</th>
+            <th>Ticker</th>
+            <th>Type</th>
+            <th style="text-align:right">Amount</th>
+            <th>Txn Date</th>
+            <th>Disclosure Lag</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody id="feed-body">
+          <tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="page-btn" id="btn-prev" onclick="changePage(-1)" disabled>← Prev</button>
+      <span id="page-info">Page 1</span>
+      <button class="page-btn" id="btn-next" onclick="changePage(1)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Leaderboards tab -->
+  <div id="tab-board" style="display:none">
+    <div class="filters">
+      <select id="lb-window" onchange="loadBoard()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last year</option>
+      </select>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Most-Traded Tickers</div>
+        <div id="lb-tickers"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top Politicians by Volume</div>
+        <div id="lb-pols"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let feedPage = 0;
+const PAGE_SIZE = 50;
+
+function switchTab(tab) {
+  document.querySelectorAll(".sub-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.getElementById("tab-feed").style.display  = tab === "feed"  ? "block" : "none";
+  document.getElementById("tab-board").style.display = tab === "board" ? "block" : "none";
+  if (tab === "board") loadBoard();
+}
+
+function fmtAmt(min, max) {
+  if (min == null) return "—";
+  const m = (min + max) / 2;
+  if (m >= 1e6) return `$${(m/1e6).toFixed(1)}M`;
+  if (m >= 1e3) return `$${(m/1e3).toFixed(0)}K`;
+  return `$${m.toFixed(0)}`;
+}
+
+function typeBadge(t) {
+  const color = t === "purchase" ? "#22c55e" : t && t.startsWith("sale") ? "#ef4444" : "#94a3b8";
+  return `<span style="color:${color};font-weight:600;font-size:12px">${t || "?"}</span>`;
+}
+
+function disclosureLag(txn, disc) {
+  if (!txn || !disc) return "—";
+  const days = Math.round((new Date(disc) - new Date(txn)) / 86400000);
+  const color = days > 45 ? "var(--red)" : days > 30 ? "var(--yellow)" : "var(--muted)";
+  return `<span style="color:${color}">${days}d</span>`;
+}
+
+async function loadStats() {
+  const d = await fetch("/api/pol/stats").then(r => r.json()).catch(() => ({}));
+  document.getElementById("stat-trades").textContent      = (d.total_congressional || 0).toLocaleString();
+  document.getElementById("stat-politicians").textContent = (d.total_politicians   || 0).toLocaleString();
+  document.getElementById("stat-committees").textContent  = (d.total_committees    || 0).toLocaleString();
+  document.getElementById("stat-insider").textContent     = (d.total_insider       || 0).toLocaleString();
+  document.getElementById("pol-total").textContent        = (d.total_congressional || 0).toLocaleString();
+  document.getElementById("pol-pol-count").textContent    = (d.total_politicians   || 0).toLocaleString();
+}
+
+async function loadFeed() {
+  feedPage = 0;
+  await fetchPage();
+}
+
+async function fetchPage() {
+  const ticker  = document.getElementById("ticker-filter").value.trim();
+  const txn     = document.getElementById("txn-filter").value;
+  const days    = document.getElementById("days-filter").value;
+  const params  = new URLSearchParams({ limit: PAGE_SIZE, offset: feedPage * PAGE_SIZE });
+  if (ticker) params.set("ticker", ticker);
+  if (txn)    params.set("txn_type", txn);
+  if (days)   params.set("days", days);
+
+  const d = await fetch(`/api/pol/trades?${params}`).then(r => r.json()).catch(() => ({trades: [], total: 0}));
+  document.getElementById("feed-count").textContent = `${d.total.toLocaleString()} trades`;
+
+  const tbody = document.getElementById("feed-body");
+  if (!d.trades.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">
+      No trades. Run the political data refresh to populate the database.
+    </div></td></tr>`;
+  } else {
+    tbody.innerHTML = d.trades.map(t => `
+      <tr>
+        <td><a href="/politician/${t.bioguide_id}" style="color:var(--accent);font-weight:600">${t.politician_name}</a></td>
+        <td class="muted" style="font-size:12px">${t.party || "?"} / ${t.state || "?"}</td>
+        <td><a href="/stock/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
+        <td>${typeBadge(t.transaction_type)}</td>
+        <td style="text-align:right;font-weight:600">${fmtAmt(t.amount_min, t.amount_max)}</td>
+        <td class="muted" style="font-size:12px">${t.transaction_date || "—"}</td>
+        <td>${disclosureLag(t.transaction_date, t.disclosure_date)}</td>
+        <td class="muted" style="font-size:12px">${t.owner || "—"}</td>
+      </tr>`).join("");
+  }
+
+  document.getElementById("page-info").textContent = `Page ${feedPage + 1} of ${Math.max(1, Math.ceil(d.total / PAGE_SIZE))}`;
+  document.getElementById("btn-prev").disabled = feedPage === 0;
+  document.getElementById("btn-next").disabled = (feedPage + 1) * PAGE_SIZE >= d.total;
+}
+
+function changePage(delta) {
+  feedPage = Math.max(0, feedPage + delta);
+  fetchPage();
+}
+
+function resetFilters() {
+  document.getElementById("ticker-filter").value = "";
+  document.getElementById("txn-filter").value    = "";
+  document.getElementById("days-filter").value   = "";
+  loadFeed();
+}
+
+async function loadBoard() {
+  const days = document.getElementById("lb-window").value;
+
+  const [tickers, pols] = await Promise.all([
+    fetch(`/api/pol/leaderboard?metric=ticker_count&days=${days}&limit=15`).then(r => r.json()),
+    fetch(`/api/pol/leaderboard?metric=politician_volume&days=${days}&limit=15`).then(r => r.json()),
+  ]);
+
+  document.getElementById("lb-tickers").innerHTML = (tickers.items || []).map((t, i) => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span><span style="color:var(--muted);width:24px;display:inline-block">${i+1}</span>
+        <a href="/stock/${t.ticker}" class="ticker-cell">${t.ticker}</a></span>
+      <span><span style="color:var(--muted);margin-right:8px">${t.trade_count} trades</span>
+        <span style="font-weight:600">$${((t.volume||0)/1e3).toFixed(0)}K</span></span>
+    </div>`).join("") || `<div class="empty">No data</div>`;
+
+  document.getElementById("lb-pols").innerHTML = (pols.items || []).map((p, i) => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span><span style="color:var(--muted);width:24px;display:inline-block">${i+1}</span>
+        <a href="/politician/${p.bioguide_id}" style="color:var(--accent);font-weight:600">${p.name}</a>
+        <span style="color:var(--muted);font-size:11px;margin-left:6px">${p.party||"?"}/${p.state||"?"}</span></span>
+      <span style="font-weight:600">$${((p.volume||0)/1e3).toFixed(0)}K</span>
+    </div>`).join("") || `<div class="empty">No data</div>`;
+}
+
+loadStats();
+loadFeed();
+</script>
+
+<style>
+.sub-tab {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.sub-tab:hover  { color: var(--text); }
+</style>
+</body>
+</html>
