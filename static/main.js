@@ -113,7 +113,7 @@ async function loadStocks() {
   try {
     const [data, tradeRes] = await Promise.all([
       fetch(`/api/stocks?${params}`).then(r => r.json()),
-      fetch(`/api/stocks/trade_counts?days=30`).then(r => r.json()).catch(() => ({counts: {}})),
+      fetch(`/api/trade_counts?days=365`).then(r => r.json()).catch(() => ({counts: {}})),
     ]);
     tradeCounts = tradeRes.counts || {};
     renderTable(data.stocks);

@@ -732,7 +732,7 @@ def pol_refresh(step: Optional[str] = None):
 
 # ── Trade-activity counts for screener join ──────────────────────────────────
 
-@app.get("/api/stocks/trade_counts")
+@app.get("/api/trade_counts")
 def stocks_trade_counts(days: int = 30, db: Session = Depends(get_pol_db)):
     """Returns {ticker: {pol_count, insider_count}} for cross-tab screener join."""
     from datetime import date as _d, timedelta as _td
