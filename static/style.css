@@ -320,6 +320,9 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
 .score-item-pts   { width: 36px; text-align: right; color: var(--muted); font-size: 11px; }
 
 /* ── Distribution page ───────────────────────────────────────── */
+.dist-link { text-decoration: none; color: inherit; cursor: pointer; transition: background .15s; padding: 2px 4px; border-radius: 4px; }
+.dist-link:hover { background: rgba(59,130,246,.08); text-decoration: none; }
+.threshold-card.dist-link:hover { background: var(--bg); }
 .dist-bar-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; }
 .dist-bar-label { width: 80px; color: var(--muted); text-align: right; font-size: 12px; }
 .dist-bar-track { flex: 1; height: 18px; background: var(--border); border-radius: 4px; overflow: hidden; }
