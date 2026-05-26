@@ -63,9 +63,11 @@ async function loadSectors() {
 }
 
 // ── Stock list ────────────────────────────────────────────────────────────────
+let tradeCounts = {};   // ticker -> {pol_count, insider_count}
+
 async function loadStocks() {
   const tbody = document.getElementById("stocks-body");
-  tbody.innerHTML = `<tr><td colspan="10"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="12"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
 
   const params = new URLSearchParams({
     sort:   state.sort,
@@ -79,22 +81,31 @@ async function loadStocks() {
   if (state.min_score) params.set("min_score", state.min_score);
 
   try {
-    const data = await fetch(`/api/stocks?${params}`).then(r => r.json());
+    const [data, tradeRes] = await Promise.all([
+      fetch(`/api/stocks?${params}`).then(r => r.json()),
+      fetch(`/api/stocks/trade_counts?days=30`).then(r => r.json()).catch(() => ({counts: {}})),
+    ]);
+    tradeCounts = tradeRes.counts || {};
     renderTable(data.stocks);
     renderPagination(data.total);
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty">Failed to load data. Is the server running?</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty">Failed to load data. Is the server running?</div></td></tr>`;
   }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
+function tradeBadge(count, color) {
+  if (!count) return `<span class="muted">—</span>`;
+  return `<span style="color:${color};font-weight:600">${count}</span>`;
+}
+
 function renderTable(stocks) {
   const tbody = document.getElementById("stocks-body");
   if (!stocks.length) {
     const isFiltered = state.sector || state.cap_size || state.search || state.min_score;
     tbody.innerHTML = isFiltered
-      ? `<tr><td colspan="10"><div class="empty">No stocks match your filters.</div></td></tr>`
-      : `<tr><td colspan="10"><div class="empty">
+      ? `<tr><td colspan="12"><div class="empty">No stocks match your filters.</div></td></tr>`
+      : `<tr><td colspan="12"><div class="empty">
            <strong>Database is empty.</strong><br><br>
            Click <strong>↻ Refresh Data</strong> in the top-right to run the pipeline.<br>
            <span style="color:var(--muted);font-size:12px">
@@ -104,7 +115,9 @@ function renderTable(stocks) {
          </div></td></tr>`;
     return;
   }
-  tbody.innerHTML = stocks.map(s => `
+  tbody.innerHTML = stocks.map(s => {
+    const tc = tradeCounts[s.ticker] || {pol_count: 0, insider_count: 0};
+    return `
     <tr onclick="location.href='/stock/${s.ticker}'">
       <td class="muted">#${s.rank ?? "—"}</td>
       <td>
@@ -119,9 +132,11 @@ function renderTable(stocks) {
       <td>${fmtPct(s.rev_cagr_5y)}</td>
       <td><strong>${s.score ?? "—"}</strong></td>
       <td class="${upsideClass(s.upside)}">${fmtPct(s.upside)}</td>
+      <td>${tradeBadge(tc.pol_count,     "var(--accent)")}</td>
+      <td>${tradeBadge(tc.insider_count, "var(--yellow)")}</td>
       <td>${recBadge(s.rec)}</td>
     </tr>
-  `).join("");
+  `;}).join("");
 }
 
 function renderPagination(total) {

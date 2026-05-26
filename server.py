@@ -727,6 +727,33 @@ def pol_refresh(step: Optional[str] = None):
     return {"started": True}
 
 
+# ── Trade-activity counts for screener join ──────────────────────────────────
+
+@app.get("/api/stocks/trade_counts")
+def stocks_trade_counts(days: int = 30, db: Session = Depends(get_pol_db)):
+    """Returns {ticker: {pol_count, insider_count}} for cross-tab screener join."""
+    from datetime import date as _d, timedelta as _td
+    since = _d.today() - _td(days=days)
+
+    pol_rows = db.execute(text("""
+        SELECT ticker, COUNT(*) FROM congressional_trades
+        WHERE transaction_date >= :since AND ticker IS NOT NULL
+        GROUP BY ticker
+    """), {"since": since}).fetchall()
+    ins_rows = db.execute(text("""
+        SELECT ticker, COUNT(*) FROM insider_trades
+        WHERE transaction_date >= :since AND ticker IS NOT NULL
+        GROUP BY ticker
+    """), {"since": since}).fetchall()
+
+    out = {}
+    for ticker, cnt in pol_rows:
+        out.setdefault(ticker, {"pol_count": 0, "insider_count": 0})["pol_count"] = cnt
+    for ticker, cnt in ins_rows:
+        out.setdefault(ticker, {"pol_count": 0, "insider_count": 0})["insider_count"] = cnt
+    return {"days": days, "counts": out}
+
+
 # ── Political API ─────────────────────────────────────────────────────────────
 
 @app.get("/api/pol/stats")
