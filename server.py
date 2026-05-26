@@ -105,6 +105,7 @@ def list_stocks(
     limit:     int = 100,
     offset:    int = 0,
     min_score: Optional[int] = None,
+    max_score: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
     q = (
@@ -119,6 +120,8 @@ def list_stocks(
         q = q.filter(or_(Stock.ticker.ilike(s), Stock.name.ilike(s)))
     if min_score is not None:
         q = q.filter(Valuation.score_composite >= min_score)
+    if max_score is not None:
+        q = q.filter(Valuation.score_composite <= max_score)
 
     sort_col = {
         "rank":    Stock.rank,

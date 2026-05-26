@@ -1,11 +1,40 @@
 const PAGE_SIZE = 100;
 let state = {
   page: 0, sort: "rank", order: "asc",
-  sector: "", cap_size: "", search: "", min_score: "",
+  sector: "", cap_size: "", search: "", min_score: "", max_score: "",
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+function applyUrlParams() {
+  const p = new URLSearchParams(location.search);
+  if (p.has("min_score")) state.min_score = p.get("min_score");
+  if (p.has("max_score")) state.max_score = p.get("max_score");
+  if (p.has("sector"))    state.sector    = p.get("sector");
+  if (p.has("cap_size"))  state.cap_size  = p.get("cap_size");
+  if (p.has("search"))    state.search    = p.get("search");
+
+  // Reflect into UI controls + show drilldown banner if score range applied
+  if (state.min_score || state.max_score) {
+    const lo  = state.min_score || "0";
+    const hi  = state.max_score || "100";
+    const sel = document.getElementById("score-filter");
+    if (sel) {
+      const opt = document.createElement("option");
+      opt.value = lo; opt.textContent = `Score ${lo}–${hi}`; opt.selected = true;
+      sel.prepend(opt);
+    }
+    const search = document.getElementById("search");
+    if (search && state.search) search.value = state.search;
+    const banner = document.createElement("div");
+    banner.style.cssText = "background:rgba(59,130,246,.15);border:1px solid var(--accent);color:var(--text);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px";
+    banner.innerHTML = `<span>Showing stocks with score <strong>${lo}–${hi}</strong></span>
+      <a href="/" style="margin-left:auto;color:var(--accent);font-size:12px">Clear filter</a>`;
+    document.querySelector(".container").insertBefore(banner, document.querySelector(".stats-bar"));
+  }
+}
+
 async function init() {
+  applyUrlParams();
   await loadStats();
   await loadSectors();
   await loadStocks();
@@ -79,6 +108,7 @@ async function loadStocks() {
   if (state.cap_size)  params.set("cap_size",  state.cap_size);
   if (state.search)    params.set("search",    state.search);
   if (state.min_score) params.set("min_score", state.min_score);
+  if (state.max_score) params.set("max_score", state.max_score);
 
   try {
     const [data, tradeRes] = await Promise.all([
@@ -167,6 +197,7 @@ function applyFilters() {
   state.sector    = document.getElementById("sector-filter").value;
   state.cap_size  = document.getElementById("cap-filter").value;
   state.min_score = document.getElementById("score-filter").value;
+  state.max_score = "";   // changing the dropdown clears any range from URL drilldown
   state.page = 0;
   loadStocks();
 }
@@ -176,7 +207,7 @@ function resetFilters() {
   document.getElementById("sector-filter").value = "";
   document.getElementById("cap-filter").value    = "";
   document.getElementById("score-filter").value  = "";
-  state = { ...state, sector: "", cap_size: "", search: "", min_score: "", page: 0 };
+  state = { ...state, sector: "", cap_size: "", search: "", min_score: "", max_score: "", page: 0 };
   loadStocks();
 }
 

@@ -97,44 +97,51 @@ async function init() {
   document.getElementById("stat-p50").textContent  = stats.p50  ?? "—";
   document.getElementById("stat-p75").textContent  = stats.p75  ?? "—";
 
-  // Threshold cards
+  // Threshold cards — clickable
   document.getElementById("threshold-cards").innerHTML = threshold_pass.map(t => `
-    <div class="threshold-card">
+    <a href="/?min_score=${t.threshold}" class="threshold-card dist-link" title="View ${t.label} stocks">
       <div class="t-label">${t.label}</div>
       <div class="t-count">${t.count.toLocaleString()}</div>
       <div class="t-pct">${t.pct}% of universe</div>
-    </div>
+    </a>
   `).join("");
 
-  // Histogram
+  // Histogram — buckets clickable, drilldown to filtered screener
   const maxCount = Math.max(...histogram.map(h => h.count), 1);
   document.getElementById("histogram").innerHTML = histogram.map(h => {
-    const pct = Math.round(h.count / maxCount * 100);
+    const pct    = Math.round(h.count / maxCount * 100);
     const bucket = parseInt(h.range);
-    const color = bucket >= 70 ? "#22c55e" : bucket >= 55 ? "#3b82f6" : bucket >= 40 ? "#f59e0b" : "#ef4444";
+    const color  = bucket >= 70 ? "#22c55e" : bucket >= 55 ? "#3b82f6" : bucket >= 40 ? "#f59e0b" : "#ef4444";
+    const href   = `/?min_score=${bucket}&max_score=${bucket + 9}`;
     return `
-      <div class="dist-bar-row">
+      <a href="${href}" class="dist-bar-row dist-link" title="View stocks scoring ${h.range}">
         <span class="dist-bar-label">${h.range}</span>
         <div class="dist-bar-track">
           <div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div>
         </div>
         <span class="dist-bar-count">${h.count.toLocaleString()}</span>
-      </div>`;
+      </a>`;
   }).join("");
 
-  // By label
+  // By label — clickable, score ranges per label tier
+  const LABEL_RANGES = {
+    "STRONG BUY": [85, 100], "BUY": [70, 84], "WATCHLIST": [55, 69],
+    "HOLD": [40, 54], "CAUTION": [25, 39], "AVOID": [0, 24],
+  };
   const maxLabelCount = Math.max(...by_label.map(l => l.count), 1);
   document.getElementById("by-label").innerHTML = by_label.map(l => {
     const pct = Math.round(l.count / maxLabelCount * 100);
     const color = LABEL_COLORS[l.label] || "#94a3b8";
+    const [lo, hi] = LABEL_RANGES[l.label] || [0, 100];
+    const href = `/?min_score=${lo}&max_score=${hi}`;
     return `
-      <div class="dist-bar-row">
+      <a href="${href}" class="dist-bar-row dist-link" title="View ${l.label} stocks">
         <span class="dist-bar-label" style="width:100px;text-align:right;color:${color};font-weight:600">${l.label}</span>
         <div class="dist-bar-track">
           <div class="dist-bar-fill" style="width:${pct}%;background:${color}"></div>
         </div>
         <span class="dist-bar-count">${l.count.toLocaleString()} <span style="color:var(--muted)">(${l.pct}%)</span></span>
-      </div>`;
+      </a>`;
   }).join("");
 
   // By sector
