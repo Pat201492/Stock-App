@@ -49,6 +49,28 @@ def _trade_id(bioguide, ticker, txn_date, amount_min, txn_type):
     return hashlib.sha1(raw.encode()).hexdigest()
 
 
+def _normalize_name(first, last):
+    """Strip suffixes/middle initials, lowercase. 'David A Perdue, Jr' -> 'david perdue'."""
+    import re as _re
+    full = f"{first} {last}".strip().lower()
+    full = _re.sub(r"[,.]", " ", full)
+    full = _re.sub(r"\b(jr|sr|ii|iii|iv|md|phd)\b", "", full)
+    tokens = [t for t in full.split() if len(t) > 1]   # drop single-letter middle initials
+    if len(tokens) >= 2:
+        return f"{tokens[0]} {tokens[-1]}"   # first + last only
+    return " ".join(tokens)
+
+
+def _build_bioguide_lookup(db):
+    """Map normalized 'firstname lastname' -> bioguide_id for senate-affiliated members."""
+    lookup = {}
+    for p in db.query(Politician).filter(Politician.chamber.in_(("sen", "senate"))).all():
+        key = _normalize_name(p.first_name or "", p.last_name or "")
+        if key:
+            lookup[key] = p.bioguide_id
+    return lookup
+
+
 def _fetch_json(url, retries=3):
     for attempt in range(retries):
         try:
@@ -81,6 +103,10 @@ def ingest(full_refresh=False):
         skipped  = 0
         bad      = 0
         seen_pols = set()
+        bio_lookup = _build_bioguide_lookup(db)
+        print(f"[senate] {len(bio_lookup)} senate bioguide lookups loaded")
+        matched   = 0
+        unmatched = 0
 
         for row in raw:
             ticker = (row.get("ticker") or "").strip().upper()
@@ -99,7 +125,14 @@ def ingest(full_refresh=False):
 
             first = (row.get("first_name") or "").strip()
             last  = (row.get("last_name")  or row.get("senator") or "").strip()
-            bioguide = row.get("bioguide_id") or f"SEN_{last.upper().replace(' ','_')}"
+            # Senate Stock Watcher has no bioguide; look up real bioguide by name
+            real_bio = bio_lookup.get(_normalize_name(first, last))
+            if real_bio:
+                bioguide = real_bio
+                matched += 1
+            else:
+                bioguide = row.get("bioguide_id") or f"SEN_{last.upper().replace(' ','_')}"
+                unmatched += 1
 
             trade_id = _trade_id(bioguide, ticker, txn_date, amount_min, txn_type)
 
@@ -108,8 +141,8 @@ def ingest(full_refresh=False):
                 continue
             existing_ids.add(trade_id)   # dedupe within this run too
 
-            # Upsert politician stub (full ingest_committees.py fills details)
-            if bioguide not in seen_pols:
+            # Only create stub if we didn't find a real bioguide match
+            if bioguide not in seen_pols and not real_bio:
                 db.merge(Politician(
                     bioguide_id=bioguide,
                     first_name=first,
@@ -143,6 +176,7 @@ def ingest(full_refresh=False):
 
         db.commit()
         print(f"[senate] Done — inserted={inserted} skipped={skipped} non-equity={bad}")
+        print(f"[senate] Bioguide match: matched={matched} unmatched={unmatched}")
     finally:
         db.close()
 
