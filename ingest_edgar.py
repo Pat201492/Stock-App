@@ -143,7 +143,21 @@ def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False):
         filing_id = idx_path.replace("/", "_").replace(".txt", "")
         filings.append((filing_id, idx_path, filed_date))
 
-    print(f"  [edgar] {year}/Q{qtr}: {len(filings)} Form 4 filings")
+    # Dedupe — multiple reporting owners share the same filing .txt
+    seen = set()
+    deduped = []
+    for f in filings:
+        if f[1] in seen:
+            continue
+        seen.add(f[1])
+        deduped.append(f)
+    filings = deduped
+
+    print(f"  [edgar] {year}/Q{qtr}: {len(filings)} Form 4 filings", flush=True)
+
+    errors      = 0
+    no_xml      = 0
+    last_commit = 0
 
     for i, (filing_id, idx_path, filed_date) in enumerate(filings):
         if filing_id in existing_ids:
@@ -154,41 +168,38 @@ def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False):
         if i % 10 == 0 and i > 0:
             time.sleep(1.1)
 
-        # Fetch filing index to get XML document path
         try:
-            idx_url  = EDGAR_BASE + "/Archives/" + idx_path
-            idx_body = _get(idx_url)
-            xml_path = None
-            for idx_line in idx_body.splitlines():
-                if ".xml" in idx_line.lower() and "4" in idx_line:
-                    parts2 = idx_line.split("|") if "|" in idx_line else idx_line.split()
-                    candidate = parts2[-1].strip() if parts2 else ""
-                    if candidate.endswith(".xml"):
-                        xml_path = candidate
-                        break
-            if not xml_path:
+            full_url  = EDGAR_BASE + "/Archives/" + idx_path
+            full_body = _get(full_url)
+            m = re.search(r"<XML>\s*(.*?)\s*</XML>", full_body, re.DOTALL)
+            if not m:
+                no_xml += 1
                 continue
+            xml_text = m.group(1).strip()
 
-            xml_url  = EDGAR_BASE + "/Archives/" + xml_path.lstrip("/")
-            xml_text = _get(xml_url)
-            trades   = _parse_form4_xml(xml_text, filing_id, filed_date)
-
+            trades = _parse_form4_xml(xml_text, filing_id, filed_date)
             for t in trades:
                 if not dry_run:
                     db.merge(InsiderTrade(**t, ingested_at=datetime.utcnow()))
-                    existing_ids.add(filing_id)
                 inserted += 1
 
-            if inserted % 200 == 0 and inserted > 0:
+            # Commit every ~200 new inserts
+            if inserted - last_commit >= 200:
                 if not dry_run:
                     db.commit()
-                print(f"    committed {inserted} insider trades…")
+                print(f"    [{i}/{len(filings)}] +{inserted} trades, skip={skipped}, noxml={no_xml}, err={errors}", flush=True)
+                last_commit = inserted
 
-        except Exception:
+        except Exception as e:
+            errors += 1
+            if errors <= 3:
+                print(f"    [err] {type(e).__name__}: {str(e)[:120]}", flush=True)
+            db.rollback()
             continue
 
     if not dry_run:
         db.commit()
+    print(f"  [edgar] {year}/Q{qtr} totals: inserted={inserted} noxml={no_xml} err={errors}", flush=True)
     return inserted, skipped
 
 
