@@ -276,13 +276,37 @@ def live_news(ticker: str, limit: int = 10):
         articles = (t.news or [])[:limit]
         result   = []
         for a in articles:
-            ts = a.get("providerPublishTime")
+            # New yfinance schema nests fields under "content"
+            c = a.get("content") if isinstance(a.get("content"), dict) else a
+            title     = c.get("title", "") or ""
+            publisher = ""
+            prov = c.get("provider")
+            if isinstance(prov, dict):
+                publisher = prov.get("displayName", "")
+            else:
+                publisher = a.get("publisher", "")
+            url = ""
+            for key in ("canonicalUrl", "clickThroughUrl"):
+                v = c.get(key)
+                if isinstance(v, dict) and v.get("url"):
+                    url = v["url"]; break
+            if not url:
+                url = a.get("link") or a.get("url", "")
+            # pubDate is ISO string in new schema; providerPublishTime is unix ts in old
+            pub_iso = None
+            pub_date = c.get("pubDate") or c.get("displayTime")
+            if pub_date:
+                pub_iso = str(pub_date)
+            else:
+                ts = a.get("providerPublishTime")
+                if ts:
+                    pub_iso = datetime.fromtimestamp(ts).isoformat()
             result.append({
-                "title":        a.get("title", ""),
-                "url":          a.get("link") or a.get("url", ""),
-                "publisher":    a.get("publisher", ""),
-                "published_at": datetime.fromtimestamp(ts).isoformat() if ts else None,
-                "sentiment":    sentiment_score(a.get("title", "")),
+                "title":        title,
+                "url":          url,
+                "publisher":    publisher,
+                "published_at": pub_iso,
+                "sentiment":    sentiment_score(title),
             })
         return result
     except Exception as e:
