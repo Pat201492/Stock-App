@@ -288,88 +288,97 @@ function renderNews(articles) {
   }).join("");
 }
 
-// ── Political trades (Congressional) ─────────────────────────────────────────
+// ── Political trades (Congressional) — last 2 years ──────────────────────────
 function renderPoliticalTrades(data) {
   if (!data || !data.trades || !data.trades.length) return;
   document.getElementById("pol-card").style.display = "block";
 
-  const trades = data.trades.slice(0, 20);
+  const trades = data.trades;
+  const titleEl = document.querySelector("#pol-card .card-title");
+  if (titleEl) titleEl.querySelector("span:first-child").textContent =
+    `Congressional Trades — last 2 years (${trades.length})`;
+
   document.getElementById("pol-list").innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead>
-        <tr style="color:var(--muted);text-align:left">
-          <th style="padding:6px 8px">Politician</th>
-          <th style="padding:6px 8px">Type</th>
-          <th style="padding:6px 8px;text-align:right">Amount</th>
-          <th style="padding:6px 8px">Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${trades.map(t => {
-          const txnColor = t.transaction_type === "purchase" ? "#22c55e"
-                         : t.transaction_type && t.transaction_type.startsWith("sale") ? "#ef4444" : "#94a3b8";
-          const mid = (t.amount_min != null && t.amount_max != null)
-                      ? (t.amount_min + t.amount_max) / 2 : null;
-          const amt = mid == null ? "—" : mid >= 1e6 ? `$${(mid/1e6).toFixed(1)}M`
-                    : mid >= 1e3 ? `$${(mid/1e3).toFixed(0)}K` : `$${mid.toFixed(0)}`;
-          return `
-            <tr style="border-top:1px solid var(--border)">
-              <td style="padding:7px 8px">
-                <a href="/politician/${t.bioguide_id}" style="color:var(--accent);font-weight:600">${t.politician_name}</a>
-                <span style="color:var(--muted);font-size:11px;margin-left:6px">${t.party || "?"}/${t.chamber || "?"}</span>
-              </td>
-              <td style="padding:7px 8px;color:${txnColor};font-weight:600;font-size:12px">${t.transaction_type || "?"}</td>
-              <td style="padding:7px 8px;text-align:right;font-weight:600">${amt}</td>
-              <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.transaction_date || "—"}</td>
-            </tr>`;
-        }).join("")}
-      </tbody>
-    </table>
-    ${data.trades.length > 20 ? `<div style="color:var(--muted);font-size:12px;text-align:center;margin-top:10px">Showing 20 of ${data.trades.length}. <a href="/politicians" style="color:var(--accent)">View all →</a></div>` : ""}
+    <div style="max-height:420px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;background:var(--surface);z-index:1">
+          <tr style="color:var(--muted);text-align:left">
+            <th style="padding:6px 8px">Politician</th>
+            <th style="padding:6px 8px">Type</th>
+            <th style="padding:6px 8px;text-align:right">Amount</th>
+            <th style="padding:6px 8px">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${trades.map(t => {
+            const txnColor = t.transaction_type === "purchase" ? "#22c55e"
+                           : t.transaction_type && t.transaction_type.startsWith("sale") ? "#ef4444" : "#94a3b8";
+            const mid = (t.amount_min != null && t.amount_max != null)
+                        ? (t.amount_min + t.amount_max) / 2 : null;
+            const amt = mid == null ? "—" : mid >= 1e6 ? `$${(mid/1e6).toFixed(1)}M`
+                      : mid >= 1e3 ? `$${(mid/1e3).toFixed(0)}K` : `$${mid.toFixed(0)}`;
+            return `
+              <tr style="border-top:1px solid var(--border)">
+                <td style="padding:7px 8px">
+                  <a href="/politician/${t.bioguide_id}" style="color:var(--accent);font-weight:600">${t.politician_name}</a>
+                  <span style="color:var(--muted);font-size:11px;margin-left:6px">${t.party || "?"}/${t.chamber || "?"}</span>
+                </td>
+                <td style="padding:7px 8px;color:${txnColor};font-weight:600;font-size:12px">${t.transaction_type || "?"}</td>
+                <td style="padding:7px 8px;text-align:right;font-weight:600">${amt}</td>
+                <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.transaction_date || "—"}</td>
+              </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
   `;
 }
 
-// ── Insider trades (Form 4) ──────────────────────────────────────────────────
+// ── Insider trades (Form 4) — last 2 years ───────────────────────────────────
 function renderInsiderTrades(data) {
   if (!data || !data.trades || !data.trades.length) return;
   document.getElementById("insider-card").style.display = "block";
 
   const TYPE_LABEL = {"P":"Purchase","S":"Sale","A":"Award","M":"Option Ex.","G":"Gift","F":"Tax","D":"Disposition"};
-  const trades = data.trades.slice(0, 20);
+  const trades = data.trades;
+  const titleEl = document.querySelector("#insider-card .card-title");
+  if (titleEl) titleEl.querySelector("span:first-child").textContent =
+    `Insider Trades (Form 4) — last 2 years (${trades.length})`;
 
   document.getElementById("insider-list").innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead>
-        <tr style="color:var(--muted);text-align:left">
-          <th style="padding:6px 8px">Insider</th>
-          <th style="padding:6px 8px">Title</th>
-          <th style="padding:6px 8px">Type</th>
-          <th style="padding:6px 8px;text-align:right">Shares</th>
-          <th style="padding:6px 8px;text-align:right">Value</th>
-          <th style="padding:6px 8px">Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${trades.map(t => {
-          const tc = t.transaction_type;
-          const color = tc === "P" ? "#22c55e" : tc === "S" || tc === "D" ? "#ef4444" : "#94a3b8";
-          const val = t.total_value == null ? "—"
-                    : t.total_value >= 1e6 ? `$${(t.total_value/1e6).toFixed(2)}M`
-                    : t.total_value >= 1e3 ? `$${(t.total_value/1e3).toFixed(0)}K`
-                    : `$${t.total_value.toFixed(0)}`;
-          return `
-            <tr style="border-top:1px solid var(--border)">
-              <td style="padding:7px 8px;font-weight:600">${t.insider_name || "—"}</td>
-              <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.insider_title || "—"}</td>
-              <td style="padding:7px 8px;color:${color};font-weight:600;font-size:12px">${TYPE_LABEL[tc] || tc || "?"}</td>
-              <td style="padding:7px 8px;text-align:right">${t.shares ? Math.round(t.shares).toLocaleString() : "—"}</td>
-              <td style="padding:7px 8px;text-align:right;font-weight:600">${val}</td>
-              <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.transaction_date || "—"}</td>
-            </tr>`;
-        }).join("")}
-      </tbody>
-    </table>
-    ${data.trades.length > 20 ? `<div style="color:var(--muted);font-size:12px;text-align:center;margin-top:10px">Showing 20 of ${data.trades.length}. <a href="/insiders" style="color:var(--accent)">View all →</a></div>` : ""}
+    <div style="max-height:420px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;background:var(--surface);z-index:1">
+          <tr style="color:var(--muted);text-align:left">
+            <th style="padding:6px 8px">Insider</th>
+            <th style="padding:6px 8px">Title</th>
+            <th style="padding:6px 8px">Type</th>
+            <th style="padding:6px 8px;text-align:right">Shares</th>
+            <th style="padding:6px 8px;text-align:right">Value</th>
+            <th style="padding:6px 8px">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${trades.map(t => {
+            const tc = t.transaction_type;
+            const color = tc === "P" ? "#22c55e" : tc === "S" || tc === "D" ? "#ef4444" : "#94a3b8";
+            const val = t.total_value == null ? "—"
+                      : t.total_value >= 1e6 ? `$${(t.total_value/1e6).toFixed(2)}M`
+                      : t.total_value >= 1e3 ? `$${(t.total_value/1e3).toFixed(0)}K`
+                      : `$${t.total_value.toFixed(0)}`;
+            return `
+              <tr style="border-top:1px solid var(--border)">
+                <td style="padding:7px 8px;font-weight:600">${t.insider_name || "—"}</td>
+                <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.insider_title || "—"}</td>
+                <td style="padding:7px 8px;color:${color};font-weight:600;font-size:12px">${TYPE_LABEL[tc] || tc || "?"}</td>
+                <td style="padding:7px 8px;text-align:right">${t.shares ? Math.round(t.shares).toLocaleString() : "—"}</td>
+                <td style="padding:7px 8px;text-align:right;font-weight:600">${val}</td>
+                <td style="padding:7px 8px;color:var(--muted);font-size:12px">${t.transaction_date || "—"}</td>
+              </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
   `;
 }
 

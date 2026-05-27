@@ -928,13 +928,16 @@ def pol_leaderboard(
 
 
 @app.get("/api/pol/ticker/{ticker}")
-def pol_ticker(ticker: str, db: Session = Depends(get_pol_db)):
+def pol_ticker(ticker: str, days: int = 730, db: Session = Depends(get_pol_db)):
+    from datetime import date as _d, timedelta as _td
     ticker = ticker.upper()
+    since  = _d.today() - _td(days=days)
     trades = db.query(CongressionalTrade, Politician).outerjoin(
         Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
-    ).filter(CongressionalTrade.ticker == ticker).order_by(
-        CongressionalTrade.transaction_date.desc()
-    ).all()
+    ).filter(
+        CongressionalTrade.ticker == ticker,
+        CongressionalTrade.transaction_date >= since,
+    ).order_by(CongressionalTrade.transaction_date.desc()).all()
 
     return {
         "ticker": ticker,
@@ -996,10 +999,14 @@ def insider_trades(
 
 
 @app.get("/api/insider/ticker/{ticker}")
-def insider_ticker(ticker: str, db: Session = Depends(get_pol_db)):
+def insider_ticker(ticker: str, days: int = 730, db: Session = Depends(get_pol_db)):
+    from datetime import date as _d, timedelta as _td
     ticker = ticker.upper()
-    rows = db.query(InsiderTrade).filter(InsiderTrade.ticker == ticker).order_by(
-        InsiderTrade.transaction_date.desc()).limit(100).all()
+    since  = _d.today() - _td(days=days)
+    rows = db.query(InsiderTrade).filter(
+        InsiderTrade.ticker == ticker,
+        InsiderTrade.transaction_date >= since,
+    ).order_by(InsiderTrade.transaction_date.desc()).all()
     return {
         "ticker": ticker,
         "trades": [
