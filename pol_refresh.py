@@ -12,9 +12,10 @@ from datetime import datetime
 
 FULL     = "--full"      in sys.argv
 SENATE   = "--senate"    in sys.argv
+CONGRESS = "--congress"  in sys.argv
 EDGAR    = "--edgar"     in sys.argv
 COMS     = "--committees" in sys.argv
-ALL      = not any([SENATE, EDGAR, COMS])
+ALL      = not any([SENATE, CONGRESS, EDGAR, COMS])
 
 DIV = "=" * 58
 
@@ -47,7 +48,11 @@ def main():
         from ingest_committees import ingest as ingest_committees
         results["committees"] = run_step("committees", ingest_committees)
 
-    if ALL or SENATE:
+    if ALL or CONGRESS:
+        from ingest_congress import ingest as ingest_congress
+        results["congress"] = run_step("congress", ingest_congress, full_refresh=FULL)
+
+    if SENATE:   # only when explicitly requested — legacy fallback source
         from ingest_senate import ingest as ingest_senate
         results["senate"] = run_step("senate", ingest_senate, full_refresh=FULL)
 
