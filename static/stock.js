@@ -301,7 +301,7 @@ function renderPoliticalTrades(data) {
   const trades = data.trades;
   const titleEl = document.querySelector("#pol-card .card-title");
   if (titleEl) titleEl.querySelector("span:first-child").textContent =
-    `Congressional Trades — last 2 years (${trades.length})`;
+    `Congressional Trades (${trades.length})`;
 
   document.getElementById("pol-list").innerHTML = `
     <div style="max-height:420px;overflow-y:auto">
@@ -348,7 +348,7 @@ function renderInsiderTrades(data) {
   const trades = data.trades;
   const titleEl = document.querySelector("#insider-card .card-title");
   if (titleEl) titleEl.querySelector("span:first-child").textContent =
-    `Insider Trades (Form 4) — last 2 years (${trades.length})`;
+    `Insider Trades — Form 4 (${trades.length})`;
 
   document.getElementById("insider-list").innerHTML = `
     <div style="max-height:420px;overflow-y:auto">
