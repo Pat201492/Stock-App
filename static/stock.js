@@ -276,11 +276,16 @@ function renderNews(articles) {
   list.innerHTML = articles.map(a => {
     const sentColor = a.sentiment > 0.05 ? "#22c55e" : a.sentiment < -0.05 ? "#ef4444" : "#94a3b8";
     const dateStr   = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";
+    const srcTag    = a.source === "google"
+      ? `<span style="background:rgba(59,130,246,.15);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:6px">Google</span>`
+      : a.source === "yahoo"
+      ? `<span style="background:rgba(124,58,237,.15);color:#a78bfa;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:6px">Yahoo</span>`
+      : "";
     return `
       <div class="news-item">
         <div class="news-sentiment" style="background:${sentColor}"></div>
         <div class="news-content">
-          <a class="news-title" href="${a.url}" target="_blank" rel="noopener">${a.title}</a>
+          <a class="news-title" href="${a.url}" target="_blank" rel="noopener">${a.title}</a>${srcTag}
           <div class="news-meta">${a.publisher || ""} ${dateStr ? "· " + dateStr : ""}</div>
         </div>
       </div>
