@@ -270,9 +270,52 @@ def live_price(ticker: str):
         return JSONResponse(status_code=502, content={"error": f"Yahoo Finance unavailable: {e}"})
 
 
+def _fetch_google_news_rss(ticker: str, limit: int = 10):
+    """Free Google News RSS fallback — no API key, no auth."""
+    import urllib.request, urllib.parse
+    from xml.etree import ElementTree as _ET
+    from email.utils import parsedate_to_datetime
+    from news import sentiment_score
+
+    q = urllib.parse.quote(f"{ticker} stock")
+    url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        body = urllib.request.urlopen(req, timeout=8).read()
+        root = _ET.fromstring(body)
+    except Exception:
+        return []
+
+    out = []
+    for item in root.iter("item"):
+        title  = (item.findtext("title") or "").strip()
+        link   = (item.findtext("link")  or "").strip()
+        pub    = item.findtext("pubDate")
+        source = item.find("{*}source") or item.find("source")
+        publisher = source.text if source is not None and source.text else "Google News"
+        pub_iso = None
+        if pub:
+            try:
+                pub_iso = parsedate_to_datetime(pub).isoformat()
+            except Exception:
+                pub_iso = pub
+        if title and link:
+            out.append({
+                "title":        title,
+                "url":          link,
+                "publisher":    publisher,
+                "published_at": pub_iso,
+                "sentiment":    sentiment_score(title),
+                "source":       "google",
+            })
+        if len(out) >= limit:
+            break
+    return out
+
+
 @app.get("/api/live/news/{ticker}")
 def live_news(ticker: str, limit: int = 10):
-    """Latest news fetched live from Yahoo Finance (not from DB)."""
+    """Latest news fetched live from Yahoo Finance + Google News RSS fallback."""
     try:
         from news import sentiment_score
         t        = yf.Ticker(ticker.upper())
@@ -310,10 +353,26 @@ def live_news(ticker: str, limit: int = 10):
                 "publisher":    publisher,
                 "published_at": pub_iso,
                 "sentiment":    sentiment_score(title),
+                "source":       "yahoo",
             })
-        return result
+
+        # Supplement with Google News RSS so we always have web-search results
+        seen_urls = {a["url"] for a in result if a.get("url")}
+        google = _fetch_google_news_rss(ticker, limit=limit)
+        for g in google:
+            if g["url"] in seen_urls:
+                continue
+            result.append(g)
+
+        # Sort newest first
+        result.sort(key=lambda a: a.get("published_at") or "", reverse=True)
+        return result[: limit * 2]
     except Exception as e:
-        return JSONResponse(status_code=502, content={"error": str(e)})
+        # Even on yfinance failure, try Google News
+        try:
+            return _fetch_google_news_rss(ticker, limit=limit)
+        except Exception:
+            return JSONResponse(status_code=502, content={"error": str(e)})
 
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
