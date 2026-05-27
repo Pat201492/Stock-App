@@ -14,8 +14,9 @@ FULL     = "--full"      in sys.argv
 SENATE   = "--senate"    in sys.argv
 CONGRESS = "--congress"  in sys.argv
 EDGAR    = "--edgar"     in sys.argv
+MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
-ALL      = not any([SENATE, CONGRESS, EDGAR, COMS])
+ALL      = not any([SENATE, CONGRESS, EDGAR, MIRROR, COMS])
 
 DIV = "=" * 58
 
@@ -56,7 +57,11 @@ def main():
         from ingest_senate import ingest as ingest_senate
         results["senate"] = run_step("senate", ingest_senate, full_refresh=FULL)
 
-    if ALL or EDGAR:
+    if ALL or MIRROR:
+        from ingest_insider_mirror import ingest as ingest_mirror
+        results["insider_mirror"] = run_step("insider_mirror", ingest_mirror, full_refresh=FULL)
+
+    if EDGAR:   # explicit only — slow full-history backfill
         from ingest_edgar import ingest as ingest_edgar
         results["edgar"] = run_step("edgar", ingest_edgar, full_refresh=FULL)
 
