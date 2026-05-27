@@ -987,7 +987,7 @@ def pol_leaderboard(
 
 
 @app.get("/api/pol/ticker/{ticker}")
-def pol_ticker(ticker: str, days: int = 730, db: Session = Depends(get_pol_db)):
+def pol_ticker(ticker: str, days: int = 99999, db: Session = Depends(get_pol_db)):
     from datetime import date as _d, timedelta as _td
     ticker = ticker.upper()
     since  = _d.today() - _td(days=days)
@@ -1058,7 +1058,7 @@ def insider_trades(
 
 
 @app.get("/api/insider/ticker/{ticker}")
-def insider_ticker(ticker: str, days: int = 730, db: Session = Depends(get_pol_db)):
+def insider_ticker(ticker: str, days: int = 99999, db: Session = Depends(get_pol_db)):
     from datetime import date as _d, timedelta as _td
     ticker = ticker.upper()
     since  = _d.today() - _td(days=days)
