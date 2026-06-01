@@ -198,6 +198,7 @@ def _news_dict(r):
         "publisher":    r.publisher,
         "published_at": r.published_at.isoformat() if r.published_at else None,
         "sentiment":    r.sentiment,
+        "summary":      r.summary,
     }
 
 @app.get("/api/news")

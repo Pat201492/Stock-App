@@ -65,9 +65,9 @@
     <table>
       <thead>
         <tr>
-          <th style="width:70px">Sent.</th>
+          <th style="width:96px">Sentiment</th>
           <th style="width:80px">Ticker</th>
-          <th>Headline</th>
+          <th>Story</th>
           <th style="width:140px">Publisher</th>
           <th style="width:110px">Date</th>
         </tr>
@@ -89,6 +89,32 @@
 let allArticles = [];
 let displayed   = 0;
 const BATCH     = 100;
+
+// Shorten a headline to ~70 chars, breaking on a word boundary.
+function shortenTitle(t) {
+  t = (t || "").trim();
+  if (t.length <= 70) return t;
+  const cut = t.slice(0, 70);
+  const sp  = cut.lastIndexOf(" ");
+  return (sp > 40 ? cut.slice(0, sp) : cut).trimEnd() + "…";
+}
+
+// First sentence of the article summary, capped at ~160 chars.
+function firstSentence(s) {
+  s = (s || "").trim();
+  if (!s) return "";
+  const m = s.match(/^.*?[.!?](\s|$)/);
+  let out = (m ? m[0] : s).trim();
+  if (out.length > 160) out = out.slice(0, 159).trimEnd() + "…";
+  return out;
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/"/g, "&quot;");
+}
 
 async function init() {
   const data = await fetch("/api/news?limit=500").then(r => r.json()).catch(() => []);
@@ -145,17 +171,21 @@ function renderBatch() {
 
   tbody.innerHTML = slice.map(a => {
     const sentColor = a.sentiment > 0.05 ? "#22c55e" : a.sentiment < -0.05 ? "#ef4444" : "#94a3b8";
-    const sentLabel = a.sentiment > 0.05 ? "▲" : a.sentiment < -0.05 ? "▼" : "●";
-    const date = a.published_at ? new Date(a.published_at).toLocaleDateString() : "—";
+    const sentWord  = a.sentiment > 0.05 ? "Positive" : a.sentiment < -0.05 ? "Negative" : "Neutral";
+    const sentGlyph = a.sentiment > 0.05 ? "▲" : a.sentiment < -0.05 ? "▼" : "●";
+    const date  = a.published_at ? new Date(a.published_at).toLocaleDateString() : "—";
+    const short = shortenTitle(a.title);
+    const story = firstSentence(a.summary);
     return `
       <tr>
-        <td style="text-align:center;color:${sentColor};font-size:16px">${sentLabel}</td>
+        <td style="text-align:center;color:${sentColor};font-size:12px;font-weight:600;white-space:nowrap">${sentGlyph} ${sentWord}</td>
         <td>
           <a href="/stock/${a.ticker}" class="ticker-cell">${a.ticker}</a>
         </td>
         <td>
-          <a href="${a.url}" target="_blank" rel="noopener"
-             style="color:var(--text);font-size:13px;line-height:1.4">${a.title}</a>
+          <a href="${a.url}" target="_blank" rel="noopener" title="${escapeAttr(a.title)}"
+             style="color:var(--text);font-size:13px;line-height:1.4;font-weight:600">${escapeHtml(short)}</a>
+          ${story ? `<div class="muted" style="font-size:12px;line-height:1.4;margin-top:3px">${escapeHtml(story)}</div>` : ""}
         </td>
         <td class="muted" style="font-size:12px">${a.publisher || "—"}</td>
         <td class="muted" style="font-size:12px">${date}</td>
