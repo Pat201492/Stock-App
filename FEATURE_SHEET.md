@@ -41,7 +41,9 @@ python server.py                           # http://localhost:8000 (auto-opens b
 **Stocks:** `/api/stocks` (filter/sort/paginate) · `/api/stocks/{ticker}` · `/api/stocks/{ticker}/score` · `/api/sectors` · `/api/cap_sizes` · `/api/stats/distribution`
 **Prices:** `/api/price/{ticker}` · `/api/live/price/{ticker}`
 **News:** `/api/news` · `/api/news/{ticker}` · `/api/live/news/{ticker}` (Yahoo + Google RSS fallback). News dicts include `summary` (article body, used for the one-sentence "story" on the feed).
-**Congressional:** `/api/pol/stats` · `/api/pol/trades` · `/api/pol/politician/{bioguide_id}` · `/api/pol/leaderboard` · `/api/pol/ticker/{ticker}` · `POST /api/pol/refresh` · `/api/pol/status`
+**Congressional:** `/api/pol/stats` · `/api/pol/committees` (member-having committees + `trade_count` + jurisdiction `sectors`) · `/api/pol/trades` (filters: ticker, bioguide, chamber, txn_type, **committee**, **conflicts_only**, days; each trade carries `sector` + `conflict` flag) · `/api/pol/politician/{bioguide_id}` · `/api/pol/leaderboard` · `/api/pol/ticker/{ticker}` · `POST /api/pol/refresh` · `/api/pol/status`
+
+> **Committee filter + conflict-watch** (politicians.html Trade Feed): chamber-grouped committee picker; selecting a committee restricts to its members' trades. A committee→sector jurisdiction map (`COMMITTEE_SECTOR_RULES` in server.py) flags trades whose ticker sector overlaps the committee's remit (⚠) with a "Conflicts only" toggle. Sectors are looked up cross-DB from stocks.db (only the ~428-stock universe has sectors; off-universe tickers show no sector / never flag).
 **Insider:** `/api/insider/trades` · `/api/insider/ticker/{ticker}`
 **Cross-tab:** `/api/trade_counts` (per-ticker pol/insider counts for the screener)
 **Pipeline:** `GET /api/pipeline/status` · `POST /api/pipeline/run?from_script=` · `/api/pipeline/log`
@@ -69,3 +71,5 @@ yfinance (metadata/fundamentals/news/prices) · NASDAQ Trader FTP · Wikipedia S
 1. **pol_refresh not scheduled** — see warning above; run manually or wire into scheduler.
 2. **Windows UTF-8** — `PYTHONUTF8=1` needed for pipeline scripts (emoji logging).
 3. **yfinance news schema** — fields moved under `article["content"]` (title, `canonicalUrl.url`, `pubDate`, `summary`); `news.py::fetch_and_store_news` handles both new and legacy flat schema, and backfills `summary` onto pre-existing rows.
+4. **Subcommittee memberships not ingested** — `committees` holds 181 subcommittees but `committee_memberships` only has rows for the 49 parent committees (subcommittee IDs in the membership source don't match `committees`). So the committee filter is parent-only; true subcommittee filtering needs an `ingest_committees.py` fix + `pol_refresh.py --committees` re-run.
+5. **Committee jurisdiction map is a heuristic** — `COMMITTEE_SECTOR_RULES` keyword-matches committee names to yfinance sectors; 24/49 committees have a mapping. Tune the rules as needed.

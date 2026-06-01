@@ -829,9 +829,70 @@ def pol_stats(db: Session = Depends(get_pol_db)):
     }
 
 
+# ── Committee jurisdiction → market sectors (conflict-of-interest heuristic) ──
+# Sector strings must match stocks.db Stock.sector (yfinance taxonomy).
+# Keyword-matched against the committee name so it covers House+Senate variants.
+COMMITTEE_SECTOR_RULES = [
+    (("financial services", "banking", "finance", "ways and means"),
+        {"Financial Services", "Real Estate"}),
+    (("energy", "natural resources"),
+        {"Energy", "Utilities", "Basic Materials"}),
+    (("armed services",),
+        {"Industrials"}),
+    (("commerce", "science", "transportation", "infrastructure"),
+        {"Industrials", "Technology", "Communication Services", "Healthcare"}),
+    (("health", "aging"),
+        {"Healthcare"}),
+    (("agriculture", "nutrition", "forestry"),
+        {"Consumer Defensive", "Basic Materials"}),
+    (("judiciary",),
+        {"Technology", "Communication Services"}),
+    (("homeland security",),
+        {"Industrials", "Technology"}),
+    (("foreign affairs", "foreign relations", "intelligence"),
+        {"Energy", "Industrials"}),
+]
+
+
+def _committee_sectors(name):
+    """Sectors a committee's jurisdiction plausibly touches (may be empty)."""
+    n = (name or "").lower()
+    sectors = set()
+    for keywords, secs in COMMITTEE_SECTOR_RULES:
+        if any(k in n for k in keywords):
+            sectors |= secs
+    return sectors
+
+
+def _ticker_sectors(tickers):
+    """ticker -> sector from stocks.db (only universe stocks are known)."""
+    tickers = [t for t in set(tickers) if t]
+    if not tickers:
+        return {}
+    sdb = SessionLocal()
+    try:
+        rows = sdb.query(Stock.ticker, Stock.sector).filter(Stock.ticker.in_(tickers)).all()
+        return {t: s for t, s in rows}
+    finally:
+        sdb.close()
+
+
+def _tickers_in_sectors(sectors):
+    """All universe tickers whose sector is in the given set."""
+    if not sectors:
+        return []
+    sdb = SessionLocal()
+    try:
+        rows = sdb.query(Stock.ticker).filter(Stock.sector.in_(list(sectors))).all()
+        return [r[0] for r in rows]
+    finally:
+        sdb.close()
+
+
 @app.get("/api/pol/committees")
 def pol_committees(db: Session = Depends(get_pol_db)):
-    """Committees that have at least one member, for the trade-feed filter."""
+    """Committees that have at least one member, for the trade-feed filter.
+    Includes a trade count (trades by members) and jurisdiction sectors."""
     member_ids = db.query(CommitteeMembership.committee_id).distinct().subquery()
     rows = (
         db.query(Committee)
@@ -839,8 +900,20 @@ def pol_committees(db: Session = Depends(get_pol_db)):
         .order_by(Committee.chamber, Committee.name)
         .all()
     )
+    counts = dict(db.execute(text("""
+        SELECT m.committee_id, COUNT(*) AS cnt
+        FROM committee_memberships m
+        JOIN congressional_trades t ON t.bioguide_id = m.bioguide_id
+        GROUP BY m.committee_id
+    """)).fetchall())
     return {"committees": [
-        {"committee_id": c.committee_id, "name": c.name, "chamber": c.chamber}
+        {
+            "committee_id": c.committee_id,
+            "name":         c.name,
+            "chamber":      c.chamber,
+            "trade_count":  counts.get(c.committee_id, 0),
+            "sectors":      sorted(_committee_sectors(c.name)),
+        }
         for c in rows
     ]}
 
@@ -852,6 +925,7 @@ def pol_trades(
     chamber:   Optional[str] = None,
     txn_type:  Optional[str] = None,
     committee: Optional[str] = None,
+    conflicts_only: bool = False,
     days:      Optional[int] = None,
     sort:     str = "transaction_date",
     order:    str = "desc",
@@ -866,12 +940,24 @@ def pol_trades(
     if bioguide: q = q.filter(CongressionalTrade.bioguide_id == bioguide)
     if chamber:  q = q.filter(Politician.chamber == chamber)
     if txn_type: q = q.filter(CongressionalTrade.transaction_type == txn_type)
+
+    # Committee context drives both the membership filter and conflict flagging.
+    jurisdiction = set()
     if committee:
         # Restrict to trades by members of the selected committee.
         member_ids = db.query(CommitteeMembership.bioguide_id).filter(
             CommitteeMembership.committee_id == committee
         )
         q = q.filter(CongressionalTrade.bioguide_id.in_(member_ids))
+
+        cmt = db.query(Committee).filter(Committee.committee_id == committee).first()
+        jurisdiction = _committee_sectors(cmt.name) if cmt else set()
+
+    if conflicts_only:
+        # Conflict = trade in a ticker whose sector overlaps committee jurisdiction.
+        # No committee / no mapped jurisdiction => no conflicts (empty result).
+        conflict_tickers = _tickers_in_sectors(jurisdiction)
+        q = q.filter(CongressionalTrade.ticker.in_(conflict_tickers or ["\0"]))
     if days:
         from datetime import date as _d, timedelta as _td
         q = q.filter(CongressionalTrade.transaction_date >= _d.today() - _td(days=days))
@@ -887,8 +973,12 @@ def pol_trades(
     total = q.count()
     rows  = q.offset(offset).limit(limit).all()
 
+    # Look up sectors for this page's tickers (stocks.db); flag jurisdiction overlap.
+    sector_map = _ticker_sectors([t.ticker for t, _ in rows])
+
     result = []
     for trade, pol in rows:
+        sector = sector_map.get(trade.ticker)
         result.append({
             "trade_id":         trade.trade_id,
             "ticker":           trade.ticker,
@@ -904,8 +994,14 @@ def pol_trades(
             "chamber":          pol.chamber if pol else None,
             "party":            pol.party   if pol else None,
             "state":            pol.state   if pol else None,
+            "sector":           sector,
+            "conflict":         bool(sector and sector in jurisdiction),
         })
-    return {"total": total, "trades": result}
+    return {
+        "total": total,
+        "trades": result,
+        "jurisdiction": sorted(jurisdiction),
+    }
 
 
 @app.get("/api/pol/politician/{bioguide_id}")

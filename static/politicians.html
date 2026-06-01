@@ -59,12 +59,18 @@
         <option value="90">Last 90 days</option>
         <option value="365">Last year</option>
       </select>
-      <select id="committee-filter" onchange="loadFeed()" title="Filter by committee membership">
+      <select id="committee-filter" onchange="onCommitteeChange()" title="Filter by committee membership">
         <option value="">All Committees</option>
       </select>
+      <label id="conflict-label" title="Show only trades in sectors this committee oversees"
+             style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer">
+        <input type="checkbox" id="conflict-toggle" onchange="loadFeed()" style="cursor:pointer" />
+        <span>⚠ Conflicts only</span>
+      </label>
       <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
       <span id="feed-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
     </div>
+    <div id="jurisdiction-note" style="display:none;color:var(--muted);font-size:12px;margin:-8px 0 12px"></div>
 
     <div class="table-wrap">
       <table>
@@ -73,6 +79,7 @@
             <th>Politician</th>
             <th>Party/State</th>
             <th>Ticker</th>
+            <th>Sector</th>
             <th>Type</th>
             <th style="text-align:right">Amount</th>
             <th>Txn Date</th>
@@ -81,7 +88,7 @@
           </tr>
         </thead>
         <tbody id="feed-body">
-          <tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>
+          <tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -120,6 +127,7 @@
 <script>
 let feedPage = 0;
 const PAGE_SIZE = 50;
+const committeeSectors = {};   // committee_id -> [sectors]
 
 function switchTab(tab) {
   document.querySelectorAll(".sub-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
@@ -168,32 +176,42 @@ async function fetchPage() {
   const txn       = document.getElementById("txn-filter").value;
   const days      = document.getElementById("days-filter").value;
   const committee = document.getElementById("committee-filter").value;
+  const conflicts = document.getElementById("conflict-toggle").checked;
   const params  = new URLSearchParams({ limit: PAGE_SIZE, offset: feedPage * PAGE_SIZE });
   if (ticker)    params.set("ticker", ticker);
   if (txn)       params.set("txn_type", txn);
   if (days)      params.set("days", days);
   if (committee) params.set("committee", committee);
+  if (committee && conflicts) params.set("conflicts_only", "true");
 
   const d = await fetch(`/api/pol/trades?${params}`).then(r => r.json()).catch(() => ({trades: [], total: 0}));
   document.getElementById("feed-count").textContent = `${d.total.toLocaleString()} trades`;
 
   const tbody = document.getElementById("feed-body");
   if (!d.trades.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">
-      No trades. Run the political data refresh to populate the database.
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty">
+      ${committee && conflicts ? "No conflict-of-interest trades for this committee." :
+        "No trades. Run the political data refresh to populate the database."}
     </div></td></tr>`;
   } else {
-    tbody.innerHTML = d.trades.map(t => `
-      <tr>
+    tbody.innerHTML = d.trades.map(t => {
+      const conf = t.conflict
+        ? `<span title="Sector overlaps committee jurisdiction" style="color:#f59e0b;font-weight:700">⚠ </span>`
+        : "";
+      const rowBg = t.conflict ? "background:rgba(245,158,11,.07)" : "";
+      return `
+      <tr style="${rowBg}">
         <td><a href="/politician/${t.bioguide_id}" style="color:var(--accent);font-weight:600">${t.politician_name}</a></td>
         <td class="muted" style="font-size:12px">${t.party || "?"} / ${t.state || "?"}</td>
         <td><a href="/stock/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
+        <td class="muted" style="font-size:12px">${conf}${t.sector || "—"}</td>
         <td>${typeBadge(t.transaction_type)}</td>
         <td style="text-align:right;font-weight:600">${fmtAmt(t.amount_min, t.amount_max)}</td>
         <td class="muted" style="font-size:12px">${t.transaction_date || "—"}</td>
         <td>${disclosureLag(t.transaction_date, t.disclosure_date)}</td>
         <td class="muted" style="font-size:12px">${t.owner || "—"}</td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
   }
 
   document.getElementById("page-info").textContent = `Page ${feedPage + 1} of ${Math.max(1, Math.ceil(d.total / PAGE_SIZE))}`;
@@ -211,19 +229,57 @@ function resetFilters() {
   document.getElementById("txn-filter").value        = "";
   document.getElementById("days-filter").value       = "";
   document.getElementById("committee-filter").value  = "";
+  document.getElementById("conflict-toggle").checked = false;
+  onCommitteeChange();
+}
+
+// Show/hide the conflict toggle + jurisdiction note as the committee changes.
+function onCommitteeChange() {
+  const id   = document.getElementById("committee-filter").value;
+  const secs = committeeSectors[id] || [];
+  const label = document.getElementById("conflict-label");
+  const note  = document.getElementById("jurisdiction-note");
+
+  if (id && secs.length) {
+    label.style.display = "inline-flex";
+    note.style.display  = "block";
+    note.innerHTML = `⚠ Conflict sectors for this committee: <strong>${secs.join(", ")}</strong>`;
+  } else {
+    label.style.display = "none";
+    note.style.display  = "none";
+    document.getElementById("conflict-toggle").checked = false;
+    if (id && !secs.length) {
+      note.style.display = "block";
+      note.textContent = "No mapped jurisdiction sectors for this committee — conflict flagging unavailable.";
+    }
+  }
   loadFeed();
 }
 
 async function loadCommittees() {
   const d = await fetch("/api/pol/committees").then(r => r.json()).catch(() => ({ committees: [] }));
   const sel = document.getElementById("committee-filter");
+  const groups = { senate: [], house: [], other: [] };
   for (const c of (d.committees || [])) {
-    const opt = document.createElement("option");
-    opt.value = c.committee_id;
-    const tag = c.chamber ? `[${c.chamber[0].toUpperCase()}] ` : "";
-    opt.textContent = tag + c.name;
-    sel.appendChild(opt);
+    committeeSectors[c.committee_id] = c.sectors || [];
+    (groups[c.chamber] || groups.other).push(c);
   }
+  const addGroup = (label, items) => {
+    if (!items.length) return;
+    const og = document.createElement("optgroup");
+    og.label = label;
+    for (const c of items) {
+      const opt = document.createElement("option");
+      opt.value = c.committee_id;
+      const flag = (c.sectors && c.sectors.length) ? " ⚠" : "";
+      opt.textContent = `${c.name} (${(c.trade_count || 0).toLocaleString()})${flag}`;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  };
+  addGroup("Senate", groups.senate);
+  addGroup("House",  groups.house);
+  addGroup("Other",  groups.other);
 }
 
 async function loadBoard() {
