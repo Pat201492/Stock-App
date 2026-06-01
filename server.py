@@ -27,6 +27,11 @@ app = FastAPI(title="Stock Tracker")
 init_db()
 init_pol_db()
 
+# Read-only host flag. When set (e.g. on the public VPS that only serves
+# locally-built DBs), the heavy/mutating endpoints are disabled so nobody can
+# trigger a yfinance/EDGAR pipeline run on the serving box.
+READ_ONLY = os.environ.get("READ_ONLY") == "1"
+
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -46,6 +51,21 @@ def dashboard():
 @app.get("/stock/{ticker}")
 def stock_page(ticker: str):
     return FileResponse(os.path.join(STATIC_DIR, "stock.html"))
+
+
+# ── Self-installing updater bootstrap ───────────────────────────────────────────
+# Served so any machine can run a one-liner that installs the app if missing,
+# refreshes the data, then publishes it live. Returned as text/plain so
+# `irm https://host/update.ps1 | iex` (or `curl host/update.sh | bash`) works.
+_BOOTSTRAP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bootstrap")
+
+@app.get("/update.ps1")
+def bootstrap_ps1():
+    return FileResponse(os.path.join(_BOOTSTRAP_DIR, "update.ps1"), media_type="text/plain")
+
+@app.get("/update.sh")
+def bootstrap_sh():
+    return FileResponse(os.path.join(_BOOTSTRAP_DIR, "update.sh"), media_type="text/plain")
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -405,6 +425,8 @@ def _parse_progress(line: str, script_total: int, scripts_run: list):
 
 @app.post("/api/pipeline/run")
 def run_pipeline(from_script: Optional[str] = None):
+    if READ_ONLY:
+        return JSONResponse(status_code=403, content={"error": "read-only host"})
     if _pipeline_status["running"]:
         return JSONResponse(status_code=409, content={"error": "Pipeline already running"})
 
@@ -758,6 +780,8 @@ def pol_status():
 
 @app.post("/api/pol/refresh")
 def pol_refresh(step: Optional[str] = None):
+    if READ_ONLY:
+        return JSONResponse(status_code=403, content={"error": "read-only host"})
     if _pol_status["running"]:
         return JSONResponse(status_code=409, content={"error": "Already running"})
 

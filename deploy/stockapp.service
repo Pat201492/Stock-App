@@ -1,0 +1,19 @@
+[Unit]
+Description=Stock-App (read-only FastAPI server)
+After=network.target
+
+[Service]
+Type=simple
+User=stockapp
+Group=stockapp
+WorkingDirectory=/opt/stockapp
+Environment=READ_ONLY=1
+Environment=DB_PATH=/opt/stockapp/data/stocks.db
+Environment=POL_DB_PATH=/opt/stockapp/data/politicians.db
+Environment=PORT=8080
+ExecStart=/opt/stockapp/.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
