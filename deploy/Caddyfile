@@ -1,0 +1,19 @@
+# Caddy reverse proxy for Stock-App. Auto-HTTPS via Let's Encrypt when DOMAIN
+# is a real hostname. Set it in /etc/caddy/Caddyfile or via the {$DOMAIN} env.
+#
+# With a domain (recommended - free TLS):
+#   DOMAIN=stocks.example.com   (or a free DuckDNS / sslip.io name)
+#
+# No domain yet? Comment the block above and use the :80 block below
+# (HTTP only, no TLS) until you point a hostname at the server.
+
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
+
+# --- HTTP-only fallback (no domain). Uncomment and remove the block above. ---
+# :80 {
+# 	encode gzip
+# 	reverse_proxy 127.0.0.1:8080
+# }

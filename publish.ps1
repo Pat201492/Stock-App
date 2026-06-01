@@ -1,0 +1,50 @@
+# publish.ps1 - build data locally (optional) then push it live to the VPS.
+# Usage:
+#   .\publish.ps1            # run full pipeline, then push + swap live
+#   .\publish.ps1 -NoBuild   # push the existing local DBs only (no pipeline)
+#
+# Requires publish.config.ps1 (copy from publish.config.ps1.example) and SSH
+# key access to the VPS. The VPS must allow passwordless `systemctl restart`
+# for the deploy user (configured by deploy/setup_vps.sh).
+[CmdletBinding()]
+param([switch]$NoBuild)
+$ErrorActionPreference = "Stop"
+
+$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $root
+
+if (-not (Test-Path "$root\publish.config.ps1")) {
+  throw "publish.config.ps1 not found. Copy publish.config.ps1.example to publish.config.ps1 and edit it."
+}
+. "$root\publish.config.ps1"
+
+$py = Join-Path $root ".venv\Scripts\python.exe"
+if (-not (Test-Path $py)) { throw "venv missing at $py - create it: python -m venv .venv; .\.venv\Scripts\python -m pip install -r requirements.txt" }
+
+if (-not $NoBuild) {
+  $env:PYTHONUTF8 = "1"
+  Write-Host "[publish] Building market data (run.py) ..."
+  & $py run.py
+  Write-Host "[publish] Building congressional/insider data (pol_refresh.py) ..."
+  & $py pol_refresh.py
+}
+
+foreach ($f in @("stocks.db", "politicians.db")) {
+  if (-not (Test-Path "$root\$f")) { throw "$f not found - run without -NoBuild first." }
+}
+
+$sshArgs = @()
+if ($SSH_KEY -and (Test-Path $SSH_KEY)) { $sshArgs = @("-i", $SSH_KEY) }
+$target = "$VPS_USER@$VPS_HOST"
+
+Write-Host "[publish] Uploading DBs to $target ..."
+& ssh @sshArgs $target "mkdir -p $VPS_DATA/_incoming"
+if ($LASTEXITCODE -ne 0) { throw "ssh mkdir failed" }
+& scp @sshArgs "$root\stocks.db" "$root\politicians.db" "${target}:$VPS_DATA/_incoming/"
+if ($LASTEXITCODE -ne 0) { throw "scp upload failed" }
+
+Write-Host "[publish] Swapping live + restarting $VPS_SERVICE ..."
+& ssh @sshArgs $target "mv $VPS_DATA/_incoming/*.db $VPS_DATA/ && sudo systemctl restart $VPS_SERVICE"
+if ($LASTEXITCODE -ne 0) { throw "remote swap/restart failed" }
+
+Write-Host "[publish] Done - live data updated at https://$VPS_HOST"

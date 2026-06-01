@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Update Data — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/distribution">Score Distribution</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+    <a href="/audit">Data Audit</a>
+    <a href="/debug">Debug</a>
+  </div>
+</nav>
+
+<div class="container" style="max-width:820px">
+  <h2 style="margin-bottom:6px">Update the data</h2>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:24px">
+    This site serves a read-only snapshot, so the data refresh runs on your own
+    machine and then publishes the result here. Run the one-liner below — it
+    installs the app if you don't have it, refreshes the data, and pushes it live.
+  </p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Windows (PowerShell)</div>
+    <div class="cmd-row">
+      <code id="cmd-ps"></code>
+      <button class="btn btn-outline btn-sm" onclick="copyCmd('cmd-ps')">Copy</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">macOS / Linux</div>
+    <div class="cmd-row">
+      <code id="cmd-sh"></code>
+      <button class="btn btn-outline btn-sm" onclick="copyCmd('cmd-sh')">Copy</button>
+    </div>
+  </div>
+
+  <p style="color:var(--muted);font-size:12px;line-height:1.6">
+    Publishing requires SSH access to the server (configured once via
+    <code>publish.config.ps1</code> on Windows or <code>STOCKAPP_VPS_HOST</code> on
+    macOS/Linux). Machines without that just build the data locally — they can't
+    push. See <code>deploy/README.md</code> for setup.
+  </p>
+</div>
+
+<style>
+.cmd-row { display:flex; align-items:center; gap:10px; }
+.cmd-row code {
+  flex:1; background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:10px 12px; font-size:13px; overflow-x:auto; white-space:nowrap;
+}
+</style>
+
+<script>
+const host = window.location.host;
+const psCmd = `irm https://${host}/update.ps1 | iex`;
+const shCmd = `curl -fsSL https://${host}/update.sh | bash`;
+document.getElementById("cmd-ps").textContent = psCmd;
+document.getElementById("cmd-sh").textContent = shCmd;
+
+function copyCmd(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  });
+}
+</script>
+</body>
+</html>

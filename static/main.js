@@ -231,7 +231,13 @@ function changePage(dir) {
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 async function runPipeline() {
   if (!confirm("Start a full data refresh? This may take several minutes.")) return;
-  await fetch("/api/pipeline/run", { method: "POST" });
+  const resp = await fetch("/api/pipeline/run", { method: "POST" }).catch(() => null);
+  // Read-only host: server refuses to run the pipeline. Send the user to the
+  // self-installing updater instead (build locally, then publish live).
+  if (resp && resp.status === 403) {
+    window.location.href = "/static/update.html";
+    return;
+  }
   document.getElementById("pipeline-status").textContent = "⟳ Pipeline running…";
   document.getElementById("pipeline-status").style.color = "var(--yellow)";
   pollPipeline();

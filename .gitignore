@@ -8,6 +8,15 @@ stock-stracker-*.json
 stocks.db
 stocks.db-shm
 stocks.db-wal
+politicians.db
+politicians.db-shm
+politicians.db-wal
+
+# Deploy secrets / local config
+publish.config.ps1
+
+# Virtualenv
+.venv/
 
 # Generated outputs
 *.xlsx

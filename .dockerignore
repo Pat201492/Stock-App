@@ -3,7 +3,11 @@ stock-stracker-*.json
 
 # Local DB and caches
 stocks.db
+politicians.db
+*.db-shm
+*.db-wal
 *_cache.json
+publish.config.ps1
 
 # Generated outputs
 *.xlsx

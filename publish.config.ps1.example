@@ -1,0 +1,11 @@
+# Copy this file to publish.config.ps1 (gitignored) and edit the values.
+# publish.ps1 and the bootstrap updater source these to push data to the VPS.
+
+$VPS_HOST    = "your.vps.ip.or.hostname"   # e.g. 203.0.113.10  or  stocks.example.com
+$VPS_USER    = "stockapp"                   # deploy user created by setup_vps.sh
+$VPS_DATA    = "/opt/stockapp/data"         # where the served *.db files live
+$VPS_SERVICE = "stockapp"                   # systemd service name to restart
+
+# SSH private key for unattended auth. Leave as-is if your default key works,
+# or point at a specific key (recommended for the scheduled task).
+$SSH_KEY     = "$env:USERPROFILE\.ssh\id_ed25519"
