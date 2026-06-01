@@ -199,8 +199,10 @@ def fetch_nasdaq_api():
 
     def fetch():
         text = http_get(NASDAQ_API_URL, timeout=45)
-        data = _json.loads(text)
-        rows = data.get("data", {}).get("table", {}).get("rows", [])
+        data = _json.loads(text).get("data", {})
+        # The &download=true endpoint returns rows at data.rows (~7000 tickers);
+        # the non-download form nests them under data.table.rows. Support both.
+        rows = data.get("rows") or data.get("table", {}).get("rows", [])
         found = []
         for row in rows:
             t = clean_ticker(row.get("symbol", ""))

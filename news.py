@@ -158,7 +158,7 @@ def main(tickers=None, limit_per_ticker=10):
     db = SessionLocal()
 
     if tickers is None:
-        rows = db.query(Stock.ticker).order_by(Stock.rank).limit(500).all()
+        rows = db.query(Stock.ticker).order_by(Stock.rank).limit(1500).all()
         tickers = [r.ticker for r in rows]
 
     need_news   = _tickers_needing_news(tickers, db)
