@@ -11,6 +11,9 @@ stocks.db-wal
 politicians.db
 politicians.db-shm
 politicians.db-wal
+accounts.db
+accounts.db-shm
+accounts.db-wal
 
 # Deploy secrets / local config
 publish.config.ps1

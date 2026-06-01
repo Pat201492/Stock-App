@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/static/chart-crosshair.js?v=2"></script>
+  <script src="/static/account-common.js?v=1"></script>
 </head>
 <body>
 
@@ -16,6 +17,7 @@
     <a href="/">Screener</a>
     <a href="/etf">ETFs</a>
     <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
     <a href="/static/news.html">News Feed</a>
     <a href="/distribution">Score Distribution</a>
     <a href="/politicians">Congressional</a>
@@ -32,6 +34,7 @@
   <div class="stock-header" id="stock-header">
     <div class="loading"><div class="spinner"></div></div>
   </div>
+  <div id="acct-controls" style="margin:10px 0;display:flex;gap:8px"></div>
 
   <!-- Valuation models -->
   <div class="grid-3" id="val-grid" style="display:none">
@@ -131,6 +134,6 @@
   </div>
 </div>
 
-<script src="/static/stock.js?v=4"></script>
+<script src="/static/stock.js?v=5"></script>
 </body>
 </html>

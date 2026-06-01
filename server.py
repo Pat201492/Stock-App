@@ -22,10 +22,15 @@ from politicians_database import (
     CongressionalTrade, InsiderTrade, PolTickerMetadata,
     SessionLocal as PolSessionLocal,
 )
+from accounts_database import (
+    get_acct_db, init_accounts_db, Favorite, PaperTrade,
+    SessionLocal as AcctSessionLocal,
+)
 
 app = FastAPI(title="Stock Tracker")
 init_db()
 init_pol_db()
+init_accounts_db()
 
 # Read-only host flag. When set (e.g. on the public VPS that only serves
 # locally-built DBs), the heavy/mutating endpoints are disabled so nobody can
@@ -63,6 +68,10 @@ def etf_detail_page(ticker: str):
 @app.get("/fed")
 def fed_page():
     return FileResponse(os.path.join(STATIC_DIR, "fed.html"))
+
+@app.get("/account")
+def account_page():
+    return FileResponse(os.path.join(STATIC_DIR, "account.html"))
 
 
 # ── Self-installing updater bootstrap ───────────────────────────────────────────
@@ -458,6 +467,145 @@ def fed_series(series_id: str, limit: int = 180):
         return {"configured": True, "id": _id, "label": label, "unit": unit, "points": pts[-limit:]}
     except Exception as e:
         return JSONResponse(status_code=502, content={"error": str(e)[:100]})
+
+
+# ── Account layer: favorites + paper trades ─────────────────────────────────────
+# Username-only (no auth); writes go to a separate accounts.db not touched by the
+# data push, so these are intentionally allowed even when READ_ONLY is set.
+
+def _last_price(ticker):
+    t = (ticker or "").upper()
+    sdb = SessionLocal()
+    try:
+        r = sdb.query(Stock.price).filter(Stock.ticker == t).first()
+        if r and r[0]:
+            return float(r[0])
+        e = sdb.query(ETF.price).filter(ETF.ticker == t).first()
+        if e and e[0]:
+            return float(e[0])
+    finally:
+        sdb.close()
+    return None
+
+def _require_user(user):
+    if not user or not user.strip():
+        return JSONResponse(status_code=400, content={"error": "user required"})
+    return None
+
+@app.get("/api/account/favorites")
+def acct_favorites(user: str = "", db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    rows = db.query(Favorite).filter(Favorite.username == user.strip()).all()
+    return {"favorites": [
+        {"ticker": f.ticker, "kind": f.kind, "last_price": _last_price(f.ticker)} for f in rows
+    ]}
+
+@app.post("/api/account/favorite")
+def acct_favorite_toggle(user: str = "", ticker: str = "", kind: str = "stock",
+                         db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    u, t = user.strip(), ticker.strip().upper()
+    if not t:
+        return JSONResponse(status_code=400, content={"error": "ticker required"})
+    existing = db.query(Favorite).filter(Favorite.username == u, Favorite.ticker == t).first()
+    if existing:
+        db.delete(existing); db.commit()
+        return {"ticker": t, "favorited": False}
+    db.add(Favorite(username=u, ticker=t, kind=kind)); db.commit()
+    return {"ticker": t, "favorited": True}
+
+@app.get("/api/account/trades")
+def acct_trades(user: str = "", db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    rows = (db.query(PaperTrade).filter(PaperTrade.username == user.strip())
+              .order_by(PaperTrade.traded_on.desc(), PaperTrade.id.desc()).all())
+    return {"trades": [{
+        "id": r.id, "ticker": r.ticker, "kind": r.kind, "side": r.side,
+        "shares": r.shares, "price": r.price,
+        "date": r.traded_on.isoformat() if r.traded_on else None, "note": r.note,
+    } for r in rows]}
+
+@app.post("/api/account/trade")
+def acct_trade_add(user: str = "", ticker: str = "", kind: str = "stock", side: str = "buy",
+                   shares: float = 0, price: float = 0, date: Optional[str] = None,
+                   note: str = "", db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    from datetime import date as _d
+    t = ticker.strip().upper()
+    if not t or shares <= 0 or price < 0 or side not in ("buy", "sell"):
+        return JSONResponse(status_code=400, content={"error": "invalid trade"})
+    try:
+        td = _d.fromisoformat(date) if date else _d.today()
+    except ValueError:
+        td = _d.today()
+    db.add(PaperTrade(username=user.strip(), ticker=t, kind=kind, side=side,
+                      shares=shares, price=price, traded_on=td, note=note.strip()))
+    db.commit()
+    return {"ok": True}
+
+@app.delete("/api/account/trade/{trade_id}")
+def acct_trade_delete(trade_id: int, user: str = "", db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    row = db.query(PaperTrade).filter(PaperTrade.id == trade_id,
+                                      PaperTrade.username == user.strip()).first()
+    if row:
+        db.delete(row); db.commit()
+    return {"ok": True}
+
+@app.get("/api/account/portfolio")
+def acct_portfolio(user: str = "", db: Session = Depends(get_acct_db)):
+    err = _require_user(user)
+    if err: return err
+    trades = (db.query(PaperTrade).filter(PaperTrade.username == user.strip())
+                .order_by(PaperTrade.traded_on.asc(), PaperTrade.id.asc()).all())
+    # average-cost method
+    pos = {}  # ticker -> {shares, cost, kind}
+    realized = 0.0
+    for tr in trades:
+        p = pos.setdefault(tr.ticker, {"shares": 0.0, "cost": 0.0, "kind": tr.kind})
+        if tr.side == "buy":
+            p["shares"] += tr.shares
+            p["cost"]   += tr.shares * tr.price
+        else:  # sell
+            if p["shares"] > 1e-9:
+                avg  = p["cost"] / p["shares"]
+                sold = min(tr.shares, p["shares"])
+                realized += (tr.price - avg) * sold
+                p["cost"]   -= avg * sold
+                p["shares"] -= sold
+    positions = []
+    total_mv = total_upl = total_cost = 0.0
+    for tk, p in pos.items():
+        if p["shares"] <= 1e-9:
+            continue
+        avg  = p["cost"] / p["shares"]
+        last = _last_price(tk)
+        mv   = (last or 0) * p["shares"]
+        upl  = (last - avg) * p["shares"] if last is not None else None
+        positions.append({
+            "ticker": tk, "kind": p["kind"], "shares": round(p["shares"], 4),
+            "avg_cost": round(avg, 4), "last_price": last,
+            "market_value": round(mv, 2),
+            "unrealized_pl": round(upl, 2) if upl is not None else None,
+            "unrealized_pct": round((last/avg - 1) * 100, 2) if (last is not None and avg) else None,
+        })
+        total_mv += mv; total_cost += p["cost"]
+        if upl is not None: total_upl += upl
+    positions.sort(key=lambda x: -(x["market_value"] or 0))
+    return {
+        "positions": positions,
+        "realized_pl": round(realized, 2),
+        "totals": {
+            "market_value": round(total_mv, 2),
+            "cost_basis": round(total_cost, 2),
+            "unrealized_pl": round(total_upl, 2),
+        },
+    }
 
 
 # ── News ──────────────────────────────────────────────────────────────────────

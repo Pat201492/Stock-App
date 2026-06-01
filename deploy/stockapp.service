@@ -10,6 +10,7 @@ WorkingDirectory=/opt/stockapp
 Environment=READ_ONLY=1
 Environment=DB_PATH=/opt/stockapp/data/stocks.db
 Environment=POL_DB_PATH=/opt/stockapp/data/politicians.db
+Environment=ACCOUNTS_DB_PATH=/opt/stockapp/data/accounts.db
 Environment=PORT=8080
 # Optional: enables the /fed page. Free key at fred.stlouisfed.org
 Environment=FRED_API_KEY=
