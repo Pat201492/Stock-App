@@ -562,6 +562,17 @@ def main():
     cache = load_cache(CACHE_FILE)
     print(f"JSON cache: {len(cache)} entries")
 
+    # Drop empty cached entries (no revenue) for the tickers we're about to fetch,
+    # so a prior failed/rate-limited bulk run doesn't lock in blank fundamentals —
+    # run_batches would otherwise treat them as "already cached" and skip the fetch.
+    pruned = 0
+    for t in stale:
+        e = cache.get(t)
+        if e is not None and not e.get("rev_now"):
+            cache.pop(t, None); pruned += 1
+    if pruned:
+        print(f"Pruned {pruned} empty cache entries — will re-fetch live")
+
     # run_batches handles the main loop + retry pass — no duplicate loop needed
     cache = run_batches(
         items=stale,
