@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ETF — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+    <a href="/audit">Data Audit</a>
+  </div>
+</nav>
+
+<div class="container">
+  <a href="/etf" style="color:var(--muted);font-size:13px;text-decoration:none">← ETF Screener</a>
+
+  <div id="header" style="margin:12px 0 20px"></div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">Fundamentals-Weighted Score</div>
+      <div id="score-card"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sector Exposure (top holdings)</div>
+      <div id="sector-card"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Price (1Y)</div>
+    <canvas id="price-chart" height="90"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top Holdings</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Ticker</th><th>Name</th><th style="text-align:right">Weight</th>
+          <th style="text-align:right">Our Score</th><th>Sector</th><th style="text-align:right">Contribution</th>
+        </tr></thead>
+        <tbody id="holdings-body"><tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const TICKER = location.pathname.split("/").pop().toUpperCase();
+document.title = `${TICKER} ETF — Stock Tracker`;
+const scoreColor = s => s >= 70 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444";
+const pct = (v,d=2) => (v===null||v===undefined) ? "—" : `${v.toFixed(d)}%`;
+const fmtAum = v => !v ? "—" : v>=1e9 ? `$${(v/1e9).toFixed(1)}B` : `$${(v/1e6).toFixed(0)}M`;
+
+async function init() {
+  const d = await fetch(`/api/etf/${TICKER}`).then(r => r.json()).catch(() => null);
+  if (!d || d.error) { document.getElementById("header").innerHTML = `<div class="empty">ETF not found.</div>`; return; }
+  const e = d.etf;
+
+  document.getElementById("header").innerHTML = `
+    <h2 style="margin-bottom:4px">${e.ticker} <span style="color:var(--muted);font-size:16px;font-weight:400">${e.name||""}</span></h2>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:6px">
+      <span>${e.category || "—"}</span>
+      <span>AUM <strong style="color:var(--text)">${fmtAum(e.aum)}</strong></span>
+      <span>Expense <strong style="color:var(--text)">${pct(e.expense_ratio)}</strong></span>
+      <span>Yield <strong style="color:var(--text)">${pct(e.yield_pct)}</strong></span>
+      <span>YTD <strong style="color:var(--text)">${pct(e.ytd_return,1)}</strong></span>
+      <span>Price <strong style="color:var(--text)">$${(e.price||0).toFixed(2)}</strong></span>
+    </div>`;
+
+  const ws = e.weighted_score;
+  const cov = e.covered_weight ? (e.covered_weight*100).toFixed(0) : 0;
+  document.getElementById("score-card").innerHTML = ws === null || ws === undefined
+    ? `<div class="muted">No scored holdings in our universe.</div>`
+    : `<div style="font-size:40px;font-weight:800;color:${scoreColor(ws)}">${ws.toFixed(0)}<span style="font-size:16px;color:var(--muted)"> / 100</span></div>
+       <div class="muted" style="font-size:12px;margin-top:6px">Weighted over holdings we score — covering <strong>${cov}%</strong> of the fund's top-holding weight (${e.holdings_count} holdings tracked).</div>`;
+
+  // Sector bars
+  const maxW = Math.max(...d.sector_weights.map(s => s.weight), 0.0001);
+  document.getElementById("sector-card").innerHTML = d.sector_weights.length
+    ? d.sector_weights.map(s => `
+        <div class="dist-bar-row">
+          <span class="dist-bar-label" style="width:130px">${s.sector}</span>
+          <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${Math.round(s.weight/maxW*100)}%;background:var(--accent)"></div></div>
+          <span class="dist-bar-count">${(s.weight*100).toFixed(1)}%</span>
+        </div>`).join("")
+    : `<div class="muted">No sector data.</div>`;
+
+  // Holdings
+  document.getElementById("holdings-body").innerHTML = d.holdings.map(h => {
+    const contrib = (h.weight && h.score) ? (h.weight * h.score).toFixed(1) : "—";
+    return `<tr>
+      <td>${h.in_universe ? `<a href="/stock/${h.ticker}" class="ticker-cell">${h.ticker}</a>` : `<span class="ticker-cell">${h.ticker}</span>`}</td>
+      <td class="muted" style="font-size:12px">${h.name||""}</td>
+      <td style="text-align:right">${(h.weight*100).toFixed(2)}%</td>
+      <td style="text-align:right">${h.score!=null ? `<strong style="color:${scoreColor(h.score)}">${h.score}</strong>` : "<span class='muted'>—</span>"}</td>
+      <td class="muted" style="font-size:12px">${h.sector||"—"}</td>
+      <td style="text-align:right" class="muted">${contrib}</td>
+    </tr>`;
+  }).join("");
+
+  loadChart();
+}
+
+async function loadChart() {
+  const prices = await fetch(`/api/etf/${TICKER}/prices`).then(r => r.json()).catch(() => []);
+  if (!prices.length) return;
+  new Chart(document.getElementById("price-chart"), {
+    type: "line",
+    data: { labels: prices.map(p => p.date),
+      datasets: [{ data: prices.map(p => p.close), borderColor: "#3b82f6", borderWidth: 1.5, pointRadius: 0, fill: true,
+        backgroundColor: "rgba(59,130,246,.1)" }] },
+    options: { plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { ticks: { color: "#94a3b8" } } } }
+  });
+}
+init();
+</script>
+</body>
+</html>

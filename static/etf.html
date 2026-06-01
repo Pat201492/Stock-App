@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ETF Screener — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf" class="active">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+    <a href="/audit">Data Audit</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">ETF Screener</h2>
+  <p style="color:var(--muted);margin-bottom:20px;font-size:13px">
+    <span id="etf-count">—</span> ETFs · "Weighted Score" = each fund's top holdings weighted by our
+    per-stock composite score (coverage shown on the detail page).
+  </p>
+
+  <div class="filters">
+    <input type="text" id="search" placeholder="Search ticker or name…" oninput="onSearch()" style="min-width:200px" />
+    <select id="cat-filter" onchange="applyFilters()"><option value="">All Categories</option></select>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
+    <span id="result-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ETF</th>
+          <th class="sortable" onclick="sortBy('aum')">AUM</th>
+          <th>Category</th>
+          <th class="sortable" onclick="sortBy('expense')">Expense</th>
+          <th class="sortable" onclick="sortBy('yield')">Yield</th>
+          <th class="sortable" onclick="sortBy('ytd')">YTD</th>
+          <th class="sortable" onclick="sortBy('score')">Weighted Score</th>
+          <th>Top Holdings</th>
+        </tr>
+      </thead>
+      <tbody id="etf-body">
+        <tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <button class="page-btn" id="btn-prev" onclick="changePage(-1)" disabled>← Prev</button>
+    <span id="page-info">Page 1</span>
+    <button class="page-btn" id="btn-next" onclick="changePage(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+const PAGE_SIZE = 100;
+let state = { page: 0, sort: "aum", order: "desc", search: "", category: "" };
+let searchTimer = null;
+
+function fmtAum(v) {
+  if (!v) return "—";
+  if (v >= 1e9) return `$${(v/1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v/1e6).toFixed(0)}M`;
+  return `$${v.toFixed(0)}`;
+}
+function fmtPct(v, d=2) { return (v === null || v === undefined) ? "<span class='muted'>—</span>" : `${v.toFixed(d)}%`; }
+function scoreColor(s) { return s >= 70 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444"; }
+
+async function loadCategories() {
+  const cats = await fetch("/api/etf_categories").then(r => r.json()).catch(() => []);
+  const sel = document.getElementById("cat-filter");
+  for (const c of cats) {
+    const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o);
+  }
+}
+
+async function load() {
+  const p = new URLSearchParams({ limit: PAGE_SIZE, offset: state.page * PAGE_SIZE, sort: state.sort, order: state.order });
+  if (state.search)   p.set("search", state.search);
+  if (state.category) p.set("category", state.category);
+  const d = await fetch(`/api/etfs?${p}`).then(r => r.json()).catch(() => ({etfs: [], total: 0}));
+  document.getElementById("etf-count").textContent = (d.total || 0).toLocaleString();
+  document.getElementById("result-count").textContent = `${(d.total || 0).toLocaleString()} ETFs`;
+
+  const tbody = document.getElementById("etf-body");
+  if (!d.etfs.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">No ETFs. Run <code>python etf_universe.py</code> to populate.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = d.etfs.map(e => {
+      const ws = e.weighted_score;
+      return `
+      <tr onclick="location.href='/etf/${e.ticker}'">
+        <td><span class="ticker-cell">${e.ticker}</span>
+            <span class="muted" style="margin-left:8px;font-size:12px">${(e.name||"").slice(0,34)}</span></td>
+        <td>${fmtAum(e.aum)}</td>
+        <td class="muted" style="font-size:12px">${e.category || "—"}</td>
+        <td>${fmtPct(e.expense_ratio, 2)}</td>
+        <td>${fmtPct(e.yield_pct, 2)}</td>
+        <td class="${e.ytd_return >= 0 ? '' : ''}">${fmtPct(e.ytd_return, 1)}</td>
+        <td>${ws === null || ws === undefined ? "<span class='muted'>—</span>"
+              : `<strong style="color:${scoreColor(ws)}">${ws.toFixed(0)}</strong>`}</td>
+        <td class="muted" style="font-size:12px">${(e.top_holdings||[]).join(", ") || "—"}</td>
+      </tr>`;
+    }).join("");
+  }
+  const pages = Math.max(1, Math.ceil((d.total||0) / PAGE_SIZE));
+  document.getElementById("page-info").textContent = `Page ${state.page + 1} of ${pages}`;
+  document.getElementById("btn-prev").disabled = state.page === 0;
+  document.getElementById("btn-next").disabled = (state.page + 1) * PAGE_SIZE >= (d.total||0);
+}
+
+function sortBy(col) {
+  if (state.sort === col) state.order = state.order === "asc" ? "desc" : "asc";
+  else { state.sort = col; state.order = col === "ticker" ? "asc" : "desc"; }
+  state.page = 0; load();
+}
+function applyFilters() { state.category = document.getElementById("cat-filter").value; state.page = 0; load(); }
+function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = document.getElementById("search").value.trim(); state.page = 0; load(); }, 300); }
+function resetFilters() { document.getElementById("search").value=""; document.getElementById("cat-filter").value=""; state = {page:0, sort:"aum", order:"desc", search:"", category:""}; load(); }
+function changePage(d) { state.page = Math.max(0, state.page + d); load(); }
+
+loadCategories();
+load();
+</script>
+</body>
+</html>
