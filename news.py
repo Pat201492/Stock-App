@@ -33,25 +33,51 @@ def fetch_and_store_news(ticker, db, limit=10):
 
     saved = 0
     for art in articles:
-        title = art.get("title", "")
-        url   = art.get("link") or art.get("url", "")
+        # yfinance >=0.2.x nests fields under "content"; fall back to legacy flat schema.
+        c = art.get("content", art)
+
+        title = c.get("title", "")
+        url = (
+            (c.get("canonicalUrl") or {}).get("url")
+            or (c.get("clickThroughUrl") or {}).get("url")
+            or c.get("link") or c.get("url", "")
+        )
         if not title or not url:
             continue
 
+        summary = c.get("summary") or c.get("description") or ""
+
         existing = db.query(News).filter(News.ticker == ticker, News.url == url).first()
         if existing:
+            # Backfill summary on rows ingested before the column existed.
+            if summary and not existing.summary:
+                existing.summary = summary
+                saved += 1
             continue
 
+        # New schema: ISO8601 string in pubDate/displayTime. Legacy: epoch in providerPublishTime.
         ts = art.get("providerPublishTime")
-        dt = datetime.fromtimestamp(ts) if ts else datetime.utcnow()
+        iso = c.get("pubDate") or c.get("displayTime")
+        if ts:
+            dt = datetime.fromtimestamp(ts)
+        elif iso:
+            try:
+                dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+            except ValueError:
+                dt = datetime.utcnow()
+        else:
+            dt = datetime.utcnow()
+
+        publisher = (c.get("provider") or {}).get("displayName", "") or art.get("publisher", "")
 
         db.add(News(
             ticker=ticker,
             title=title,
             url=url,
-            publisher=art.get("publisher", ""),
+            publisher=publisher,
             published_at=dt,
             sentiment=sentiment_score(title),
+            summary=summary,
         ))
         saved += 1
 

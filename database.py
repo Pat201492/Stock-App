@@ -166,6 +166,7 @@ class News(Base):
     publisher    = Column(String)
     published_at = Column(DateTime)
     sentiment    = Column(Float)
+    summary      = Column(Text)
     last_updated = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (UniqueConstraint("ticker", "url", name="uq_news_ticker_url"),)
 
@@ -180,8 +181,21 @@ class PriceHistory(Base):
     __table_args__ = (UniqueConstraint("ticker", "date", name="uq_price_ticker_date"),)
 
 
+def _migrate():
+    """Idempotent SQLite migrations. create_all() won't ALTER an existing
+    table, so add new columns on already-created DBs here."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    if "news" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("news")}
+        if "summary" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE news ADD COLUMN summary TEXT"))
+
+
 def init_db():
     Base.metadata.create_all(engine)
+    _migrate()
 
 
 def get_db():

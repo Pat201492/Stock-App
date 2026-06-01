@@ -275,6 +275,7 @@ function renderNews(articles) {
 
   list.innerHTML = articles.map(a => {
     const sentColor = a.sentiment > 0.05 ? "#22c55e" : a.sentiment < -0.05 ? "#ef4444" : "#94a3b8";
+    const sentWord  = a.sentiment > 0.05 ? "Positive" : a.sentiment < -0.05 ? "Negative" : "Neutral";
     const dateStr   = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";
     const srcTag    = a.source === "google"
       ? `<span style="background:rgba(59,130,246,.15);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:10px;margin-left:6px">Google</span>`
@@ -286,7 +287,7 @@ function renderNews(articles) {
         <div class="news-sentiment" style="background:${sentColor}"></div>
         <div class="news-content">
           <a class="news-title" href="${a.url}" target="_blank" rel="noopener">${a.title}</a>${srcTag}
-          <div class="news-meta">${a.publisher || ""} ${dateStr ? "· " + dateStr : ""}</div>
+          <div class="news-meta"><span style="color:${sentColor};font-weight:600">${sentWord}</span> · ${a.publisher || ""} ${dateStr ? "· " + dateStr : ""}</div>
         </div>
       </div>
     `;
