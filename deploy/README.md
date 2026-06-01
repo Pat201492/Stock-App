@@ -53,6 +53,11 @@ news) needs a free **FRED API key** — get one at
 `deploy/stockapp.service` (or local env), and restart. Without it the page shows
 a "configure key" notice instead of erroring.
 
+## Account data
+Favorites + paper trades live in a **separate `accounts.db`** (`ACCOUNTS_DB_PATH`).
+`publish.ps1` only swaps `stocks.db`/`politicians.db`, so account data is **not**
+overwritten by data pushes and persists on the server. Back it up separately.
+
 ## Notes
 - `READ_ONLY=1` on the server disables `POST /api/pipeline/run` and
   `POST /api/pol/refresh` (returns 403) so no one can trigger heavy compute on

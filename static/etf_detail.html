@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/static/chart-crosshair.js?v=2"></script>
+  <script src="/static/account-common.js?v=1"></script>
 </head>
 <body>
 
@@ -16,6 +17,7 @@
     <a href="/">Screener</a>
     <a href="/etf">ETFs</a>
     <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
     <a href="/static/news.html">News Feed</a>
     <a href="/politicians">Congressional</a>
     <a href="/insiders">Insider Trades</a>
@@ -26,7 +28,8 @@
 <div class="container">
   <a href="/etf" style="color:var(--muted);font-size:13px;text-decoration:none">← ETF Screener</a>
 
-  <div id="header" style="margin:12px 0 20px"></div>
+  <div id="header" style="margin:12px 0 8px"></div>
+  <div id="acct-controls" style="margin-bottom:20px;display:flex;gap:8px"></div>
 
   <div class="grid-2" style="margin-bottom:20px">
     <div class="card">
@@ -126,6 +129,31 @@ async function init() {
   loadChart();
   loadPol();
   loadNews();
+  renderAcctControls(e.price);
+}
+
+async function renderAcctControls(lastPrice) {
+  const el = document.getElementById("acct-controls");
+  if (!el || typeof favSet !== "function") return;
+  const favs = await favSet();
+  el.innerHTML = `
+    <button class="btn btn-outline btn-sm" id="fav-btn" onclick="onFav()">${favs.has(TICKER) ? "★ Favorited" : "☆ Favorite"}</button>
+    <button class="btn btn-primary btn-sm" onclick="quickTrade(${lastPrice || 0})">+ Paper trade</button>`;
+}
+async function onFav() {
+  const r = await favToggle(TICKER, "etf");
+  if (r) document.getElementById("fav-btn").textContent = r.favorited ? "★ Favorited" : "☆ Favorite";
+}
+async function quickTrade(lastPrice) {
+  if (!getUser()) { alert("Set a username on the Portfolio page first."); return; }
+  const side = (prompt("buy or sell?", "buy") || "").trim().toLowerCase();
+  if (side !== "buy" && side !== "sell") return;
+  const shares = parseFloat(prompt("Shares:", "10"));
+  if (!(shares > 0)) return;
+  const price = parseFloat(prompt("Price (you enter — daily pull):", lastPrice ? Number(lastPrice).toFixed(2) : ""));
+  if (!(price >= 0)) return;
+  const r = await addTrade({ ticker: TICKER, kind: "etf", side, shares, price, date: new Date().toISOString().slice(0,10), note: "" });
+  alert(r && r.ok ? `Logged ${side} ${shares} ${TICKER} @ $${price}` : "Failed.");
 }
 
 function fmtAmt(min, max) {

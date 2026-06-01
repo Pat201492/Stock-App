@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/account-common.js?v=1"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account" class="active">Portfolio</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <h2 style="margin:0">Paper Portfolio</h2>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span class="muted" style="font-size:12px">User</span>
+      <input id="user-input" placeholder="username…" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:13px;width:160px" />
+      <button class="btn btn-primary btn-sm" onclick="saveUser()">Set</button>
+    </div>
+  </div>
+
+  <div id="no-user" style="display:none" class="card"><div class="muted">Enter a username above to start tracking favorites + paper trades. No password — it just labels your data.</div></div>
+
+  <div id="app" style="display:none">
+    <!-- Totals -->
+    <div class="stats-bar" style="margin-bottom:20px">
+      <div class="stat-card"><div class="label">Market Value</div><div class="value" id="t-mv">—</div></div>
+      <div class="stat-card"><div class="label">Unrealized P/L</div><div class="value" id="t-upl">—</div></div>
+      <div class="stat-card"><div class="label">Realized P/L</div><div class="value" id="t-rpl">—</div></div>
+      <div class="stat-card"><div class="label">Cost Basis</div><div class="value" id="t-cost">—</div></div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <!-- Add trade -->
+      <div class="card">
+        <div class="card-title">Log a Paper Trade</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input id="tr-ticker" placeholder="Ticker" class="fld" />
+          <select id="tr-side" class="fld"><option value="buy">Buy</option><option value="sell">Sell</option></select>
+          <input id="tr-shares" type="number" step="any" placeholder="Shares" class="fld" />
+          <input id="tr-price" type="number" step="any" placeholder="Price (you enter)" class="fld" />
+          <input id="tr-date" type="date" class="fld" />
+          <select id="tr-kind" class="fld"><option value="stock">Stock</option><option value="etf">ETF</option></select>
+        </div>
+        <input id="tr-note" placeholder="Note (optional)" class="fld" style="width:100%;margin-top:8px;box-sizing:border-box" />
+        <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="submitTrade()">Add Trade</button>
+        <span id="tr-msg" class="muted" style="font-size:12px;margin-left:8px"></span>
+      </div>
+
+      <!-- Favorites -->
+      <div class="card">
+        <div class="card-title">★ Favorites</div>
+        <div id="favorites"><div class="muted">None yet — star stocks/ETFs on their pages.</div></div>
+      </div>
+    </div>
+
+    <!-- Positions -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Positions</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Ticker</th><th style="text-align:right">Shares</th><th style="text-align:right">Avg Cost</th>
+          <th style="text-align:right">Last</th><th style="text-align:right">Mkt Value</th><th style="text-align:right">Unrealized P/L</th></tr></thead>
+        <tbody id="positions"><tr><td colspan="6"><div class="muted">No open positions.</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- Trade log -->
+    <div class="card">
+      <div class="card-title">Trade Log</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th style="text-align:right">Shares</th>
+          <th style="text-align:right">Price</th><th>Note</th><th></th></tr></thead>
+        <tbody id="trades"><tr><td colspan="7"><div class="muted">No trades yet.</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.fld { background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:13px;outline:none }
+</style>
+
+<script>
+const money = v => v==null ? "—" : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
+const plColor = v => v==null ? "var(--muted)" : v>=0 ? "#22c55e" : "#ef4444";
+
+function saveUser() {
+  setUser(document.getElementById("user-input").value);
+  boot();
+}
+
+function boot() {
+  const u = getUser();
+  document.getElementById("user-input").value = u;
+  document.getElementById("app").style.display = u ? "block" : "none";
+  document.getElementById("no-user").style.display = u ? "none" : "block";
+  if (!u) return;
+  if (!document.getElementById("tr-date").value)
+    document.getElementById("tr-date").value = new Date().toISOString().slice(0,10);
+  loadPortfolio(); loadFavorites(); loadTrades();
+}
+
+async function loadPortfolio() {
+  const u = getUser();
+  const d = await fetch(`/api/account/portfolio?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>null);
+  if (!d) return;
+  document.getElementById("t-mv").textContent  = money(d.totals.market_value);
+  const upl = document.getElementById("t-upl"); upl.textContent = money(d.totals.unrealized_pl); upl.style.color = plColor(d.totals.unrealized_pl);
+  const rpl = document.getElementById("t-rpl"); rpl.textContent = money(d.realized_pl); rpl.style.color = plColor(d.realized_pl);
+  document.getElementById("t-cost").textContent = money(d.totals.cost_basis);
+  const tb = document.getElementById("positions");
+  tb.innerHTML = d.positions.length ? d.positions.map(p => `
+    <tr>
+      <td><a href="/${p.kind==='etf'?'etf':'stock'}/${p.ticker}" class="ticker-cell">${p.ticker}</a></td>
+      <td style="text-align:right">${p.shares}</td>
+      <td style="text-align:right">$${p.avg_cost.toFixed(2)}</td>
+      <td style="text-align:right">${p.last_price!=null?'$'+p.last_price.toFixed(2):'—'}</td>
+      <td style="text-align:right">${money(p.market_value)}</td>
+      <td style="text-align:right;color:${plColor(p.unrealized_pl)}">${money(p.unrealized_pl)}${p.unrealized_pct!=null?` <span class="muted">(${p.unrealized_pct}%)</span>`:''}</td>
+    </tr>`).join("") : `<tr><td colspan="6"><div class="muted">No open positions.</div></td></tr>`;
+}
+
+async function loadFavorites() {
+  const u = getUser();
+  const d = await fetch(`/api/account/favorites?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>({favorites:[]}));
+  const el = document.getElementById("favorites");
+  el.innerHTML = (d.favorites||[]).length ? d.favorites.map(f => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <a href="/${f.kind==='etf'?'etf':'stock'}/${f.ticker}" class="ticker-cell">${f.ticker}</a>
+      <span class="muted">${f.last_price!=null?'$'+f.last_price.toFixed(2):'—'}</span>
+    </div>`).join("") : `<div class="muted">None yet — star stocks/ETFs on their pages.</div>`;
+}
+
+async function loadTrades() {
+  const u = getUser();
+  const d = await fetch(`/api/account/trades?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>({trades:[]}));
+  const tb = document.getElementById("trades");
+  tb.innerHTML = (d.trades||[]).length ? d.trades.map(t => `
+    <tr>
+      <td class="muted" style="font-size:12px">${t.date||''}</td>
+      <td><a href="/${t.kind==='etf'?'etf':'stock'}/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
+      <td style="color:${t.side==='buy'?'#22c55e':'#ef4444'};font-weight:600">${t.side}</td>
+      <td style="text-align:right">${t.shares}</td>
+      <td style="text-align:right">$${t.price.toFixed(2)}</td>
+      <td class="muted" style="font-size:12px">${t.note||''}</td>
+      <td style="text-align:right"><span style="cursor:pointer;color:var(--muted)" title="Delete" onclick="delTrade(${t.id})">✕</span></td>
+    </tr>`).join("") : `<tr><td colspan="7"><div class="muted">No trades yet.</div></td></tr>`;
+}
+
+async function submitTrade() {
+  const t = {
+    ticker: document.getElementById("tr-ticker").value.trim().toUpperCase(),
+    side:   document.getElementById("tr-side").value,
+    kind:   document.getElementById("tr-kind").value,
+    shares: parseFloat(document.getElementById("tr-shares").value),
+    price:  parseFloat(document.getElementById("tr-price").value),
+    date:   document.getElementById("tr-date").value,
+    note:   document.getElementById("tr-note").value,
+  };
+  const msg = document.getElementById("tr-msg");
+  if (!t.ticker || !(t.shares>0) || !(t.price>=0)) { msg.textContent = "Enter ticker, shares, price."; return; }
+  const r = await addTrade(t);
+  if (r && r.ok) {
+    msg.textContent = "Added.";
+    document.getElementById("tr-ticker").value = ""; document.getElementById("tr-shares").value = "";
+    document.getElementById("tr-price").value = ""; document.getElementById("tr-note").value = "";
+    loadPortfolio(); loadTrades();
+    setTimeout(()=>msg.textContent="", 1500);
+  } else { msg.textContent = "Failed."; }
+}
+
+async function delTrade(id) {
+  const u = getUser();
+  await fetch(`/api/account/trade/${id}?user=${encodeURIComponent(u)}`, { method: "DELETE" }).catch(()=>{});
+  loadPortfolio(); loadTrades();
+}
+
+boot();
+</script>
+</body>
+</html>

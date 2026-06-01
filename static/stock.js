@@ -59,6 +59,32 @@ async function init() {
   renderInsiderTrades(insiderData);
   if (prices.length) renderChart(prices);
   loadProfile();
+  renderAcctControls(detail?.stock?.price);
+}
+
+// ── Account: favorite + quick paper trade ───────────────────────────────────────
+async function renderAcctControls(lastPrice) {
+  const el = document.getElementById("acct-controls");
+  if (!el) return;
+  const favs = await favSet();
+  el.innerHTML = `
+    <button class="btn btn-outline btn-sm" id="fav-btn" onclick="onFav()">${favs.has(ticker) ? "★ Favorited" : "☆ Favorite"}</button>
+    <button class="btn btn-primary btn-sm" onclick="quickTrade(${lastPrice || 0})">+ Paper trade</button>`;
+}
+async function onFav() {
+  const r = await favToggle(ticker, "stock");
+  if (r) document.getElementById("fav-btn").textContent = r.favorited ? "★ Favorited" : "☆ Favorite";
+}
+async function quickTrade(lastPrice) {
+  if (!getUser()) { alert("Set a username on the Portfolio page first."); return; }
+  const side = (prompt("buy or sell?", "buy") || "").trim().toLowerCase();
+  if (side !== "buy" && side !== "sell") return;
+  const shares = parseFloat(prompt("Shares:", "10"));
+  if (!(shares > 0)) return;
+  const price = parseFloat(prompt("Price (you enter — daily pull):", lastPrice ? Number(lastPrice).toFixed(2) : ""));
+  if (!(price >= 0)) return;
+  const r = await addTrade({ ticker, kind: "stock", side, shares, price, date: new Date().toISOString().slice(0,10), note: "" });
+  alert(r && r.ok ? `Logged ${side} ${shares} ${ticker} @ $${price}` : "Failed.");
 }
 
 // ── Company profile + SEC filings ───────────────────────────────────────────────
