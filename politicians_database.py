@@ -108,8 +108,37 @@ class PolTickerMetadata(Base):
     industry     = Column(String)
 
 
+def _migrate():
+    """Idempotent migrations for already-created DBs. A UNIQUE index on the
+    insider logical key stops the EDGAR + mirror sources from double-inserting
+    the same trade. Creation is skipped (with a warning) if duplicates still
+    exist — run `python validate.py --fix` first to collapse them."""
+    from sqlalchemy import text, inspect
+    insp = inspect(engine)
+    if "insider_trades" not in insp.get_table_names():
+        return
+    existing = {ix["name"] for ix in insp.get_indexes("insider_trades")}
+    if "uq_insider_logical" not in existing:
+        with engine.begin() as conn:
+            dupes = conn.execute(text("""
+                SELECT COUNT(*) - COUNT(DISTINCT
+                    ticker || '|' || transaction_date || '|' || insider_name
+                          || '|' || transaction_type || '|' || shares)
+                FROM insider_trades
+            """)).scalar() or 0
+            if dupes == 0:
+                conn.execute(text("""
+                    CREATE UNIQUE INDEX uq_insider_logical ON insider_trades
+                    (ticker, transaction_date, insider_name, transaction_type, shares)
+                """))
+            else:
+                print(f"[migrate] {dupes} insider duplicates present — "
+                      f"run `python validate.py --fix` before the unique index can be created.")
+
+
 def init_pol_db():
     Base.metadata.create_all(engine)
+    _migrate()
 
 
 def get_pol_db():

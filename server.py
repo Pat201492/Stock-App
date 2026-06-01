@@ -854,6 +854,17 @@ def stocks_trade_counts(days: int = 30, db: Session = Depends(get_pol_db)):
     return {"days": days, "counts": out}
 
 
+@app.get("/api/integrity")
+def integrity():
+    """Read-only data-integrity report (duplicates, orphans, outliers)."""
+    try:
+        import validate
+        findings, _ = validate.report(fix=False)
+        return findings
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 # ── Political API ─────────────────────────────────────────────────────────────
 
 @app.get("/api/pol/stats")

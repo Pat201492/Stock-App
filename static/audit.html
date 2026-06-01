@@ -27,6 +27,12 @@
     Data quality, staleness, and completeness across <span id="total-stocks">—</span> tracked stocks
   </p>
 
+  <!-- Cross-DB Integrity -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Cross-DB Integrity</div>
+    <div id="integrity"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
   <!-- Stale & Completeness -->
   <div class="grid-2" style="margin-bottom:20px" id="stale-grid">
     <div class="loading"><div class="spinner"></div>Loading…</div>
@@ -178,7 +184,28 @@ async function init() {
   `).join("");
 }
 
+async function loadIntegrity() {
+  const d = await fetch("/api/integrity").then(r => r.json()).catch(() => null);
+  const el = document.getElementById("integrity");
+  if (!d || d.error) { el.innerHTML = `<div class="empty">Integrity report unavailable.</div>`; return; }
+  const rows = [
+    ["Insider duplicates",          d.insider_duplicates],
+    ["Orphan committee memberships", d.orphan_memberships],
+    ["Stale dashed committee rows", d.stale_dashed_committees],
+    ["Trades w/ unknown bioguide",  d.unknown_bioguide_trades],
+  ];
+  const fo = d.fundamental_outliers || {};
+  for (const [k, v] of Object.entries(fo)) rows.push([`Fundamentals: ${k}`, v]);
+  el.innerHTML = rows.map(([label, count]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--muted)">${label}</span>
+      <span style="font-weight:700;color:${count > 0 ? 'var(--yellow)' : 'var(--green)'}">${(count ?? 0).toLocaleString()}</span>
+    </div>`).join("") +
+    `<div style="color:var(--muted);font-size:11px;margin-top:8px">Run <code>python validate.py --fix</code> to collapse duplicates + drop stale rows.</div>`;
+}
+
 init();
+loadIntegrity();
 </script>
 </body>
 </html>

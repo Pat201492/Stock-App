@@ -68,13 +68,21 @@ def ingest(full_refresh=False):
         days = _list_days()
         print(f"[mirror] {len(days)} day-files available ({days[0]} → {days[-1]})")
 
+        from sqlalchemy import text
         existing_ids = set()
         if not full_refresh:
-            from sqlalchemy import text
             existing_ids = {r[0] for r in db.execute(text(
                 "SELECT filing_id FROM insider_trades WHERE source_url LIKE 'mirror:%'"
             )).fetchall()}
             print(f"[mirror] {len(existing_ids)} existing mirror trades — incremental mode")
+        # Logical keys already present from ANY source (incl. EDGAR) so the two
+        # sources don't double-insert the same trade.
+        existing_logical = {
+            "|".join("" if c is None else str(c) for c in r)
+            for r in db.execute(text(
+                "SELECT ticker, transaction_date, insider_name, transaction_type, shares FROM insider_trades"
+            )).fetchall()
+        }
 
         inserted = 0
         skipped  = 0
@@ -100,7 +108,13 @@ def ingest(full_refresh=False):
                 if trade_id in existing_ids:
                     skipped += 1
                     continue
+                logical = "|".join("" if c is None else str(c)
+                                   for c in (ticker, txn_date, t.get("insider", ""), txn_type, shares))
+                if logical in existing_logical:   # already have it from EDGAR or earlier
+                    skipped += 1
+                    continue
                 existing_ids.add(trade_id)
+                existing_logical.add(logical)
 
                 db.merge(InsiderTrade(
                     filing_id          = trade_id,
