@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
     create_engine, Column, String, Float, Integer,
-    DateTime, Text, UniqueConstraint
+    DateTime, Text, UniqueConstraint, Index
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -179,6 +179,32 @@ class PriceHistory(Base):
     close  = Column(Float)
     volume = Column(Float)
     __table_args__ = (UniqueConstraint("ticker", "date", name="uq_price_ticker_date"),)
+
+
+class ETF(Base):
+    __tablename__ = "etfs"
+    ticker         = Column(String, primary_key=True)
+    name           = Column(String)
+    category       = Column(String)   # yfinance fund category, e.g. "Large Blend"
+    asset_class    = Column(String)   # equity | bond | commodity | ...
+    aum            = Column(Float)    # total net assets
+    expense_ratio  = Column(Float)    # annual %, e.g. 0.09
+    yield_pct      = Column(Float)    # trailing 12m yield %
+    ytd_return     = Column(Float)    # %
+    price          = Column(Float)
+    weighted_score = Column(Float)    # Σ(weight·holding score)/Σ(weight covered)
+    covered_weight = Column(Float)    # fraction of top-holdings weight we had scores for
+    holdings_count = Column(Integer)  # number of holdings stored (top-N)
+    last_updated   = Column(DateTime, default=datetime.utcnow)
+
+
+class ETFHolding(Base):
+    __tablename__ = "etf_holdings"
+    etf_ticker     = Column(String, primary_key=True)
+    holding_ticker = Column(String, primary_key=True)
+    holding_name   = Column(String)
+    weight         = Column(Float)    # portfolio weight fraction (0-1)
+    __table_args__ = (Index("ix_etf_holdings_etf", "etf_ticker"),)
 
 
 def _migrate():

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, text
 
-from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, SessionLocal
+from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, ETF, ETFHolding, SessionLocal
 from data_utils import score_stock
 from politicians_database import (
     get_pol_db, init_pol_db,
@@ -51,6 +51,14 @@ def dashboard():
 @app.get("/stock/{ticker}")
 def stock_page(ticker: str):
     return FileResponse(os.path.join(STATIC_DIR, "stock.html"))
+
+@app.get("/etf")
+def etf_screener_page():
+    return FileResponse(os.path.join(STATIC_DIR, "etf.html"))
+
+@app.get("/etf/{ticker}")
+def etf_detail_page(ticker: str):
+    return FileResponse(os.path.join(STATIC_DIR, "etf_detail.html"))
 
 
 # ── Self-installing updater bootstrap ───────────────────────────────────────────
@@ -210,6 +218,119 @@ def get_stock(ticker: str, db: Session = Depends(get_db)):
         "fundamentals": _to_dict(fund),
         "valuation":    _to_dict(val),
     }
+
+
+# ── ETFs ────────────────────────────────────────────────────────────────────────
+
+def _etf_dict(e):
+    return {
+        "ticker": e.ticker, "name": e.name, "category": e.category,
+        "asset_class": e.asset_class, "aum": e.aum, "expense_ratio": e.expense_ratio,
+        "yield_pct": e.yield_pct, "ytd_return": e.ytd_return, "price": e.price,
+        "weighted_score": e.weighted_score, "covered_weight": e.covered_weight,
+        "holdings_count": e.holdings_count,
+    }
+
+@app.get("/api/etfs")
+def list_etfs(
+    search:   Optional[str] = None,
+    category: Optional[str] = None,
+    sort:     str = "aum",
+    order:    str = "desc",
+    limit:    int = 100,
+    offset:   int = 0,
+    db: Session = Depends(get_db),
+):
+    q = db.query(ETF)
+    if search:
+        s = f"%{search}%"
+        q = q.filter(or_(ETF.ticker.ilike(s), ETF.name.ilike(s)))
+    if category:
+        q = q.filter(ETF.category == category)
+    sort_col = {
+        "ticker": ETF.ticker, "name": ETF.name, "aum": ETF.aum,
+        "expense": ETF.expense_ratio, "yield": ETF.yield_pct,
+        "ytd": ETF.ytd_return, "score": ETF.weighted_score,
+    }.get(sort, ETF.aum)
+    # NULLs last for numeric sorts
+    q = q.order_by(sort_col.is_(None), sort_col.desc() if order == "desc" else sort_col)
+    total = q.count()
+    rows = q.offset(offset).limit(limit).all()
+
+    # top-3 holdings preview per ETF on the page
+    tickers = [e.ticker for e in rows]
+    preview = {}
+    if tickers:
+        for h in (db.query(ETFHolding)
+                    .filter(ETFHolding.etf_ticker.in_(tickers))
+                    .order_by(ETFHolding.weight.desc()).all()):
+            preview.setdefault(h.etf_ticker, [])
+            if len(preview[h.etf_ticker]) < 3:
+                preview[h.etf_ticker].append(h.holding_ticker)
+
+    out = []
+    for e in rows:
+        d = _etf_dict(e)
+        d["top_holdings"] = preview.get(e.ticker, [])
+        out.append(d)
+    return {"total": total, "etfs": out}
+
+@app.get("/api/etf_categories")
+def etf_categories(db: Session = Depends(get_db)):
+    rows = db.query(ETF.category).filter(ETF.category != "").distinct().all()
+    return sorted({r[0] for r in rows if r[0]})
+
+@app.get("/api/etf/{ticker}")
+def etf_detail(ticker: str, db: Session = Depends(get_db)):
+    e = db.query(ETF).filter(ETF.ticker == ticker.upper()).first()
+    if not e:
+        return JSONResponse(status_code=404, content={"error": "ETF not found"})
+    holdings = (db.query(ETFHolding)
+                  .filter(ETFHolding.etf_ticker == ticker.upper())
+                  .order_by(ETFHolding.weight.desc()).all())
+    htickers = [h.holding_ticker for h in holdings]
+
+    # join our scores + sectors from stocks.db for the holdings
+    score_map, sector_map = {}, {}
+    if htickers:
+        for t, sc in db.query(Valuation.ticker, Valuation.score_composite).filter(
+                Valuation.ticker.in_(htickers)).all():
+            score_map[t] = sc
+        for t, sec in db.query(Stock.ticker, Stock.sector).filter(
+                Stock.ticker.in_(htickers)).all():
+            sector_map[t] = sec
+
+    holding_rows, sector_w = [], {}
+    for h in holdings:
+        sc = score_map.get(h.holding_ticker)
+        sec = sector_map.get(h.holding_ticker)
+        holding_rows.append({
+            "ticker": h.holding_ticker, "name": h.holding_name,
+            "weight": h.weight, "score": sc, "sector": sec,
+            "in_universe": h.holding_ticker in score_map,
+        })
+        if sec:
+            sector_w[sec] = sector_w.get(sec, 0) + (h.weight or 0)
+
+    return {
+        "etf": _etf_dict(e),
+        "holdings": holding_rows,
+        "sector_weights": sorted(
+            [{"sector": k, "weight": v} for k, v in sector_w.items()],
+            key=lambda x: -x["weight"]),
+    }
+
+@app.get("/api/etf/{ticker}/prices")
+def etf_prices(ticker: str, period: str = "1y"):
+    """Live price history from yfinance (ETFs aren't in price_history)."""
+    try:
+        hist = yf.Ticker(ticker.upper()).history(period=period)
+        return [
+            {"date": d.strftime("%Y-%m-%d"), "close": round(float(r["Close"]), 4)}
+            for d, r in hist.iterrows()
+        ]
+    except Exception:
+        return []
 
 
 # ── News ──────────────────────────────────────────────────────────────────────
