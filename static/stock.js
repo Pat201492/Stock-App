@@ -71,14 +71,17 @@ async function loadProfile() {
     document.getElementById("profile-card").style.display = "block";
     document.getElementById("profile-summary").textContent = p.summary || "";
     document.getElementById("profile-officers").innerHTML = (p.officers || []).length
-      ? `<div class="table-wrap"><table><thead><tr>
-           <th>Name</th><th>Title</th><th style="text-align:right">Age</th><th style="text-align:right">Total Pay</th>
-         </tr></thead><tbody>${p.officers.map(o => `
-           <tr><td style="font-weight:600">${o.name||"—"}</td>
-               <td class="muted" style="font-size:12px">${o.title||""}</td>
-               <td style="text-align:right">${o.age||"—"}</td>
-               <td style="text-align:right">${payFmt(o.pay)}</td></tr>`).join("")}
-         </tbody></table></div>`
+      ? p.officers.map((o, i) => `
+          <div style="border-bottom:1px solid var(--border);padding:8px 0">
+            <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px"
+                 onclick="toggleBio(${i}, ${JSON.stringify(o.name || "").replace(/"/g,'&quot;')})">
+              <span><strong>${o.name||"—"}</strong>
+                <span class="muted" style="font-size:12px;margin-left:6px">${o.title||""}</span></span>
+              <span class="muted" style="font-size:12px;white-space:nowrap">
+                ${o.age?`age ${o.age} · `:""}${payFmt(o.pay)} <span id="bio-caret-${i}">▾</span></span>
+            </div>
+            <div id="bio-${i}" style="display:none;font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:6px"></div>
+          </div>`).join("")
       : `<div class="muted">No officer data.</div>`;
   }
 
@@ -95,6 +98,24 @@ async function loadProfile() {
     fc.style.display = "block";
     document.getElementById("filings-list").innerHTML =
       `<div class="muted" style="font-size:13px">View this company's filings on <a href="${p.sec_url}" target="_blank" rel="noopener" style="color:var(--accent)">SEC EDGAR →</a></div>`;
+  }
+}
+
+const _bioLoaded = {};
+async function toggleBio(i, name) {
+  const div = document.getElementById(`bio-${i}`);
+  const caret = document.getElementById(`bio-caret-${i}`);
+  if (!div) return;
+  if (div.style.display === "block") { div.style.display = "none"; caret.textContent = "▾"; return; }
+  div.style.display = "block"; caret.textContent = "▴";
+  if (_bioLoaded[i]) return;
+  _bioLoaded[i] = true;
+  div.innerHTML = `<span style="opacity:.6">Loading bio…</span>`;
+  const d = await fetch(`/api/live/exec_bio?name=${encodeURIComponent(name)}`).then(r => r.json()).catch(() => null);
+  if (d && d.bio) {
+    div.innerHTML = `${d.bio}${d.url ? ` <a href="${d.url}" target="_blank" rel="noopener" style="color:var(--accent)">Wikipedia →</a>` : ""}`;
+  } else {
+    div.innerHTML = `<span style="opacity:.6">No public bio found.</span>`;
   }
 }
 

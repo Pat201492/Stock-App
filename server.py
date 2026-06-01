@@ -648,6 +648,32 @@ def live_profile(ticker: str):
     return out
 
 
+_BIO_CACHE = {}
+@app.get("/api/live/exec_bio")
+def exec_bio(name: str):
+    """Short bio for an executive via the Wikipedia REST summary (cached)."""
+    key = name.strip().lower()
+    if key in _BIO_CACHE:
+        return _BIO_CACHE[key]
+    out = {"name": name, "bio": None, "url": None}
+    try:
+        import json as _json
+        from urllib.request import Request as _R, urlopen as _U
+        from urllib.parse import quote as _q
+        slug = _q(name.strip().replace(" ", "_"))
+        req = _R(f"https://en.wikipedia.org/api/rest_v1/page/summary/{slug}",
+                 headers={"User-Agent": "StockTracker/1.0"})
+        d = _json.loads(_U(req, timeout=10).read().decode("utf-8"))
+        # Only accept a real article (skip disambiguation / missing pages).
+        if d.get("type") == "standard" and d.get("extract"):
+            out["bio"] = d["extract"]
+            out["url"] = d.get("content_urls", {}).get("desktop", {}).get("page")
+    except Exception:
+        pass
+    _BIO_CACHE[key] = out
+    return out
+
+
 @app.get("/api/live/news/{ticker}")
 def live_news(ticker: str, limit: int = 10):
     """Latest news fetched live from Yahoo Finance + Google News RSS fallback."""
