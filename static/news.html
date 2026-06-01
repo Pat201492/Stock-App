@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>News Feed — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/news-utils.js?v=1"></script>
 </head>
 <body>
 
@@ -62,6 +63,8 @@
     <div class="spinner" style="margin:0 auto 16px"></div>
     <div style="color:var(--muted);font-size:13px">Fetching news… this takes ~30 seconds</div>
   </div>
+
+  <div id="news-summary"></div>
 
   <div id="table-section">
   <div class="table-wrap">
@@ -131,6 +134,7 @@ async function init() {
   } else {
     document.getElementById("empty-state").style.display = "none";
     document.getElementById("table-section").style.display = "block";
+    renderNewsSummary(document.getElementById("news-summary"), data);
     renderBatch();
     document.getElementById("article-count").textContent = `${data.length} articles`;
   }
