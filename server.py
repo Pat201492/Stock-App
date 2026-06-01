@@ -637,12 +637,19 @@ def live_profile(ticker: str):
             rec = _json.loads(_U(req, timeout=15).read().decode("utf-8")).get("filings", {}).get("recent", {})
             forms, dates = rec.get("form", []), rec.get("filingDate", [])
             accs, docs = rec.get("accessionNumber", []), rec.get("primaryDocument", [])
-            for i in range(min(15, len(forms))):
+            # Skip the ownership-form flood (3/4/5) so material corporate filings
+            # (10-K, 10-Q, 8-K, DEF 14A, S-1, etc.) actually surface.
+            SKIP = {"3", "4", "5", "3/A", "4/A", "5/A", "144", "144/A"}
+            for i in range(len(forms)):
+                if forms[i] in SKIP:
+                    continue
                 acc = accs[i].replace("-", "")
                 out["filings"].append({
                     "form": forms[i], "date": dates[i],
                     "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{docs[i]}",
                 })
+                if len(out["filings"]) >= 20:
+                    break
         except Exception:
             pass
     return out
