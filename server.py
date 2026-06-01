@@ -394,6 +394,28 @@ def fed_news(limit: int = 12):
     out.sort(key=lambda a: a.get("published_at") or "", reverse=True)
     return out[:limit]
 
+@app.get("/api/fed/series/{series_id}")
+def fed_series(series_id: str, limit: int = 180):
+    """Longer history for one indicator, for the click-through chart."""
+    import fred
+    meta = next((m for m in _FED_SERIES if m[0] == series_id.upper()), None)
+    if not meta:
+        return JSONResponse(status_code=404, content={"error": "unknown series"})
+    _id, label, ctx, yoy, unit = meta
+    if not fred.configured():
+        return {"configured": False}
+    try:
+        obs = fred.fetch_series(_id, limit=limit + (12 if yoy else 0))
+        if yoy and len(obs) > 12:
+            pts = [{"date": obs[i]["date"],
+                    "value": round((obs[i]["value"] / obs[i - 12]["value"] - 1) * 100, 2)}
+                   for i in range(12, len(obs)) if obs[i - 12]["value"]]
+        else:
+            pts = obs
+        return {"configured": True, "id": _id, "label": label, "unit": unit, "points": pts[-limit:]}
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": str(e)[:100]})
+
 
 # ── News ──────────────────────────────────────────────────────────────────────
 
