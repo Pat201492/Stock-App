@@ -46,6 +46,13 @@ It clones + builds the app if missing (or `git pull`s), refreshes the data, and
 pushes it live and swaps it in. Machines without the SSH key just build locally
 (they can't push). The site's **Update data** page shows this command.
 
+## Fed page (optional)
+The `/fed` page (rates, inflation, unemployment, yield curve, FOMC calendar, Fed
+news) needs a free **FRED API key** — get one at
+<https://fred.stlouisfed.org/docs/api/api_key.html>, set `FRED_API_KEY` in
+`deploy/stockapp.service` (or local env), and restart. Without it the page shows
+a "configure key" notice instead of erroring.
+
 ## Notes
 - `READ_ONLY=1` on the server disables `POST /api/pipeline/run` and
   `POST /api/pol/refresh` (returns 403) so no one can trigger heavy compute on

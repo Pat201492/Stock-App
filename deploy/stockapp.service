@@ -11,6 +11,8 @@ Environment=READ_ONLY=1
 Environment=DB_PATH=/opt/stockapp/data/stocks.db
 Environment=POL_DB_PATH=/opt/stockapp/data/politicians.db
 Environment=PORT=8080
+# Optional: enables the /fed page. Free key at fred.stlouisfed.org
+Environment=FRED_API_KEY=
 ExecStart=/opt/stockapp/.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8080
 Restart=always
 RestartSec=3

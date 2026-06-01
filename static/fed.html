@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US Fed — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed" class="active">Fed</a>
+    <a href="/static/news.html">News Feed</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insider Trades</a>
+    <a href="/audit">Data Audit</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">US Federal Reserve & Economic Health</h2>
+  <p style="color:var(--muted);margin-bottom:20px;font-size:13px">
+    Current macro indicators (FRED), upcoming FOMC decisions, and Fed news.
+  </p>
+
+  <div id="key-note" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:20px;font-size:13px"></div>
+
+  <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:24px"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Upcoming FOMC Meetings</div>
+      <div id="fomc"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Fed News</div>
+      <div id="fed-news"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function spark(vals, color) {
+  if (!vals || vals.length < 2) return "";
+  const w=120, h=30, min=Math.min(...vals), max=Math.max(...vals), rng=(max-min)||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(h-(v-min)/rng*h).toFixed(1)}`).join(" ");
+  return `<svg width="${w}" height="${h}" style="display:block"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
+}
+const fmt = (v,u) => v===null||v===undefined ? "—" : `${v.toFixed(2)}${u==="%"?"%":u==="pp"?" pp":""}`;
+
+async function init() {
+  const d = await fetch("/api/fed/summary").then(r => r.json()).catch(() => null);
+  const cards = document.getElementById("cards");
+  if (!d || d.configured === false) {
+    document.getElementById("key-note").style.display = "block";
+    document.getElementById("key-note").innerHTML =
+      `⚙️ <strong>FRED API key not configured.</strong><br>${(d&&d.message)||"Set FRED_API_KEY."}<br>
+       <span style="color:var(--muted)">Get a free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank">fred.stlouisfed.org</a>, then set the <code>FRED_API_KEY</code> env var and restart.</span>`;
+    cards.innerHTML = "";
+  } else {
+    cards.innerHTML = d.series.map(s => {
+      const up = (s.change ?? 0) >= 0;
+      const isCurve = s.id === "T10Y2Y";
+      const valColor = isCurve ? (s.value < 0 ? "#ef4444" : "#22c55e") : "var(--text)";
+      const chgColor = up ? "#22c55e" : "#ef4444";
+      return `
+      <div class="card">
+        <div style="color:var(--muted);font-size:12px">${s.label}</div>
+        <div style="font-size:28px;font-weight:800;color:${valColor};margin:4px 0">${s.error?"—":fmt(s.value,s.unit)}</div>
+        ${s.error ? `<div class="muted" style="font-size:11px">${s.error}</div>` :
+          `<div style="font-size:12px;color:${chgColor}">${up?"▲":"▼"} ${Math.abs(s.change??0).toFixed(2)} <span class="muted">since prior</span></div>
+           <div style="margin:8px 0">${spark(s.history, isCurve&&s.value<0?"#ef4444":"#3b82f6")}</div>`}
+        <div class="muted" style="font-size:11px;line-height:1.4">${s.context}</div>
+        ${isCurve && s.value < 0 ? `<div style="color:#ef4444;font-size:11px;font-weight:600;margin-top:4px">⚠ Inverted — recession signal</div>` : ""}
+        <div class="muted" style="font-size:10px;margin-top:4px">as of ${s.asof||""}</div>
+      </div>`;
+    }).join("");
+  }
+
+  const cal = await fetch("/api/fed/calendar").then(r => r.json()).catch(() => ({upcoming:[]}));
+  document.getElementById("fomc").innerHTML = (cal.upcoming||[]).map((m,i) => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="font-weight:${i===0?700:400}">${new Date(m.date+"T12:00:00").toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"})}</span>
+      <span style="color:${i===0?'var(--accent)':'var(--muted)'}">${m.days_until} days${i===0?" · next":""}</span>
+    </div>`).join("") || `<div class="muted">No upcoming dates.</div>`;
+
+  const news = await fetch("/api/fed/news").then(r => r.json()).catch(() => []);
+  document.getElementById("fed-news").innerHTML = (news||[]).map(a => {
+    const c = a.sentiment>0.05?"#22c55e":a.sentiment<-0.05?"#ef4444":"#94a3b8";
+    const w = a.sentiment>0.05?"Positive":a.sentiment<-0.05?"Negative":"Neutral";
+    const dt = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--text);font-size:13px;line-height:1.4">${a.title}</a>
+      <div class="muted" style="font-size:11px;margin-top:3px"><span style="color:${c};font-weight:600">${w}</span> · ${a.publisher||""} ${dt?"· "+dt:""}</div>
+    </div>`;
+  }).join("") || `<div class="muted">No news.</div>`;
+}
+init();
+</script>
+</body>
+</html>
