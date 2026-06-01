@@ -499,21 +499,22 @@ def fetch_batch(tickers):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def _fresh_tickers(tickers):
-    """Return set of tickers already in DB updated within STALE_DAYS."""
+    """Return tickers whose DB row is recent AND actually populated. A recent but
+    sparse row (e.g. the bulk yfinance fetch failed for it) is NOT treated as
+    fresh, so it gets retried next run instead of being skipped for STALE_DAYS."""
     try:
         from database import SessionLocal, Fundamentals
-        from datetime import datetime as _dt, timezone
-        cutoff = _dt.utcnow().replace(tzinfo=None)
+        from datetime import datetime as _dt
         db = SessionLocal()
         rows = (
-            db.query(Fundamentals.ticker, Fundamentals.last_updated)
+            db.query(Fundamentals.ticker, Fundamentals.last_updated, Fundamentals.data_quality)
             .filter(Fundamentals.ticker.in_(tickers))
             .all()
         )
         db.close()
         fresh = set()
-        for ticker, updated in rows:
-            if updated and (_dt.utcnow() - updated).days < STALE_DAYS:
+        for ticker, updated, dq in rows:
+            if updated and (_dt.utcnow() - updated).days < STALE_DAYS and (dq or 0) >= 50:
                 fresh.add(ticker)
         return fresh
     except Exception:

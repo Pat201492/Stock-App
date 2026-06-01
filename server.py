@@ -1117,17 +1117,26 @@ def debug_health():
         finally:
             s.close()
 
+    # NASDAQ FTP is only a fallback (the NASDAQ screener API is primary), and it
+    # frequently times out from cloud/datacenter IPs — so a failure is a warning,
+    # not a hard error.
     def check_ftp_nasdaq():
-        req = urllib.request.urlopen(
-            "https://ftp.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", timeout=8)
-        lines = req.read().decode("utf-8").splitlines()
-        return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+        try:
+            req = urllib.request.urlopen(
+                "https://ftp.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", timeout=8)
+            lines = req.read().decode("utf-8").splitlines()
+            return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+        except Exception as e:
+            return "warn", f"FTP fallback unavailable (API is primary): {str(e)[:60]}"
 
     def check_ftp_other():
-        req = urllib.request.urlopen(
-            "https://ftp.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", timeout=8)
-        lines = req.read().decode("utf-8").splitlines()
-        return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+        try:
+            req = urllib.request.urlopen(
+                "https://ftp.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", timeout=8)
+            lines = req.read().decode("utf-8").splitlines()
+            return ("ok" if len(lines) > 1000 else "warn"), f"{len(lines)} lines"
+        except Exception as e:
+            return "warn", f"FTP fallback unavailable (API is primary): {str(e)[:60]}"
 
     def check_yfinance():
         import yfinance as _yf
