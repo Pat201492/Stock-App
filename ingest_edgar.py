@@ -113,7 +113,9 @@ def _parse_form4_xml(xml_text, filing_id, filed_date):
     return trades
 
 
-def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False):
+def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False, existing_logical=None):
+    if existing_logical is None:
+        existing_logical = set()
     url = FULL_IDX_URL.format(year=year, qtr=qtr)
     try:
         idx_text = _get(url)
@@ -179,6 +181,13 @@ def _ingest_quarter(year, qtr, db, existing_ids, dry_run=False):
 
             trades = _parse_form4_xml(xml_text, filing_id, filed_date)
             for t in trades:
+                logical = "|".join("" if c is None else str(c) for c in (
+                    t.get("ticker"), t.get("transaction_date"), t.get("insider_name"),
+                    t.get("transaction_type"), t.get("shares")))
+                if logical in existing_logical:   # already captured (e.g. by the mirror)
+                    skipped += 1
+                    continue
+                existing_logical.add(logical)
                 if not dry_run:
                     db.merge(InsiderTrade(**t, ingested_at=datetime.utcnow()))
                 inserted += 1
@@ -207,19 +216,26 @@ def ingest(start_year=2014, full_refresh=False):
     init_pol_db()
     db = SessionLocal()
     try:
+        from sqlalchemy import text as _text
         existing_ids = set()
         if not full_refresh:
             existing_ids = {r[0] for r in db.execute(
-                __import__("sqlalchemy").text(
-                    "SELECT filing_id FROM insider_trades"
-                )
+                _text("SELECT filing_id FROM insider_trades")
             ).fetchall()}
             print(f"[edgar] {len(existing_ids)} existing filings — incremental mode")
+        # Logical keys present from ANY source (incl. the daily mirror) so EDGAR
+        # doesn't re-insert a trade the mirror already captured.
+        existing_logical = {
+            "|".join("" if c is None else str(c) for c in r)
+            for r in db.execute(_text(
+                "SELECT ticker, transaction_date, insider_name, transaction_type, shares FROM insider_trades"
+            )).fetchall()
+        }
 
         quarters = _quarters_since(start_year)
         total_inserted = 0
         for year, qtr in quarters:
-            ins, skip = _ingest_quarter(year, qtr, db, existing_ids)
+            ins, skip = _ingest_quarter(year, qtr, db, existing_ids, existing_logical=existing_logical)
             total_inserted += ins
             print(f"  [edgar] {year}/Q{qtr} done — +{ins} inserted, {skip} skipped")
 
