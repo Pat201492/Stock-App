@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/static/chart-crosshair.js?v=2"></script>
   <script src="/static/account-common.js?v=1"></script>
+  <script src="/static/news-utils.js?v=1"></script>
 </head>
 <body>
 
@@ -186,7 +187,8 @@ async function loadNews() {
   const news = await fetch(`/api/live/news/${TICKER}`).then(r => r.json()).catch(() => []);
   const el = document.getElementById("etf-news");
   if (!news || !news.length) { el.innerHTML = `<div class="muted">No recent news.</div>`; return; }
-  el.innerHTML = news.slice(0, 12).map(a => {
+  const summary = (typeof newsSummaryHTML === "function") ? newsSummaryHTML(news) : "";
+  el.innerHTML = summary + news.slice(0, 12).map(a => {
     const cc = a.sentiment>0.05?"#22c55e":a.sentiment<-0.05?"#ef4444":"#94a3b8";
     const w = a.sentiment>0.05?"Positive":a.sentiment<-0.05?"Negative":"Neutral";
     const dt = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";

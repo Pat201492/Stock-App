@@ -345,7 +345,8 @@ function renderNews(articles) {
     return;
   }
 
-  list.innerHTML = articles.map(a => {
+  const summary = (typeof newsSummaryHTML === "function") ? newsSummaryHTML(articles) : "";
+  list.innerHTML = summary + articles.map(a => {
     const sentColor = a.sentiment > 0.05 ? "#22c55e" : a.sentiment < -0.05 ? "#ef4444" : "#94a3b8";
     const sentWord  = a.sentiment > 0.05 ? "Positive" : a.sentiment < -0.05 ? "Negative" : "Neutral";
     const dateStr   = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";
