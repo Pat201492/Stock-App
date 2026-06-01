@@ -89,6 +89,23 @@
     </div>
   </div>
 
+  <!-- Company profile + leadership -->
+  <div class="card" id="profile-card" style="display:none;margin-top:20px">
+    <div class="card-title">Company Profile</div>
+    <div id="profile-summary" class="muted" style="font-size:13px;line-height:1.6;margin-bottom:14px"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Leadership (C-Suite)</div>
+    <div id="profile-officers"></div>
+  </div>
+
+  <!-- SEC filings -->
+  <div class="card" id="filings-card" style="display:none;margin-top:20px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>SEC Filings</span>
+      <a id="sec-all" href="#" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">All on EDGAR →</a>
+    </div>
+    <div id="filings-list"></div>
+  </div>
+
   <!-- News -->
   <div class="card" id="news-card" style="display:none">
     <div class="card-title">Recent News</div>
@@ -114,6 +131,6 @@
   </div>
 </div>
 
-<script src="/static/stock.js?v=2"></script>
+<script src="/static/stock.js?v=3"></script>
 </body>
 </html>

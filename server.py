@@ -587,6 +587,67 @@ def _fetch_google_news_rss(ticker: str, limit: int = 10):
     return out
 
 
+_CIK_MAP = None
+def _cik_for(ticker):
+    """ticker -> SEC CIK (int), via the public company_tickers.json (cached)."""
+    global _CIK_MAP
+    if _CIK_MAP is None:
+        _CIK_MAP = {}
+        try:
+            import json as _json
+            from urllib.request import Request as _R, urlopen as _U
+            req = _R("https://www.sec.gov/files/company_tickers.json",
+                     headers={"User-Agent": "StockTracker contact@example.com"})
+            data = _json.loads(_U(req, timeout=20).read().decode("utf-8"))
+            _CIK_MAP = {v["ticker"].upper(): v["cik_str"] for v in data.values()}
+        except Exception:
+            _CIK_MAP = {}
+    return _CIK_MAP.get(ticker.upper())
+
+
+@app.get("/api/live/profile/{ticker}")
+def live_profile(ticker: str):
+    """Company business summary, C-suite roster, and recent SEC filings."""
+    t = ticker.upper()
+    out = {
+        "ticker": t, "summary": None, "officers": [], "website": None,
+        "sec_url": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&ticker={t}&type=&dateb=&owner=include&count=40",
+        "filings": [],
+    }
+    try:
+        info = yf.Ticker(t).info or {}
+        out["summary"] = info.get("longBusinessSummary")
+        out["website"] = info.get("website")
+        out["officers"] = [
+            {"name": o.get("name"), "title": o.get("title"),
+             "age": o.get("age"), "pay": o.get("totalPay")}
+            for o in (info.get("companyOfficers") or [])
+        ][:8]
+    except Exception:
+        pass
+    cik = _cik_for(t)
+    if cik:
+        out["cik"] = cik
+        try:
+            import json as _json
+            from urllib.request import Request as _R, urlopen as _U
+            padded = str(cik).zfill(10)
+            req = _R(f"https://data.sec.gov/submissions/CIK{padded}.json",
+                     headers={"User-Agent": "StockTracker contact@example.com"})
+            rec = _json.loads(_U(req, timeout=15).read().decode("utf-8")).get("filings", {}).get("recent", {})
+            forms, dates = rec.get("form", []), rec.get("filingDate", [])
+            accs, docs = rec.get("accessionNumber", []), rec.get("primaryDocument", [])
+            for i in range(min(15, len(forms))):
+                acc = accs[i].replace("-", "")
+                out["filings"].append({
+                    "form": forms[i], "date": dates[i],
+                    "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{docs[i]}",
+                })
+        except Exception:
+            pass
+    return out
+
+
 @app.get("/api/live/news/{ticker}")
 def live_news(ticker: str, limit: int = 10):
     """Latest news fetched live from Yahoo Finance + Google News RSS fallback."""
