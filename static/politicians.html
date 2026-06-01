@@ -59,6 +59,9 @@
         <option value="90">Last 90 days</option>
         <option value="365">Last year</option>
       </select>
+      <select id="committee-filter" onchange="loadFeed()" title="Filter by committee membership">
+        <option value="">All Committees</option>
+      </select>
       <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
       <span id="feed-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
     </div>
@@ -161,13 +164,15 @@ async function loadFeed() {
 }
 
 async function fetchPage() {
-  const ticker  = document.getElementById("ticker-filter").value.trim();
-  const txn     = document.getElementById("txn-filter").value;
-  const days    = document.getElementById("days-filter").value;
+  const ticker    = document.getElementById("ticker-filter").value.trim();
+  const txn       = document.getElementById("txn-filter").value;
+  const days      = document.getElementById("days-filter").value;
+  const committee = document.getElementById("committee-filter").value;
   const params  = new URLSearchParams({ limit: PAGE_SIZE, offset: feedPage * PAGE_SIZE });
-  if (ticker) params.set("ticker", ticker);
-  if (txn)    params.set("txn_type", txn);
-  if (days)   params.set("days", days);
+  if (ticker)    params.set("ticker", ticker);
+  if (txn)       params.set("txn_type", txn);
+  if (days)      params.set("days", days);
+  if (committee) params.set("committee", committee);
 
   const d = await fetch(`/api/pol/trades?${params}`).then(r => r.json()).catch(() => ({trades: [], total: 0}));
   document.getElementById("feed-count").textContent = `${d.total.toLocaleString()} trades`;
@@ -202,10 +207,23 @@ function changePage(delta) {
 }
 
 function resetFilters() {
-  document.getElementById("ticker-filter").value = "";
-  document.getElementById("txn-filter").value    = "";
-  document.getElementById("days-filter").value   = "";
+  document.getElementById("ticker-filter").value    = "";
+  document.getElementById("txn-filter").value        = "";
+  document.getElementById("days-filter").value       = "";
+  document.getElementById("committee-filter").value  = "";
   loadFeed();
+}
+
+async function loadCommittees() {
+  const d = await fetch("/api/pol/committees").then(r => r.json()).catch(() => ({ committees: [] }));
+  const sel = document.getElementById("committee-filter");
+  for (const c of (d.committees || [])) {
+    const opt = document.createElement("option");
+    opt.value = c.committee_id;
+    const tag = c.chamber ? `[${c.chamber[0].toUpperCase()}] ` : "";
+    opt.textContent = tag + c.name;
+    sel.appendChild(opt);
+  }
 }
 
 async function loadBoard() {
@@ -234,6 +252,7 @@ async function loadBoard() {
 }
 
 loadStats();
+loadCommittees();
 loadFeed();
 </script>
 

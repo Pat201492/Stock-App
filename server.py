@@ -829,13 +829,30 @@ def pol_stats(db: Session = Depends(get_pol_db)):
     }
 
 
+@app.get("/api/pol/committees")
+def pol_committees(db: Session = Depends(get_pol_db)):
+    """Committees that have at least one member, for the trade-feed filter."""
+    member_ids = db.query(CommitteeMembership.committee_id).distinct().subquery()
+    rows = (
+        db.query(Committee)
+        .filter(Committee.committee_id.in_(db.query(member_ids.c.committee_id)))
+        .order_by(Committee.chamber, Committee.name)
+        .all()
+    )
+    return {"committees": [
+        {"committee_id": c.committee_id, "name": c.name, "chamber": c.chamber}
+        for c in rows
+    ]}
+
+
 @app.get("/api/pol/trades")
 def pol_trades(
-    ticker:   Optional[str] = None,
-    bioguide: Optional[str] = None,
-    chamber:  Optional[str] = None,
-    txn_type: Optional[str] = None,
-    days:     Optional[int] = None,
+    ticker:    Optional[str] = None,
+    bioguide:  Optional[str] = None,
+    chamber:   Optional[str] = None,
+    txn_type:  Optional[str] = None,
+    committee: Optional[str] = None,
+    days:      Optional[int] = None,
     sort:     str = "transaction_date",
     order:    str = "desc",
     limit:    int = 100,
@@ -849,6 +866,12 @@ def pol_trades(
     if bioguide: q = q.filter(CongressionalTrade.bioguide_id == bioguide)
     if chamber:  q = q.filter(Politician.chamber == chamber)
     if txn_type: q = q.filter(CongressionalTrade.transaction_type == txn_type)
+    if committee:
+        # Restrict to trades by members of the selected committee.
+        member_ids = db.query(CommitteeMembership.bioguide_id).filter(
+            CommitteeMembership.committee_id == committee
+        )
+        q = q.filter(CongressionalTrade.bioguide_id.in_(member_ids))
     if days:
         from datetime import date as _d, timedelta as _td
         q = q.filter(CongressionalTrade.transaction_date >= _d.today() - _td(days=days))
