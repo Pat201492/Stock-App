@@ -126,6 +126,7 @@ def list_stocks(
     offset:    int = 0,
     min_score: Optional[int] = None,
     max_score: Optional[int] = None,
+    conflicts_only: bool = False,
     db: Session = Depends(get_db),
 ):
     q = (
@@ -133,6 +134,10 @@ def list_stocks(
         .outerjoin(Fundamentals, Stock.ticker == Fundamentals.ticker)
         .outerjoin(Valuation,    Stock.ticker == Valuation.ticker)
     )
+    if conflicts_only:
+        # Restrict to stocks with a political conflict-of-interest trade.
+        conflicted = list(_conflicted_tickers().keys())
+        q = q.filter(Stock.ticker.in_(conflicted or ["\0"]))
     if sector:    q = q.filter(Stock.sector == sector)
     if cap_size:  q = q.filter(Stock.cap_size == cap_size)
     if search:
@@ -833,11 +838,19 @@ def stocks_trade_counts(days: int = 30, db: Session = Depends(get_pol_db)):
         GROUP BY ticker
     """), {"since": since}).fetchall()
 
+    def _blank():
+        return {"pol_count": 0, "insider_count": 0, "conflict": False, "conflict_count": 0}
+
     out = {}
     for ticker, cnt in pol_rows:
-        out.setdefault(ticker, {"pol_count": 0, "insider_count": 0})["pol_count"] = cnt
+        out.setdefault(ticker, _blank())["pol_count"] = cnt
     for ticker, cnt in ins_rows:
-        out.setdefault(ticker, {"pol_count": 0, "insider_count": 0})["insider_count"] = cnt
+        out.setdefault(ticker, _blank())["insider_count"] = cnt
+
+    for ticker, cnt in _conflicted_tickers(days).items():
+        e = out.setdefault(ticker, _blank())
+        e["conflict"] = True
+        e["conflict_count"] = cnt
     return {"days": days, "counts": out}
 
 
@@ -939,6 +952,41 @@ def _tickers_in_sectors(sectors):
         return [r[0] for r in rows]
     finally:
         sdb.close()
+
+
+def _conflicted_tickers(days=365):
+    """{ticker: conflict_trade_count} — congressional trades (within `days`) where the
+    trading politician sits on a committee whose jurisdiction sectors include the
+    traded ticker's sector. Powers the screener conflict badge + filter."""
+    from datetime import date as _d, timedelta as _td
+    since = _d.today() - _td(days=days)
+    pdb = PolSessionLocal()
+    try:
+        mem = pdb.execute(text("""
+            SELECT m.bioguide_id, c.name
+            FROM committee_memberships m JOIN committees c ON c.committee_id = m.committee_id
+        """)).fetchall()
+        bio_sectors = {}
+        for bio, cname in mem:
+            s = _committee_sectors(cname)
+            if s:
+                bio_sectors.setdefault(bio, set()).update(s)
+        if not bio_sectors:
+            return {}
+        trades = pdb.execute(text("""
+            SELECT bioguide_id, ticker FROM congressional_trades
+            WHERE transaction_date >= :since AND ticker IS NOT NULL
+        """), {"since": since}).fetchall()
+    finally:
+        pdb.close()
+
+    tsec = _ticker_sectors({t for _, t in trades})  # ticker -> sector (stocks.db)
+    counts = {}
+    for bio, ticker in trades:
+        sec = tsec.get(ticker)
+        if sec and sec in bio_sectors.get(bio, ()):
+            counts[ticker] = counts.get(ticker, 0) + 1
+    return counts
 
 
 @app.get("/api/pol/committees")
