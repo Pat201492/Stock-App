@@ -230,6 +230,8 @@ function renderChart(prices) {
   const first  = data[0], last = data[data.length - 1];
   const color  = last >= first ? "#22c55e" : "#ef4444";
 
+  const opts = crosshairLineOptions({ unit: "$", color });
+  opts.scales.y.ticks.callback = v => `$${v.toFixed(0)}`;
   new Chart(document.getElementById("price-chart"), {
     type: "line",
     data: {
@@ -238,27 +240,12 @@ function renderChart(prices) {
         data,
         borderColor: color,
         borderWidth: 2,
-        pointRadius: 0,
         fill: true,
         backgroundColor: color + "18",
         tension: 0.3,
       }],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          grid: { color: "#334155" },
-          ticks: { color: "#94a3b8", maxTicksLimit: 8 },
-        },
-        y: {
-          grid: { color: "#334155" },
-          ticks: { color: "#94a3b8", callback: v => `$${v.toFixed(0)}` },
-        },
-      },
-    },
+    options: opts,
   });
 }
 

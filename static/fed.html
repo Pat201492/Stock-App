@@ -6,6 +6,7 @@
   <title>US Fed — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/static/chart-crosshair.js"></script>
 </head>
 <body>
 
@@ -41,6 +42,11 @@
       <div class="card-title">Fed News</div>
       <div id="fed-news"><div class="loading"><div class="spinner"></div></div></div>
     </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">Past Year — FOMC Decisions</div>
+    <div id="fomc-history"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 
@@ -99,6 +105,23 @@ async function init() {
       <div class="muted" style="font-size:11px;margin-top:3px"><span style="color:${c};font-weight:600">${w}</span> · ${a.publisher||""} ${dt?"· "+dt:""}</div>
     </div>`;
   }).join("") || `<div class="muted">No news.</div>`;
+
+  const hist = await fetch("/api/fed/history").then(r => r.json()).catch(() => null);
+  const hc = document.getElementById("fomc-history");
+  if (!hist || hist.configured === false || !hist.decisions || !hist.decisions.length) {
+    hc.innerHTML = `<div class="muted">No decision history available.</div>`;
+  } else {
+    const color = a => a==="Cut" ? "#22c55e" : a==="Hike" ? "#ef4444" : "#94a3b8";
+    hc.innerHTML = hist.decisions.map(x => {
+      const d = new Date(x.date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+      const tag = x.action==="Hold" ? "Held" : `${x.action} ${Math.abs(x.change_bps)}bps`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="color:var(--muted)">${d}</span>
+        <span><span style="color:${color(x.action)};font-weight:600">${tag}</span>
+          <span class="muted" style="margin-left:10px">→ ${x.range}</span></span>
+      </div>`;
+    }).join("");
+  }
 }
 
 let _fedChart = null;
@@ -119,9 +142,8 @@ async function openSeries(id, label) {
     type: "line",
     data: { labels: d.points.map(p => p.date),
       datasets: [{ data: d.points.map(p => p.value), borderColor: "#3b82f6", borderWidth: 1.5,
-        pointRadius: 0, fill: true, backgroundColor: "rgba(59,130,246,.1)" }] },
-    options: { plugins: { legend: { display: false } },
-      scales: { x: { ticks: { maxTicksLimit: 8, color: "#94a3b8" } }, y: { ticks: { color: "#94a3b8" } } } }
+        fill: true, backgroundColor: "rgba(59,130,246,.1)" }] },
+    options: crosshairLineOptions({ unit: d.unit || "" })
   });
 }
 function closeSeries(ev) {

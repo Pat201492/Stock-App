@@ -383,6 +383,49 @@ def fed_calendar():
         return (_d.fromisoformat(d) - _d.today()).days
     return {"upcoming": [{"date": d, "days_until": days_until(d)} for d in upcoming]}
 
+@app.get("/api/fed/history")
+def fed_history():
+    """Past ~year of FOMC decisions, derived from the fed-funds target range
+    (FRED DFEDTARU/DFEDTARL): hold / cut / hike + bps + resulting range."""
+    import fred
+    from datetime import date as _d, timedelta as _td
+    if not fred.configured():
+        return {"configured": False}
+    try:
+        up = fred.fetch_series("DFEDTARU", limit=500)
+        lo = fred.fetch_series("DFEDTARL", limit=500)
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": str(e)[:100]})
+
+    def asof(obs, day):  # last value with date <= day (ISO str)
+        v = None
+        for o in obs:
+            if o["date"] <= day:
+                v = o["value"]
+            else:
+                break
+        return v
+
+    today = _d.today()
+    window = (today - _td(days=400)).isoformat()
+    past = [d for d in FOMC_DATES if window <= d <= today.isoformat()]
+    out = []
+    for d in past:
+        before_day = (_d.fromisoformat(d) - _td(days=1)).isoformat()
+        after_day  = (_d.fromisoformat(d) + _td(days=6)).isoformat()
+        bu, au = asof(up, before_day), asof(up, after_day)
+        al = asof(lo, after_day)
+        if au is None or bu is None:
+            continue
+        delta = round((au - bu) * 100)  # bps
+        action = "Hike" if delta > 0 else "Cut" if delta < 0 else "Hold"
+        out.append({
+            "date": d, "action": action, "change_bps": delta,
+            "range": (f"{al:.2f}–{au:.2f}%" if al is not None else f"{au:.2f}%"),
+        })
+    out.reverse()  # newest first
+    return {"configured": True, "decisions": out}
+
 @app.get("/api/fed/news")
 def fed_news(limit: int = 12):
     terms = ["Federal Reserve", "FOMC", "interest rates", "inflation"]
