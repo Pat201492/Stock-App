@@ -60,6 +60,10 @@ def etf_screener_page():
 def etf_detail_page(ticker: str):
     return FileResponse(os.path.join(STATIC_DIR, "etf_detail.html"))
 
+@app.get("/fed")
+def fed_page():
+    return FileResponse(os.path.join(STATIC_DIR, "fed.html"))
+
 
 # ── Self-installing updater bootstrap ───────────────────────────────────────────
 # Served so any machine can run a one-liner that installs the app if missing,
@@ -331,6 +335,64 @@ def etf_prices(ticker: str, period: str = "1y"):
         ]
     except Exception:
         return []
+
+
+# ── Fed / economic-health ───────────────────────────────────────────────────────
+
+# Published FOMC meeting dates (decision day). Update when the Fed releases new years.
+FOMC_DATES = [
+    "2025-01-29", "2025-03-19", "2025-05-07", "2025-06-18", "2025-07-30",
+    "2025-09-17", "2025-10-29", "2025-12-10",
+    "2026-01-28", "2026-03-18", "2026-04-29", "2026-06-17", "2026-07-29",
+    "2026-09-16", "2026-11-04", "2026-12-16",
+]
+
+# series_id -> (label, plain-English context, yoy?)
+_FED_SERIES = [
+    ("DFF",      "Fed Funds Rate",     "The Fed's overnight policy rate.",                 False, "%"),
+    ("CPIAUCSL", "Inflation (CPI YoY)", "Consumer prices vs a year ago; Fed targets ~2%.", True,  "%"),
+    ("UNRATE",   "Unemployment",       "Share of the labor force out of work.",            False, "%"),
+    ("GDPC1",    "Real GDP YoY",       "Inflation-adjusted output vs a year ago.",         True,  "%"),
+    ("DGS10",    "10-Yr Treasury",     "Benchmark long-term interest rate.",               False, "%"),
+    ("DGS2",     "2-Yr Treasury",      "Short-term rate; reacts to Fed policy.",           False, "%"),
+    ("T10Y2Y",   "Yield Curve (10y-2y)", "Negative = inversion, a classic recession signal.", False, "pp"),
+]
+
+@app.get("/api/fed/summary")
+def fed_summary():
+    import fred
+    if not fred.configured():
+        return {"configured": False,
+                "message": "Set the FRED_API_KEY env var (free key at fredstlouisfed.org) to enable Fed data."}
+    out = []
+    for sid, label, ctx, yoy, unit in _FED_SERIES:
+        try:
+            d = fred.latest_with_change(sid, yoy=yoy)
+            if d:
+                out.append({"id": sid, "label": label, "context": ctx, "unit": unit, **d})
+        except Exception as e:
+            out.append({"id": sid, "label": label, "context": ctx, "unit": unit, "error": str(e)[:80]})
+    return {"configured": True, "series": out}
+
+@app.get("/api/fed/calendar")
+def fed_calendar():
+    from datetime import date as _d
+    today = _d.today().isoformat()
+    upcoming = [d for d in FOMC_DATES if d >= today][:4]
+    def days_until(d):
+        return (_d.fromisoformat(d) - _d.today()).days
+    return {"upcoming": [{"date": d, "days_until": days_until(d)} for d in upcoming]}
+
+@app.get("/api/fed/news")
+def fed_news(limit: int = 12):
+    terms = ["Federal Reserve", "FOMC", "interest rates", "inflation"]
+    seen, out = set(), []
+    for term in terms:
+        for a in _fetch_google_news_rss(term, limit=6):
+            if a["url"] not in seen:
+                seen.add(a["url"]); out.append(a)
+    out.sort(key=lambda a: a.get("published_at") or "", reverse=True)
+    return out[:limit]
 
 
 # ── News ──────────────────────────────────────────────────────────────────────
