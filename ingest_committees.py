@@ -71,7 +71,11 @@ def ingest():
                 parent_committee_id = None,
             ))
             for sub in com.get("subcommittees", []):
-                sid = f"{cid}-{sub.get('thomas_id', '')}"
+                # Subcommittee id must match committee-membership-current.yaml keys,
+                # which concatenate parent + subcommittee thomas_id with NO separator
+                # (e.g. parent HSAG + sub 15 -> "HSAG15"). A dash here broke the join,
+                # leaving subcommittees with zero members.
+                sid = f"{cid}{sub.get('thomas_id', '')}"
                 db.merge(Committee(
                     committee_id        = sid,
                     name                = sub.get("name", ""),

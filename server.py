@@ -833,24 +833,52 @@ def pol_stats(db: Session = Depends(get_pol_db)):
 # Sector strings must match stocks.db Stock.sector (yfinance taxonomy).
 # Keyword-matched against the committee name so it covers House+Senate variants.
 COMMITTEE_SECTOR_RULES = [
-    (("financial services", "banking", "finance", "ways and means"),
+    # Finance / banking / tax / capital markets / housing finance
+    (("financial services", "banking", "finance", "ways and means",
+      "capital markets", "monetary", "financial institutions", "digital assets",
+      "securities", "insurance", "pensions"),
         {"Financial Services", "Real Estate"}),
-    (("energy", "natural resources"),
+    # Housing & urban
+    (("housing", "urban", "real estate"),
+        {"Real Estate", "Financial Services"}),
+    # Energy / environment / climate / water
+    (("energy", "natural resources", "environment", "climate", "water"),
         {"Energy", "Utilities", "Basic Materials"}),
-    (("armed services",),
+    # Defense
+    (("armed services", "defense", "seapower", "tactical", "strategic forces",
+      "military"),
         {"Industrials"}),
-    (("commerce", "science", "transportation", "infrastructure"),
-        {"Industrials", "Technology", "Communication Services", "Healthcare"}),
-    (("health", "aging"),
+    # Broad commerce / science / transportation / telecom / innovation
+    (("commerce", "science", "transportation", "infrastructure",
+      "aviation", "highways", "railroads", "maritime", "coast guard",
+      "telecommunication", "communications", "technology", "innovation",
+      "space"),
+        {"Industrials", "Technology", "Communication Services"}),
+    # Health / pharma
+    (("health", "aging", "pharmaceutical", "public health"),
         {"Healthcare"}),
-    (("agriculture", "nutrition", "forestry"),
+    # Agriculture / food
+    (("agriculture", "nutrition", "forestry", "food"),
         {"Consumer Defensive", "Basic Materials"}),
-    (("judiciary",),
+    # Consumer protection / trade
+    (("consumer protection", "consumer affairs"),
+        {"Consumer Cyclical", "Consumer Defensive"}),
+    # Cyber / tech-leaning oversight
+    (("judiciary", "cybersecurity", "antitrust", "intellectual property"),
         {"Technology", "Communication Services"}),
-    (("homeland security",),
+    (("homeland security", "border"),
         {"Industrials", "Technology"}),
     (("foreign affairs", "foreign relations", "intelligence"),
         {"Energy", "Industrials"}),
+    # Veterans
+    (("veterans",),
+        {"Healthcare"}),
+    # Small business
+    (("small business",),
+        {"Financial Services", "Industrials"}),
+    # Indian affairs / interior land & mineral
+    (("indian affairs", "mineral", "mining", "public lands"),
+        {"Basic Materials", "Energy"}),
 ]
 
 
