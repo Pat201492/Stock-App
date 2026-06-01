@@ -58,6 +58,44 @@ async function init() {
   renderPoliticalTrades(polData);
   renderInsiderTrades(insiderData);
   if (prices.length) renderChart(prices);
+  loadProfile();
+}
+
+// ── Company profile + SEC filings ───────────────────────────────────────────────
+async function loadProfile() {
+  const p = await fetch(`/api/live/profile/${ticker}`).then(r => r.json()).catch(() => null);
+  if (!p) return;
+  const payFmt = v => v == null ? "—" : v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : `$${(v/1e3).toFixed(0)}K`;
+
+  if (p.summary || (p.officers && p.officers.length)) {
+    document.getElementById("profile-card").style.display = "block";
+    document.getElementById("profile-summary").textContent = p.summary || "";
+    document.getElementById("profile-officers").innerHTML = (p.officers || []).length
+      ? `<div class="table-wrap"><table><thead><tr>
+           <th>Name</th><th>Title</th><th style="text-align:right">Age</th><th style="text-align:right">Total Pay</th>
+         </tr></thead><tbody>${p.officers.map(o => `
+           <tr><td style="font-weight:600">${o.name||"—"}</td>
+               <td class="muted" style="font-size:12px">${o.title||""}</td>
+               <td style="text-align:right">${o.age||"—"}</td>
+               <td style="text-align:right">${payFmt(o.pay)}</td></tr>`).join("")}
+         </tbody></table></div>`
+      : `<div class="muted">No officer data.</div>`;
+  }
+
+  const fc = document.getElementById("filings-card");
+  if (p.sec_url) document.getElementById("sec-all").href = p.sec_url;
+  if (p.filings && p.filings.length) {
+    fc.style.display = "block";
+    document.getElementById("filings-list").innerHTML = p.filings.map(f => `
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <a href="${f.url}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">${f.form}</a>
+        <span class="muted">${f.date}</span>
+      </div>`).join("");
+  } else if (p.sec_url) {
+    fc.style.display = "block";
+    document.getElementById("filings-list").innerHTML =
+      `<div class="muted" style="font-size:13px">View this company's filings on <a href="${p.sec_url}" target="_blank" rel="noopener" style="color:var(--accent)">SEC EDGAR →</a></div>`;
+  }
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
