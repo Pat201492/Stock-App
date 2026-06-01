@@ -6,7 +6,7 @@
   <title>ETF — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="/static/chart-crosshair.js"></script>
+  <script src="/static/chart-crosshair.js?v=2"></script>
 </head>
 <body>
 
@@ -54,6 +54,17 @@
         </tr></thead>
         <tbody id="holdings-body"><tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
+    <div class="card">
+      <div class="card-title">Congressional Trades</div>
+      <div id="etf-pol"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">News</div>
+      <div id="etf-news"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 </div>
@@ -113,6 +124,49 @@ async function init() {
   }).join("");
 
   loadChart();
+  loadPol();
+  loadNews();
+}
+
+function fmtAmt(min, max) {
+  if (min == null) return "—";
+  const m = (min + max) / 2;
+  if (m >= 1e6) return `$${(m/1e6).toFixed(1)}M`;
+  if (m >= 1e3) return `$${(m/1e3).toFixed(0)}K`;
+  return `$${m.toFixed(0)}`;
+}
+
+async function loadPol() {
+  const d = await fetch(`/api/pol/ticker/${TICKER}`).then(r => r.json()).catch(() => null);
+  const el = document.getElementById("etf-pol");
+  const trades = (d && d.trades) || [];
+  if (!trades.length) { el.innerHTML = `<div class="muted">No congressional trades on ${TICKER}.</div>`; return; }
+  el.innerHTML = trades.slice(0, 30).map(t => {
+    const buy = t.transaction_type === "purchase";
+    const c = buy ? "#22c55e" : t.transaction_type && t.transaction_type.startsWith("sale") ? "#ef4444" : "#94a3b8";
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span><a href="/politician/${t.bioguide_id}" style="color:var(--accent);font-weight:600">${t.politician_name||t.bioguide_id}</a>
+        <span class="muted" style="font-size:11px">${t.party||"?"}/${t.state||"?"}</span></span>
+      <span><span style="color:${c};font-weight:600">${t.transaction_type||"?"}</span>
+        <span class="muted" style="margin-left:8px">${fmtAmt(t.amount_min,t.amount_max)}</span>
+        <span class="muted" style="margin-left:8px;font-size:11px">${t.transaction_date||""}</span></span>
+    </div>`;
+  }).join("");
+}
+
+async function loadNews() {
+  const news = await fetch(`/api/live/news/${TICKER}`).then(r => r.json()).catch(() => []);
+  const el = document.getElementById("etf-news");
+  if (!news || !news.length) { el.innerHTML = `<div class="muted">No recent news.</div>`; return; }
+  el.innerHTML = news.slice(0, 12).map(a => {
+    const cc = a.sentiment>0.05?"#22c55e":a.sentiment<-0.05?"#ef4444":"#94a3b8";
+    const w = a.sentiment>0.05?"Positive":a.sentiment<-0.05?"Negative":"Neutral";
+    const dt = a.published_at ? new Date(a.published_at).toLocaleDateString() : "";
+    return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
+      <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--text);font-size:13px;line-height:1.4">${a.title}</a>
+      <div class="muted" style="font-size:11px;margin-top:3px"><span style="color:${cc};font-weight:600">${w}</span> · ${a.publisher||""} ${dt?"· "+dt:""}</div>
+    </div>`;
+  }).join("");
 }
 
 async function loadChart() {
