@@ -35,18 +35,16 @@
 
   <div class="grid-2">
     <div class="card">
-      <div class="card-title">Upcoming FOMC Meetings</div>
+      <div class="card-title">FOMC Meetings</div>
+      <div style="color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Upcoming</div>
       <div id="fomc"><div class="loading"><div class="spinner"></div></div></div>
+      <div style="color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px">Past Year — Decisions</div>
+      <div id="fomc-history"><div class="loading"><div class="spinner"></div></div></div>
     </div>
     <div class="card">
       <div class="card-title">Fed News</div>
       <div id="fed-news"><div class="loading"><div class="spinner"></div></div></div>
     </div>
-  </div>
-
-  <div class="card" style="margin-top:20px">
-    <div class="card-title">Past Year — FOMC Decisions</div>
-    <div id="fomc-history"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </div>
 
@@ -162,7 +160,7 @@ init();
       <button id="modal-close" class="btn btn-outline btn-sm" onclick="closeSeries(event)">✕</button>
     </div>
     <div id="modal-sub" class="muted" style="font-size:12px;margin-bottom:12px"></div>
-    <canvas id="series-chart" height="110"></canvas>
+    <div style="position:relative;height:340px"><canvas id="series-chart"></canvas></div>
   </div>
 </div>
 </body>
