@@ -55,6 +55,11 @@
       <option value="70">Buy+ (70+)</option>
       <option value="55">Watchlist+ (55+)</option>
     </select>
+    <label title="Show only stocks with a political conflict-of-interest trade"
+           style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer">
+      <input type="checkbox" id="conflict-filter" onchange="applyFilters()" style="cursor:pointer" />
+      <span>⚠ Conflicts only</span>
+    </label>
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
     <span id="result-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>

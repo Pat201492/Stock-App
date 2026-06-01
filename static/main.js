@@ -2,6 +2,7 @@ const PAGE_SIZE = 100;
 let state = {
   page: 0, sort: "rank", order: "asc",
   sector: "", cap_size: "", search: "", min_score: "", max_score: "",
+  conflicts_only: false,
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ async function loadStocks() {
   if (state.search)    params.set("search",    state.search);
   if (state.min_score) params.set("min_score", state.min_score);
   if (state.max_score) params.set("max_score", state.max_score);
+  if (state.conflicts_only) params.set("conflicts_only", "true");
 
   try {
     const [data, tradeRes] = await Promise.all([
@@ -162,7 +164,7 @@ function renderTable(stocks) {
       <td>${fmtPct(s.rev_cagr_5y)}</td>
       <td><strong>${s.score ?? "—"}</strong></td>
       <td class="${upsideClass(s.upside)}">${fmtPct(s.upside)}</td>
-      <td>${tradeBadge(tc.pol_count,     "var(--accent)")}</td>
+      <td>${tradeBadge(tc.pol_count,     "var(--accent)")}${tc.conflict ? ` <span title="Conflict of interest: ${tc.conflict_count} trade(s) in a sector this politician's committee oversees" style="color:#f59e0b;font-weight:700">⚠</span>` : ""}</td>
       <td>${tradeBadge(tc.insider_count, "var(--yellow)")}</td>
       <td>${recBadge(s.rec)}</td>
     </tr>
@@ -198,6 +200,8 @@ function applyFilters() {
   state.cap_size  = document.getElementById("cap-filter").value;
   state.min_score = document.getElementById("score-filter").value;
   state.max_score = "";   // changing the dropdown clears any range from URL drilldown
+  const cf = document.getElementById("conflict-filter");
+  state.conflicts_only = cf ? cf.checked : false;
   state.page = 0;
   loadStocks();
 }
@@ -207,7 +211,9 @@ function resetFilters() {
   document.getElementById("sector-filter").value = "";
   document.getElementById("cap-filter").value    = "";
   document.getElementById("score-filter").value  = "";
-  state = { ...state, sector: "", cap_size: "", search: "", min_score: "", max_score: "", page: 0 };
+  const cf = document.getElementById("conflict-filter");
+  if (cf) cf.checked = false;
+  state = { ...state, sector: "", cap_size: "", search: "", min_score: "", max_score: "", conflicts_only: false, page: 0 };
   loadStocks();
 }
 
