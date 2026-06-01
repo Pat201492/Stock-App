@@ -3,12 +3,18 @@ fred.py — minimal FRED (St. Louis Fed) API client for the Fed / economic-healt
 Needs a free API key in the FRED_API_KEY env var (https://fred.stlouisfed.org/docs/api/api_key.html).
 No extra deps — uses urllib.
 """
-import os, json
+import os, json, time
 from urllib.request import urlopen, Request
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
 BASE = "https://api.stlouisfed.org/fred/series/observations"
+
+# In-memory cache: macro data updates daily at most, so cache responses to avoid
+# hammering FRED (which 429s on bursts) and to make the page fast.
+_CACHE = {}            # (series_id, limit) -> (expires_ts, obs)
+_CACHE_TTL = 3600      # 1 hour
 
 
 def configured() -> bool:
@@ -16,15 +22,32 @@ def configured() -> bool:
 
 
 def fetch_series(series_id: str, limit: int = 24):
-    """Most-recent `limit` observations (ascending). Returns list of {date, value}."""
+    """Most-recent `limit` observations (ascending). Returns list of {date, value}.
+    Cached for _CACHE_TTL; retries on HTTP 429 with backoff."""
     if not FRED_API_KEY:
         raise RuntimeError("FRED_API_KEY not set")
+
+    key = (series_id, limit)
+    hit = _CACHE.get(key)
+    if hit and hit[0] > time.time():
+        return hit[1]
+
     qs = urlencode({
         "series_id": series_id, "api_key": FRED_API_KEY, "file_type": "json",
         "sort_order": "desc", "limit": limit,
     })
-    req = Request(f"{BASE}?{qs}", headers={"User-Agent": "StockTracker"})
-    data = json.loads(urlopen(req, timeout=20).read().decode("utf-8"))
+    url = f"{BASE}?{qs}"
+    data = None
+    for attempt in range(4):
+        try:
+            req = Request(url, headers={"User-Agent": "StockTracker"})
+            data = json.loads(urlopen(req, timeout=20).read().decode("utf-8"))
+            break
+        except HTTPError as e:
+            if e.code == 429 and attempt < 3:
+                time.sleep(0.6 * (attempt + 1))  # back off and retry
+                continue
+            raise
     obs = []
     for o in data.get("observations", []):
         v = o.get("value")
@@ -35,6 +58,7 @@ def fetch_series(series_id: str, limit: int = 24):
         except ValueError:
             continue
     obs.reverse()  # ascending by date
+    _CACHE[key] = (time.time() + _CACHE_TTL, obs)
     return obs
 
 
