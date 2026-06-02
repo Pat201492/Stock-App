@@ -412,9 +412,11 @@ def extract_fundamentals(ticker, yft):
         "num_analysts": info.get("numberOfAnalystOpinions"),
         # Earnings
         "earn_date":   _next_earnings_date(info),
+        "next_earnings": _next_earnings_date(info),  # DB column alias for earn_date
         "eps_est":     fmt(info.get("forwardEps")),
         "eps_actual":  fmt(info.get("trailingEps")),
         "eps_surp":    _eps_surprise(info),
+        "eps_surprise": _eps_surprise(info),  # DB column alias for eps_surp
         # Shares
         "shares": shares,
         # Income
@@ -424,10 +426,12 @@ def extract_fundamentals(ticker, yft):
         "gross_profit": fmt(gp / 1e9),
         "ebitda":       fmt(ebitda / 1e9),
         "op_income":    fmt(op / 1e9),
+        "operating_income": fmt(op / 1e9),  # DB column alias for op_income
         "net_income":   fmt(ni / 1e9),
         "int_expense":  fmt(int_exp / 1e9),
         # Cash flow
         "ocf":      fmt(ocf / 1e9),
+        "operating_cf": fmt(ocf / 1e9),  # DB column alias for ocf
         "capex":    fmt(capex / 1e9),
         "fcf":      fmt(fcf / 1e9),
         "fcf_raw":  fcf,  # raw float for DCF model
@@ -436,6 +440,7 @@ def extract_fundamentals(ticker, yft):
         "net_debt":     fmt(net_debt / 1e9),
         "cash":         fmt(cash / 1e9),
         "equity_raw":   equity,
+        "equity":       fmt(equity / 1e9),  # DB column ($B, like other balance-sheet cols)
         "total_assets": fmt(ta / 1e9),
         "inv_cap":      fmt(ic / 1e9),
         # Margins & ratios
