@@ -957,6 +957,11 @@ def main():
         if m.get("price_live"):
             s["price"] = m["price_live"]  # use fresh price
 
+    # Persist momentum fields (rsi/ma_ratio/ret_1y) into the Fundamentals table
+    # for ALL stocks — these are computed here (need price history) but the
+    # Fundamentals upsert in fundamentals.py never sees them, so they'd stay null.
+    _save_momentum_to_db(stocks)
+
     # ── Build peer groups ─────────────────────────────────────────────────────
     print("\nBuilding peer groups for Comps model …")
     peer_groups = build_peer_groups(stocks)
@@ -1033,6 +1038,34 @@ def main():
     print("\nCombined Signal Summary:")
     for k, v in sorted(sigs.items(), key=lambda x: x[1], reverse=True):
         print(f"  {k}: {v}")
+
+
+def _save_momentum_to_db(stocks):
+    """Upsert momentum fields into Fundamentals for every stock.
+
+    rsi/ma_ratio/ret_1y are computed from price history in this module, after
+    fundamentals.py has already written its rows, so they are persisted here.
+    """
+    try:
+        from database import SessionLocal, Fundamentals, init_db, upsert
+        from datetime import datetime as _dt
+        init_db()
+        db = SessionLocal()
+        n = 0
+        for s in stocks:
+            row = {"ticker": s["ticker"]}
+            for f in ("rsi", "ma_ratio", "ret_1y"):
+                if s.get(f) is not None:
+                    row[f] = s[f]
+            if len(row) > 1:  # only write if at least one momentum field present
+                row["last_updated"] = _dt.utcnow()
+                upsert(db, Fundamentals, row)
+                n += 1
+        db.commit()
+        db.close()
+        print(f"  ✅ Saved momentum (rsi/ma_ratio/ret_1y) for {n} stocks to fundamentals")
+    except Exception as e:
+        print(f"  ⚠️  Momentum DB save failed: {e}")
 
 
 def _save_to_db(results):
