@@ -355,18 +355,21 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
 
 /* ── Mobile (phones) ─────────────────────────────────────────── */
 @media (max-width: 760px) {
-  /* Top bar: brand on row 1, all links wrap across the next row(s) — visible at once */
-  nav { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 8px 14px; align-items: center; }
+  /* Single-line top bar; the links scroll horizontally (swipe) */
+  nav { flex-wrap: nowrap; height: 56px; padding: 0 14px; gap: 12px; align-items: center; }
   .nav-links {
-    order: 3;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    padding-top: 6px;
-    border-top: 1px solid var(--border);
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 18px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
-  .nav-links a { font-size: 13px; }
-  .nav-right { margin-left: auto; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; font-size: 13px; }
+  .nav-right { flex: 0 0 auto; margin-left: 8px; }
 
   .container { padding: 14px; }
   h2 { font-size: 20px; }
