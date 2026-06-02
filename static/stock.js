@@ -76,7 +76,7 @@ async function onFav() {
   if (r) document.getElementById("fav-btn").textContent = r.favorited ? "★ Favorited" : "☆ Favorite";
 }
 async function quickTrade(lastPrice) {
-  if (!getUser()) { alert("Set a username on the Portfolio page first."); return; }
+  if (!isAuthed()) { if (confirm("Sign in to paper trade. Go to the Portfolio page?")) location.href = "/account"; return; }
   const side = (prompt("buy or sell?", "buy") || "").trim().toLowerCase();
   if (side !== "buy" && side !== "sell") return;
   const shares = parseFloat(prompt("Shares:", "10"));

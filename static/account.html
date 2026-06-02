@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css" />
-  <script src="/static/account-common.js?v=1"></script>
+  <script src="/static/account-common.js?v=2"></script>
 </head>
 <body>
 
@@ -25,17 +25,40 @@
 <div class="container">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
     <h2 style="margin:0">Paper Portfolio</h2>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-      <span class="muted" style="font-size:12px">User</span>
-      <input id="user-input" placeholder="username…" class="fld" style="width:160px" />
-      <button class="btn btn-primary btn-sm" onclick="saveUser()">Set</button>
+    <div id="who" style="margin-left:auto;display:none;align-items:center;gap:10px;font-size:13px">
+      <span class="muted" id="who-email"></span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Log out</button>
     </div>
   </div>
 
-  <div id="no-user" style="display:none" class="card"><div class="muted">Enter a username above to start tracking favorites + paper trades. No password — it just labels your data.</div></div>
+  <!-- Auth (login / signup) -->
+  <div id="auth-card" style="display:none;max-width:420px;margin:0 auto">
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+        <button class="sub-tab active" id="tab-login" onclick="showTab('login')">Log in</button>
+        <button class="sub-tab" id="tab-signup" onclick="showTab('signup')">Sign up</button>
+      </div>
+      <label class="fld-l">Email<input id="a-email" type="email" class="fld" placeholder="you@example.com" /></label>
+      <label class="fld-l" id="name-row" style="display:none">Display name<input id="a-name" class="fld" placeholder="optional" /></label>
+      <label class="fld-l">Password<input id="a-pw" type="password" class="fld" placeholder="min 8 characters" /></label>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" id="a-submit" onclick="authSubmit()">Log in</button>
+      <div id="a-msg" style="font-size:12px;margin-top:8px;min-height:16px"></div>
+      <div style="font-size:12px;margin-top:6px"><a href="#" onclick="forgot();return false" style="color:var(--accent)">Forgot password?</a></div>
+    </div>
+  </div>
 
+  <!-- Reset password (from emailed link ?reset=token) -->
+  <div id="reset-card" style="display:none;max-width:420px;margin:0 auto">
+    <div class="card">
+      <div class="card-title">Set a new password</div>
+      <label class="fld-l">New password<input id="r-pw" type="password" class="fld" placeholder="min 8 characters" /></label>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="doReset()">Update password</button>
+      <div id="r-msg" style="font-size:12px;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- Portfolio (authed) -->
   <div id="app" style="display:none">
-    <!-- Hero summary -->
     <div class="card pf-hero" style="margin-bottom:20px">
       <div class="pf-hero-main">
         <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.05em">Portfolio Value</div>
@@ -50,7 +73,6 @@
       </div>
     </div>
 
-    <!-- Positions -->
     <div class="card" style="margin-bottom:20px">
       <div class="card-title">Positions</div>
       <div class="table-wrap"><table>
@@ -64,7 +86,6 @@
     </div>
 
     <div class="grid-2" style="margin-bottom:20px">
-      <!-- Add trade -->
       <div class="card">
         <div class="card-title">Log a Paper Trade</div>
         <div class="tr-grid">
@@ -81,15 +102,12 @@
           <span id="tr-msg" style="font-size:12px"></span>
         </div>
       </div>
-
-      <!-- Favorites -->
       <div class="card">
         <div class="card-title">★ Favorites</div>
         <div id="favorites"><div class="muted">None yet — star stocks/ETFs on their pages.</div></div>
       </div>
     </div>
 
-    <!-- Trade log -->
     <div class="card">
       <div class="card-title">Trade Log</div>
       <div class="table-wrap"><table>
@@ -103,6 +121,9 @@
 
 <style>
 .fld { background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:13px;outline:none }
+.fld-l { display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);margin-bottom:10px }
+.sub-tab { background:none;border:none;color:var(--muted);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px }
+.sub-tab.active { color:var(--accent);border-bottom-color:var(--accent) }
 .pf-hero { display:flex;gap:28px;flex-wrap:wrap;align-items:center }
 .pf-hero-main { min-width:200px }
 .pf-hero-stats { display:flex;gap:28px;flex-wrap:wrap;margin-left:auto }
@@ -122,40 +143,91 @@
 <script>
 const money = v => v==null ? "—" : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
 const plColor = v => v==null ? "var(--muted)" : v>=0 ? "#22c55e" : "#ef4444";
-const signed = v => v==null ? "—" : (v>=0?"+":"") + money(v).replace("$", v<0?"-$":"$");
+let authMode = "login";
 
-function saveUser() { setUser(document.getElementById("user-input").value); boot(); }
+function show(id, on) { document.getElementById(id).style.display = on ? (id==="who"?"flex":"block") : "none"; }
+function showTab(m) {
+  authMode = m;
+  document.getElementById("tab-login").classList.toggle("active", m==="login");
+  document.getElementById("tab-signup").classList.toggle("active", m==="signup");
+  document.getElementById("name-row").style.display = m==="signup" ? "flex" : "none";
+  document.getElementById("a-submit").textContent = m==="signup" ? "Create account" : "Log in";
+  document.getElementById("a-msg").textContent = "";
+}
 
-function boot() {
-  const u = getUser();
-  document.getElementById("user-input").value = u;
-  document.getElementById("app").style.display = u ? "block" : "none";
-  document.getElementById("no-user").style.display = u ? "none" : "block";
-  if (!u) return;
-  if (!document.getElementById("tr-date").value)
-    document.getElementById("tr-date").value = new Date().toISOString().slice(0,10);
-  loadPortfolio(); loadFavorites(); loadTrades();
+async function boot() {
+  const params = new URLSearchParams(location.search);
+  const resetTok = params.get("reset");
+  if (resetTok) { window._resetTok = resetTok; show("reset-card", true); show("auth-card", false); show("app", false); show("who", false); return; }
+
+  if (isAuthed()) {
+    const me = await fetch(`/api/auth/me?token=${encodeURIComponent(getToken())}`).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (me && me.email) {
+      setAuth(getToken(), me.email);
+      document.getElementById("who-email").textContent = me.email;
+      show("who", true); show("app", true); show("auth-card", false);
+      if (!document.getElementById("tr-date").value)
+        document.getElementById("tr-date").value = new Date().toISOString().slice(0,10);
+      loadPortfolio(); loadFavorites(); loadTrades();
+      return;
+    }
+    clearAuth();
+  }
+  show("auth-card", true); show("app", false); show("who", false);
+  showTab("login");
+}
+
+async function authSubmit() {
+  const email = document.getElementById("a-email").value.trim();
+  const pw    = document.getElementById("a-pw").value;
+  const name  = document.getElementById("a-name").value.trim();
+  const msg   = document.getElementById("a-msg"); msg.style.color="#ef4444";
+  const url  = authMode==="signup" ? "/api/auth/signup" : "/api/auth/login";
+  const body = authMode==="signup" ? {email,password:pw,display_name:name} : {email,password:pw};
+  const r = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(res=>res.json().then(j=>({ok:res.ok,j}))).catch(()=>null);
+  if (r && r.ok && r.j.token) { setAuth(r.j.token, r.j.email); boot(); }
+  else { msg.textContent = (r && r.j && r.j.error) || "Failed."; }
+}
+
+async function logout() {
+  await fetch("/api/auth/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken()})}).catch(()=>{});
+  clearAuth(); boot();
+}
+
+async function forgot() {
+  const email = document.getElementById("a-email").value.trim();
+  const msg = document.getElementById("a-msg");
+  if (!email) { msg.style.color="#ef4444"; msg.textContent="Enter your email first."; return; }
+  const r = await fetch("/api/auth/request_reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})}).then(r=>r.json()).catch(()=>null);
+  msg.style.color="#22c55e";
+  if (r && r.link) msg.innerHTML = `Reset link (no email configured): <a href="${r.link}" style="color:var(--accent)">open</a>`;
+  else msg.textContent = "If that email exists, a reset link was sent.";
+}
+
+async function doReset() {
+  const pw = document.getElementById("r-pw").value;
+  const msg = document.getElementById("r-msg");
+  const r = await fetch("/api/auth/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:window._resetTok,password:pw})})
+    .then(res=>res.json().then(j=>({ok:res.ok,j}))).catch(()=>null);
+  if (r && r.ok) { msg.style.color="#22c55e"; msg.textContent="Password updated. Redirecting to log in…"; setTimeout(()=>location.href="/account",1200); }
+  else { msg.style.color="#ef4444"; msg.textContent=(r&&r.j&&r.j.error)||"Failed."; }
 }
 
 async function loadPortfolio() {
-  const u = getUser();
-  const d = await fetch(`/api/account/portfolio?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>null);
-  if (!d) return;
+  const d = await fetch(`/api/account/portfolio?token=${encodeURIComponent(getToken())}`).then(r=>r.json()).catch(()=>null);
+  if (!d || d.error) return;
   const mv = d.totals.market_value, cost = d.totals.cost_basis;
-  const totalPl = (d.totals.unrealized_pl || 0) + (d.realized_pl || 0);
   const retPct = cost ? (d.totals.unrealized_pl / cost * 100) : null;
-
   document.getElementById("h-value").textContent = money(mv);
-  const hr = document.getElementById("h-return");
-  hr.innerHTML = `<span style="color:${plColor(d.totals.unrealized_pl)}">${(d.totals.unrealized_pl>=0?"▲":"▼")} ${money(d.totals.unrealized_pl)}${retPct!=null?` (${retPct>=0?"+":""}${retPct.toFixed(2)}%)`:""}</span> <span class="muted">unrealized</span>`;
-  const set = (id,v) => { const e=document.getElementById(id); e.textContent=money(v); e.style.color=plColor(v); };
-  set("h-upl", d.totals.unrealized_pl); set("h-rpl", d.realized_pl);
-  document.getElementById("h-cost").textContent = money(cost); document.getElementById("h-cost").style.color="var(--text)";
-  document.getElementById("h-pos").textContent = d.positions.length; document.getElementById("h-pos").style.color="var(--text)";
-
-  const tb = document.getElementById("positions");
-  tb.innerHTML = d.positions.length ? d.positions.map(p => {
-    const alloc = mv ? (p.market_value/mv*100) : 0;
+  document.getElementById("h-return").innerHTML = `<span style="color:${plColor(d.totals.unrealized_pl)}">${(d.totals.unrealized_pl>=0?"▲":"▼")} ${money(d.totals.unrealized_pl)}${retPct!=null?` (${retPct>=0?"+":""}${retPct.toFixed(2)}%)`:""}</span> <span class="muted">unrealized</span>`;
+  const set=(id,v)=>{const e=document.getElementById(id);e.textContent=money(v);e.style.color=plColor(v);};
+  set("h-upl",d.totals.unrealized_pl); set("h-rpl",d.realized_pl);
+  document.getElementById("h-cost").textContent=money(cost); document.getElementById("h-cost").style.color="var(--text)";
+  document.getElementById("h-pos").textContent=d.positions.length; document.getElementById("h-pos").style.color="var(--text)";
+  const tb=document.getElementById("positions");
+  tb.innerHTML = d.positions.length ? d.positions.map(p=>{
+    const alloc = mv ? (p.market_value/mv*100):0;
     return `<tr>
       <td><a href="/${p.kind==='etf'?'etf':'stock'}/${p.ticker}" class="ticker-cell">${p.ticker}</a></td>
       <td style="text-align:right">${p.shares}</td>
@@ -163,31 +235,26 @@ async function loadPortfolio() {
       <td style="text-align:right">${p.last_price!=null?'$'+p.last_price.toFixed(2):'—'}</td>
       <td style="text-align:right;font-weight:600">${money(p.market_value)}</td>
       <td style="text-align:right;color:${plColor(p.unrealized_pl)};font-weight:600">${money(p.unrealized_pl)}${p.unrealized_pct!=null?`<br><span style="font-size:11px">${p.unrealized_pct>=0?"+":""}${p.unrealized_pct}%</span>`:''}</td>
-      <td><div class="alloc-track"><div class="alloc-fill" style="width:${alloc.toFixed(1)}%"></div></div>
-          <span class="muted" style="font-size:10px">${alloc.toFixed(1)}%</span></td>
-    </tr>`;
-  }).join("") : `<tr><td colspan="7"><div class="muted">No open positions.</div></td></tr>`;
+      <td><div class="alloc-track"><div class="alloc-fill" style="width:${alloc.toFixed(1)}%"></div></div><span class="muted" style="font-size:10px">${alloc.toFixed(1)}%</span></td>
+    </tr>`;}).join("") : `<tr><td colspan="7"><div class="muted">No open positions.</div></td></tr>`;
 }
 
 async function loadFavorites() {
-  const u = getUser();
-  const d = await fetch(`/api/account/favorites?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>({favorites:[]}));
+  const d = await fetch(`/api/account/favorites?token=${encodeURIComponent(getToken())}`).then(r=>r.json()).catch(()=>({favorites:[]}));
   const el = document.getElementById("favorites");
   el.innerHTML = (d.favorites||[]).length
-    ? `<div style="display:flex;flex-wrap:wrap;gap:8px">${d.favorites.map(f => `
+    ? `<div style="display:flex;flex-wrap:wrap;gap:8px">${d.favorites.map(f=>`
         <a href="/${f.kind==='etf'?'etf':'stock'}/${f.ticker}" style="text-decoration:none">
           <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px">
             <span class="ticker-cell">${f.ticker}</span>
-            <span class="muted" style="font-weight:400;margin-left:4px">${f.last_price!=null?'$'+f.last_price.toFixed(2):''}</span></span>
-        </a>`).join("")}</div>`
+            <span class="muted" style="font-weight:400;margin-left:4px">${f.last_price!=null?'$'+f.last_price.toFixed(2):''}</span></span></a>`).join("")}</div>`
     : `<div class="muted">None yet — star stocks/ETFs on their pages.</div>`;
 }
 
 async function loadTrades() {
-  const u = getUser();
-  const d = await fetch(`/api/account/trades?user=${encodeURIComponent(u)}`).then(r=>r.json()).catch(()=>({trades:[]}));
-  const tb = document.getElementById("trades");
-  tb.innerHTML = (d.trades||[]).length ? d.trades.map(t => `
+  const d = await fetch(`/api/account/trades?token=${encodeURIComponent(getToken())}`).then(r=>r.json()).catch(()=>({trades:[]}));
+  const tb=document.getElementById("trades");
+  tb.innerHTML = (d.trades||[]).length ? d.trades.map(t=>`
     <tr>
       <td class="muted" style="font-size:12px">${t.date||''}</td>
       <td><a href="/${t.kind==='etf'?'etf':'stock'}/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
@@ -203,27 +270,22 @@ async function loadTrades() {
 async function submitTrade() {
   const t = {
     ticker: document.getElementById("tr-ticker").value.trim().toUpperCase(),
-    side:   document.getElementById("tr-side").value,
-    kind:   document.getElementById("tr-kind").value,
+    side: document.getElementById("tr-side").value, kind: document.getElementById("tr-kind").value,
     shares: parseFloat(document.getElementById("tr-shares").value),
-    price:  parseFloat(document.getElementById("tr-price").value),
-    date:   document.getElementById("tr-date").value,
-    note:   document.getElementById("tr-note").value,
+    price: parseFloat(document.getElementById("tr-price").value),
+    date: document.getElementById("tr-date").value, note: document.getElementById("tr-note").value,
   };
-  const msg = document.getElementById("tr-msg");
-  if (!t.ticker || !(t.shares>0) || !(t.price>=0)) { msg.style.color="#ef4444"; msg.textContent = "Enter ticker, shares, price."; return; }
+  const msg=document.getElementById("tr-msg");
+  if (!t.ticker || !(t.shares>0) || !(t.price>=0)) { msg.style.color="#ef4444"; msg.textContent="Enter ticker, shares, price."; return; }
   const r = await addTrade(t);
-  if (r && r.ok) {
-    msg.style.color="#22c55e"; msg.textContent = "✓ Added";
+  if (r && r.ok) { msg.style.color="#22c55e"; msg.textContent="✓ Added";
     ["tr-ticker","tr-shares","tr-price","tr-note"].forEach(id=>document.getElementById(id).value="");
-    loadPortfolio(); loadTrades();
-    setTimeout(()=>msg.textContent="", 1500);
-  } else { msg.style.color="#ef4444"; msg.textContent = "Failed."; }
+    loadPortfolio(); loadTrades(); setTimeout(()=>msg.textContent="",1500);
+  } else { msg.style.color="#ef4444"; msg.textContent="Failed."; }
 }
 
 async function delTrade(id) {
-  const u = getUser();
-  await fetch(`/api/account/trade/${id}?user=${encodeURIComponent(u)}`, { method: "DELETE" }).catch(()=>{});
+  await fetch(`/api/account/trade/${id}?token=${encodeURIComponent(getToken())}`,{method:"DELETE"}).catch(()=>{});
   loadPortfolio(); loadTrades();
 }
 

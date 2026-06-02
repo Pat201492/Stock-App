@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 import yfinance as yf
 
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, Query, Body, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -24,8 +24,10 @@ from politicians_database import (
 )
 from accounts_database import (
     get_acct_db, init_accounts_db, Favorite, PaperTrade,
+    User, Session as AuthSession, ResetToken,
     SessionLocal as AcctSessionLocal,
 )
+import auth as _auth
 
 app = FastAPI(title="Stock Tracker")
 init_db()
@@ -469,9 +471,96 @@ def fed_series(series_id: str, limit: int = 180):
         return JSONResponse(status_code=502, content={"error": str(e)[:100]})
 
 
-# ── Account layer: favorites + paper trades ─────────────────────────────────────
-# Username-only (no auth); writes go to a separate accounts.db not touched by the
-# data push, so these are intentionally allowed even when READ_ONLY is set.
+# ── Auth: email + password, session tokens, SMTP password reset ─────────────────
+import re as _re
+_EMAIL_RE = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
+
+def _make_session(db, user_id):
+    from datetime import datetime as _dt, timedelta as _td
+    tok = _auth.new_token()
+    db.add(AuthSession(token=tok, user_id=user_id, expires_at=_dt.utcnow() + _td(days=30)))
+    db.commit()
+    return tok
+
+@app.post("/api/auth/signup")
+def auth_signup(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
+    email = (payload.get("email") or "").strip().lower()
+    pw    = payload.get("password") or ""
+    name  = (payload.get("display_name") or "").strip()
+    if not _EMAIL_RE.match(email):
+        return JSONResponse(status_code=400, content={"error": "Enter a valid email."})
+    if len(pw) < 8:
+        return JSONResponse(status_code=400, content={"error": "Password must be at least 8 characters."})
+    if db.query(User).filter(User.email == email).first():
+        return JSONResponse(status_code=409, content={"error": "That email is already registered."})
+    h, salt = _auth.hash_password(pw)
+    u = User(email=email, password_hash=h, salt=salt, display_name=name)
+    db.add(u); db.commit()
+    return {"token": _make_session(db, u.id), "email": email, "display_name": name}
+
+@app.post("/api/auth/login")
+def auth_login(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
+    email = (payload.get("email") or "").strip().lower()
+    pw    = payload.get("password") or ""
+    u = db.query(User).filter(User.email == email).first()
+    if not u or not _auth.verify_password(pw, u.salt, u.password_hash):
+        return JSONResponse(status_code=401, content={"error": "Wrong email or password."})
+    return {"token": _make_session(db, u.id), "email": u.email, "display_name": u.display_name or ""}
+
+@app.post("/api/auth/logout")
+def auth_logout(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
+    tok = payload.get("token") or ""
+    db.query(AuthSession).filter(AuthSession.token == tok).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/auth/me")
+def auth_me(token: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email:
+        return JSONResponse(status_code=401, content={"error": "not signed in"})
+    u = db.query(User).filter(User.email == email).first()
+    return {"email": email, "display_name": (u.display_name or "") if u else ""}
+
+@app.post("/api/auth/request_reset")
+def auth_request_reset(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
+    from datetime import datetime as _dt, timedelta as _td
+    email = (payload.get("email") or "").strip().lower()
+    u = db.query(User).filter(User.email == email).first()
+    out = {"ok": True}  # generic — don't reveal whether the email exists
+    if u:
+        tok = _auth.new_token()
+        db.add(ResetToken(token=tok, user_id=u.id, expires_at=_dt.utcnow() + _td(hours=1)))
+        db.commit()
+        link = f"{APP_BASE_URL}/account?reset={tok}"
+        if not _auth.send_reset_email(email, link):
+            out["link"] = link  # no SMTP configured → surface the link (dev)
+    return out
+
+@app.post("/api/auth/reset")
+def auth_reset(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
+    from datetime import datetime as _dt
+    tok = payload.get("token") or ""
+    pw  = payload.get("password") or ""
+    if len(pw) < 8:
+        return JSONResponse(status_code=400, content={"error": "Password must be at least 8 characters."})
+    rt = db.query(ResetToken).filter(ResetToken.token == tok).first()
+    if not rt or rt.used or (rt.expires_at and rt.expires_at < _dt.utcnow()):
+        return JSONResponse(status_code=400, content={"error": "Reset link is invalid or expired."})
+    u = db.query(User).filter(User.id == rt.user_id).first()
+    if not u:
+        return JSONResponse(status_code=400, content={"error": "Account not found."})
+    u.password_hash, u.salt = _auth.hash_password(pw)
+    rt.used = 1
+    db.query(AuthSession).filter(AuthSession.user_id == u.id).delete()  # log out everywhere
+    db.commit()
+    return {"ok": True}
+
+
+# ── Account layer: favorites + paper trades (auth-gated by session token) ───────
+# Account data lives in accounts.db (not touched by the data push), so these
+# writes are intentionally allowed even when READ_ONLY is set.
 
 def _last_price(ticker):
     t = (ticker or "").upper()
@@ -487,40 +576,56 @@ def _last_price(ticker):
         sdb.close()
     return None
 
-def _require_user(user):
-    if not user or not user.strip():
-        return JSONResponse(status_code=400, content={"error": "user required"})
-    return None
+def _email_from_token(token, authorization):
+    """Resolve a session token (query param or 'Authorization: Bearer') to the
+    user's email, or None if missing/expired."""
+    from datetime import datetime as _dt
+    tok = token or ""
+    if not tok and authorization and authorization.lower().startswith("bearer "):
+        tok = authorization[7:]
+    if not tok:
+        return None
+    adb = AcctSessionLocal()
+    try:
+        s = adb.query(AuthSession).filter(AuthSession.token == tok).first()
+        if not s or (s.expires_at and s.expires_at < _dt.utcnow()):
+            return None
+        u = adb.query(User).filter(User.id == s.user_id).first()
+        return u.email if u else None
+    finally:
+        adb.close()
+
+_UNAUTH = JSONResponse(status_code=401, content={"error": "sign in required"})
 
 @app.get("/api/account/favorites")
-def acct_favorites(user: str = "", db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
-    rows = db.query(Favorite).filter(Favorite.username == user.strip()).all()
+def acct_favorites(token: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
+    rows = db.query(Favorite).filter(Favorite.username == email).all()
     return {"favorites": [
         {"ticker": f.ticker, "kind": f.kind, "last_price": _last_price(f.ticker)} for f in rows
     ]}
 
 @app.post("/api/account/favorite")
-def acct_favorite_toggle(user: str = "", ticker: str = "", kind: str = "stock",
-                         db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
-    u, t = user.strip(), ticker.strip().upper()
+def acct_favorite_toggle(token: str = "", ticker: str = "", kind: str = "stock",
+                         authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
+    t = ticker.strip().upper()
     if not t:
         return JSONResponse(status_code=400, content={"error": "ticker required"})
-    existing = db.query(Favorite).filter(Favorite.username == u, Favorite.ticker == t).first()
+    existing = db.query(Favorite).filter(Favorite.username == email, Favorite.ticker == t).first()
     if existing:
         db.delete(existing); db.commit()
         return {"ticker": t, "favorited": False}
-    db.add(Favorite(username=u, ticker=t, kind=kind)); db.commit()
+    db.add(Favorite(username=email, ticker=t, kind=kind)); db.commit()
     return {"ticker": t, "favorited": True}
 
 @app.get("/api/account/trades")
-def acct_trades(user: str = "", db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
-    rows = (db.query(PaperTrade).filter(PaperTrade.username == user.strip())
+def acct_trades(token: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
+    rows = (db.query(PaperTrade).filter(PaperTrade.username == email)
               .order_by(PaperTrade.traded_on.desc(), PaperTrade.id.desc()).all())
     return {"trades": [{
         "id": r.id, "ticker": r.ticker, "kind": r.kind, "side": r.side,
@@ -529,11 +634,11 @@ def acct_trades(user: str = "", db: Session = Depends(get_acct_db)):
     } for r in rows]}
 
 @app.post("/api/account/trade")
-def acct_trade_add(user: str = "", ticker: str = "", kind: str = "stock", side: str = "buy",
+def acct_trade_add(token: str = "", ticker: str = "", kind: str = "stock", side: str = "buy",
                    shares: float = 0, price: float = 0, date: Optional[str] = None,
-                   note: str = "", db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
+                   note: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
     from datetime import date as _d
     t = ticker.strip().upper()
     if not t or shares <= 0 or price < 0 or side not in ("buy", "sell"):
@@ -542,26 +647,26 @@ def acct_trade_add(user: str = "", ticker: str = "", kind: str = "stock", side: 
         td = _d.fromisoformat(date) if date else _d.today()
     except ValueError:
         td = _d.today()
-    db.add(PaperTrade(username=user.strip(), ticker=t, kind=kind, side=side,
+    db.add(PaperTrade(username=email, ticker=t, kind=kind, side=side,
                       shares=shares, price=price, traded_on=td, note=note.strip()))
     db.commit()
     return {"ok": True}
 
 @app.delete("/api/account/trade/{trade_id}")
-def acct_trade_delete(trade_id: int, user: str = "", db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
+def acct_trade_delete(trade_id: int, token: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
     row = db.query(PaperTrade).filter(PaperTrade.id == trade_id,
-                                      PaperTrade.username == user.strip()).first()
+                                      PaperTrade.username == email).first()
     if row:
         db.delete(row); db.commit()
     return {"ok": True}
 
 @app.get("/api/account/portfolio")
-def acct_portfolio(user: str = "", db: Session = Depends(get_acct_db)):
-    err = _require_user(user)
-    if err: return err
-    trades = (db.query(PaperTrade).filter(PaperTrade.username == user.strip())
+def acct_portfolio(token: str = "", authorization: str = Header(None), db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email: return _UNAUTH
+    trades = (db.query(PaperTrade).filter(PaperTrade.username == email)
                 .order_by(PaperTrade.traded_on.asc(), PaperTrade.id.asc()).all())
     # average-cost method
     pos = {}  # ticker -> {shares, cost, kind}

@@ -1,26 +1,37 @@
-// Shared username identity (no auth) + small account API helpers.
-function getUser() { return localStorage.getItem("stockapp_user") || ""; }
-function setUser(u) { localStorage.setItem("stockapp_user", (u || "").trim()); }
+// Shared auth identity (session token) + small account API helpers.
+function getToken() { return localStorage.getItem("stockapp_token") || ""; }
+function setAuth(token, email) {
+  localStorage.setItem("stockapp_token", token || "");
+  if (email) localStorage.setItem("stockapp_email", email);
+}
+function clearAuth() {
+  localStorage.removeItem("stockapp_token");
+  localStorage.removeItem("stockapp_email");
+}
+function getEmail() { return localStorage.getItem("stockapp_email") || ""; }
+function isAuthed() { return !!getToken(); }
+
+function _tok(extra) {
+  const p = new URLSearchParams(extra || {});
+  p.set("token", getToken());
+  return p;
+}
 
 async function favToggle(ticker, kind) {
-  const u = getUser();
-  if (!u) { alert("Set a username on the Portfolio page first."); return null; }
-  const r = await fetch(`/api/account/favorite?user=${encodeURIComponent(u)}&ticker=${encodeURIComponent(ticker)}&kind=${kind}`,
-    { method: "POST" }).then(r => r.json()).catch(() => null);
-  return r;  // {ticker, favorited}
+  if (!isAuthed()) { alert("Sign in on the Portfolio page first."); return null; }
+  const p = _tok({ ticker, kind });
+  return fetch(`/api/account/favorite?${p}`, { method: "POST" }).then(r => r.json()).catch(() => null);
 }
 
 async function favSet() {
-  const u = getUser();
-  if (!u) return new Set();
-  const d = await fetch(`/api/account/favorites?user=${encodeURIComponent(u)}`).then(r => r.json()).catch(() => null);
+  if (!isAuthed()) return new Set();
+  const d = await fetch(`/api/account/favorites?${_tok()}`).then(r => r.json()).catch(() => null);
   return new Set((d && d.favorites || []).map(f => f.ticker));
 }
 
 async function addTrade({ ticker, kind, side, shares, price, date, note }) {
-  const u = getUser();
-  if (!u) { alert("Set a username on the Portfolio page first."); return null; }
-  const p = new URLSearchParams({ user: u, ticker, kind, side, shares, price });
+  if (!isAuthed()) { alert("Sign in on the Portfolio page first."); return null; }
+  const p = _tok({ ticker, kind, side, shares, price });
   if (date) p.set("date", date);
   if (note) p.set("note", note);
   return fetch(`/api/account/trade?${p}`, { method: "POST" }).then(r => r.json()).catch(() => null);

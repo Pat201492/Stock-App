@@ -46,6 +46,32 @@ class PaperTrade(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class User(Base):
+    __tablename__ = "users"
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    email         = Column(String, unique=True, index=True)   # stored lowercased
+    password_hash = Column(String)
+    salt          = Column(String)
+    display_name  = Column(String)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+    token      = Column(String, primary_key=True)
+    user_id    = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)
+
+
+class ResetToken(Base):
+    __tablename__ = "reset_tokens"
+    token      = Column(String, primary_key=True)
+    user_id    = Column(Integer, index=True)
+    expires_at = Column(DateTime)
+    used       = Column(Integer, default=0)   # 0/1
+
+
 def init_accounts_db():
     Base.metadata.create_all(engine)
 

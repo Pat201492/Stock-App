@@ -14,6 +14,14 @@ Environment=ACCOUNTS_DB_PATH=/opt/stockapp/data/accounts.db
 Environment=PORT=8080
 # Optional: enables the /fed page. Free key at fred.stlouisfed.org
 Environment=FRED_API_KEY=
+# Auth: base URL for password-reset links, and optional SMTP for sending them
+# (if SMTP is unset, the reset link is returned to the user instead).
+Environment=APP_BASE_URL=https://your-domain
+Environment=SMTP_HOST=
+Environment=SMTP_PORT=587
+Environment=SMTP_USER=
+Environment=SMTP_PASS=
+Environment=SMTP_FROM=
 ExecStart=/opt/stockapp/.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8080
 Restart=always
 RestartSec=3
