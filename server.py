@@ -75,6 +75,10 @@ def fed_page():
 def account_page():
     return FileResponse(os.path.join(STATIC_DIR, "account.html"))
 
+@app.get("/methodology")
+def methodology_page():
+    return FileResponse(os.path.join(STATIC_DIR, "methodology.html"))
+
 
 # ── Self-installing updater bootstrap ───────────────────────────────────────────
 # Served so any machine can run a one-liner that installs the app if missing,
