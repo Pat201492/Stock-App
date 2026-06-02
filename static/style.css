@@ -351,23 +351,27 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
   .stats-bar .stat-card { min-width: 130px; }
 }
 
+/* Hamburger toggle (injected by nav-mobile.js); hidden on desktop */
+.nav-toggle { display: none; background: none; border: none; color: var(--text);
+  font-size: 22px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+
 /* ── Mobile (phones) ─────────────────────────────────────────── */
 @media (max-width: 760px) {
-  /* Nav: brand + actions on top row, links become a swipeable row below */
-  nav { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 10px; }
+  nav { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 10px; align-items: center; }
+  .nav-toggle { display: block; margin-left: auto; order: 2; }
+  .nav-right { order: 3; }
+  /* Links collapse into a dropdown panel, shown when nav.open */
   .nav-links {
-    order: 3;
+    order: 4;
     width: 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 16px;
-    padding-bottom: 2px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
   }
-  .nav-links::-webkit-scrollbar { display: none; }
-  .nav-links a { flex: 0 0 auto; white-space: nowrap; }
-  .nav-right { margin-left: auto; }
+  nav.open .nav-links { display: flex; }
+  .nav-links a { padding: 12px 4px; font-size: 15px; border-bottom: 1px solid var(--border); }
 
   .container { padding: 14px; }
   h2 { font-size: 20px; }
