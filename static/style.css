@@ -350,3 +350,35 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
   .grid-2, .grid-4 { grid-template-columns: 1fr; }
   .stats-bar .stat-card { min-width: 130px; }
 }
+
+/* ── Mobile (phones) ─────────────────────────────────────────── */
+@media (max-width: 760px) {
+  /* Nav: brand + actions on top row, links become a swipeable row below */
+  nav { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 10px; }
+  .nav-links {
+    order: 3;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 16px;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; white-space: nowrap; }
+  .nav-right { margin-left: auto; }
+
+  .container { padding: 14px; }
+  h2 { font-size: 20px; }
+
+  /* Denser cards + cells on small screens */
+  .stat-card { min-width: 120px; padding: 12px 14px; }
+  .stat-card .value { font-size: 18px; }
+  .card { padding: 14px; }
+  th, td { padding: 9px 10px; }
+
+  /* Filters: each control grows to fill the row instead of overflowing */
+  .filters { gap: 8px; }
+  .filters input, .filters select { flex: 1 1 140px; min-width: 0; }
+}
