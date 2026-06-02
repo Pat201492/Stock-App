@@ -33,6 +33,15 @@ foreach ($f in @("stocks.db", "politicians.db")) {
   if (-not (Test-Path "$root\$f")) { throw "$f not found - run without -NoBuild first." }
 }
 
+# Flush WAL into the main .db files so the copied files are complete — copying a
+# WAL-mode DB without checkpointing (esp. while a writer is active) ships stale
+# or empty data.
+Write-Host "[publish] Checkpointing DBs (WAL -> main) ..."
+& $py -c "import sqlite3
+for f in ('stocks.db','politicians.db'):
+    try: c=sqlite3.connect(f); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()
+    except Exception as e: print('checkpoint warn', f, e)"
+
 $sshArgs = @()
 if ($SSH_KEY -and (Test-Path $SSH_KEY)) { $sshArgs = @("-i", $SSH_KEY) }
 $target = "$VPS_USER@$VPS_HOST"
@@ -44,7 +53,7 @@ if ($LASTEXITCODE -ne 0) { throw "ssh mkdir failed" }
 if ($LASTEXITCODE -ne 0) { throw "scp upload failed" }
 
 Write-Host "[publish] Swapping live + restarting $VPS_SERVICE ..."
-& ssh @sshArgs $target "mv $VPS_DATA/_incoming/*.db $VPS_DATA/ && sudo systemctl restart $VPS_SERVICE"
+& ssh @sshArgs $target "mv $VPS_DATA/_incoming/*.db $VPS_DATA/ && rm -f $VPS_DATA/stocks.db-wal $VPS_DATA/stocks.db-shm $VPS_DATA/politicians.db-wal $VPS_DATA/politicians.db-shm && sudo systemctl restart $VPS_SERVICE"
 if ($LASTEXITCODE -ne 0) { throw "remote swap/restart failed" }
 
 Write-Host "[publish] Done - live data updated at https://$VPS_HOST"
