@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/static/chart-crosshair.js?v=2"></script>
-  <script src="/static/account-common.js?v=1"></script>
+  <script src="/static/account-common.js?v=2"></script>
   <script src="/static/news-utils.js?v=1"></script>
 </head>
 <body>
@@ -146,7 +146,7 @@ async function onFav() {
   if (r) document.getElementById("fav-btn").textContent = r.favorited ? "★ Favorited" : "☆ Favorite";
 }
 async function quickTrade(lastPrice) {
-  if (!getUser()) { alert("Set a username on the Portfolio page first."); return; }
+  if (!isAuthed()) { if (confirm("Sign in to paper trade. Go to the Portfolio page?")) location.href = "/account"; return; }
   const side = (prompt("buy or sell?", "buy") || "").trim().toLowerCase();
   if (side !== "buy" && side !== "sell") return;
   const shares = parseFloat(prompt("Shares:", "10"));

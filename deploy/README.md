@@ -53,10 +53,15 @@ news) needs a free **FRED API key** — get one at
 `deploy/stockapp.service` (or local env), and restart. Without it the page shows
 a "configure key" notice instead of erroring.
 
-## Account data
-Favorites + paper trades live in a **separate `accounts.db`** (`ACCOUNTS_DB_PATH`).
-`publish.ps1` only swaps `stocks.db`/`politicians.db`, so account data is **not**
-overwritten by data pushes and persists on the server. Back it up separately.
+## Account data & auth
+Favorites + paper trading require an **email + password** account (rest of the
+site is public). Passwords are PBKDF2-hashed; sessions are 30-day random tokens —
+serve over HTTPS (Caddy) so tokens aren't exposed. Data lives in a **separate
+`accounts.db`** (`ACCOUNTS_DB_PATH`); `publish.ps1` only swaps
+`stocks.db`/`politicians.db`, so accounts persist across data pushes. Back it up.
+- `APP_BASE_URL` — base for password-reset links.
+- `SMTP_HOST/PORT/USER/PASS/FROM` — optional; if set, reset links are emailed,
+  else the link is shown to the user (dev fallback).
 
 ## Notes
 - `READ_ONLY=1` on the server disables `POST /api/pipeline/run` and
