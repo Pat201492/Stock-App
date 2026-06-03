@@ -83,22 +83,58 @@ def _next_earnings_date(info):
     except Exception:
         return ""
 
-def _eps_surprise(info):
+def _eps_surprise(edf):
     """
-    Return last EPS surprise % as a float, or None.
-    Computed as (actual - estimate) / abs(estimate) * 100.
-    Uses trailingEps as actual and earningsHistory when available.
+    Return the most-recent reported EPS surprise % as a float, or None.
+
+    yfinance's `.info` dict has no surprise field (the old "earningsSurprisePct"
+    key never existed, so this always returned None). The real data lives in
+    `Ticker.get_earnings_dates()`, a DataFrame indexed by earnings date (newest
+    first) with an "EPS Estimate" / "Reported EPS" / "Surprise(%)" column set.
+    We take the latest row that has actually been reported.
     """
+    if edf is None:
+        return None
     try:
-        actual = sf(info.get("trailingEps"))
-        est    = sf(info.get("earningsQuarterlyGrowth"))  # fallback proxy
-        # Better: use epsCurrentYear vs epsSurprisePct if available
-        surp = sf(info.get("earningsSurprisePct"))
-        if surp is not None:
-            return fmt(surp * 100)
+        col = None
+        for c in edf.columns:
+            if str(c).lower().startswith("surprise"):
+                col = c
+                break
+        if col is None:
+            return None
+        # Rows are newest-first; first non-NaN surprise is the last reported quarter.
+        for val in edf[col].tolist():
+            v = sf(val)
+            if v is not None:
+                return fmt(v)
         return None
     except Exception:
         return None
+
+
+def _next_earnings_from_df(edf):
+    """Next (unreported) earnings date as YYYY-MM-DD, or '' — fallback when
+    info has no earningsDate. Earliest row whose Reported EPS is still NaN."""
+    if edf is None:
+        return ""
+    try:
+        rep_col = None
+        for c in edf.columns:
+            if "reported" in str(c).lower():
+                rep_col = c
+                break
+        # Index sorted newest-first; iterate oldest-first to find the next unreported.
+        future = []
+        for idx, row in edf.iterrows():
+            reported = sf(row[rep_col]) if rep_col is not None else None
+            if reported is None:
+                future.append(idx)
+        if future:
+            return str(min(future))[:10]
+        return ""
+    except Exception:
+        return ""
 
 
 # ── Core extraction ───────────────────────────────────────────────────────────
@@ -132,6 +168,15 @@ def extract_fundamentals(ticker, yft):
     except Exception: pass
     try: bs_q  = yft.quarterly_balance_sheet
     except Exception: pass
+
+    # Earnings dates DataFrame — source for EPS surprise %, and a fallback for
+    # the next earnings date when info lacks one.
+    edf = None
+    try:
+        edf = yft.get_earnings_dates(limit=12)
+    except Exception:
+        try: edf = yft.earnings_dates
+        except Exception: edf = None
 
     def annual_or_quarterly(field, annual_df, quarterly_df):
         """Try annual first; fall back to quarterly."""
@@ -411,12 +456,12 @@ def extract_fundamentals(ticker, yft):
         "analyst_rec":  (info.get("recommendationKey") or "").upper(),
         "num_analysts": info.get("numberOfAnalystOpinions"),
         # Earnings
-        "earn_date":   _next_earnings_date(info),
-        "next_earnings": _next_earnings_date(info),  # DB column alias for earn_date
+        "earn_date":   _next_earnings_date(info) or _next_earnings_from_df(edf),
+        "next_earnings": _next_earnings_date(info) or _next_earnings_from_df(edf),  # DB column alias for earn_date
         "eps_est":     fmt(info.get("forwardEps")),
         "eps_actual":  fmt(info.get("trailingEps")),
-        "eps_surp":    _eps_surprise(info),
-        "eps_surprise": _eps_surprise(info),  # DB column alias for eps_surp
+        "eps_surp":    _eps_surprise(edf),
+        "eps_surprise": _eps_surprise(edf),  # DB column alias for eps_surp
         # Shares
         "shares": shares,
         # Income
