@@ -46,8 +46,8 @@ NASDAQ_FTP_URLS = [
 
 WIKI_SOURCES = [
     ("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", ["Symbol"]),
-    ("https://en.wikipedia.org/wiki/List_of_S%26P_400_companies", ["Ticker symbol", "Ticker"]),
-    ("https://en.wikipedia.org/wiki/List_of_S%26P_600_companies", ["Ticker symbol", "Ticker"]),
+    ("https://en.wikipedia.org/wiki/List_of_S%26P_400_companies", ["Symbol", "Ticker symbol", "Ticker"]),
+    ("https://en.wikipedia.org/wiki/List_of_S%26P_600_companies", ["Symbol", "Ticker symbol", "Ticker"]),
 ]
 
 ISHARES_URLS = [
@@ -287,7 +287,19 @@ def fetch_wikipedia():
     tickers = []
     for url, cols in WIKI_SOURCES:
         def fetch(url=url, cols=cols):
-            tables = pd.read_html(url)
+            from io import StringIO
+            import requests
+            # pd.read_html has no session/UA param; default urllib UA gets 403 from
+            # Wikipedia. Fetch HTML ourselves with a browser UA, then parse the text.
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) "
+                              "Chrome/124.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            resp = requests.get(url, headers=headers, timeout=30)
+            resp.raise_for_status()
+            tables = pd.read_html(StringIO(resp.text))
             for df in tables:
                 for col in cols:
                     if col in df.columns:
@@ -299,7 +311,7 @@ def fetch_wikipedia():
         if result:
             tickers.extend(result)
             print(f"    Wikipedia: {len(result)} tickers")
-        time.sleep(1)
+        time.sleep(2)
 
     return tickers
 
