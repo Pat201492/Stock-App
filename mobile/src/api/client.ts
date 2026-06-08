@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../config';
+import { saveToken, clearToken } from '../auth/session';
 import {
   EtfsParams,
   EtfsResponse,
@@ -17,11 +18,26 @@ import {
   StocksResponse,
 } from './types';
 
+export interface AuthUser {
+  token: string;
+  email: string;
+  display_name: string;
+}
+
 export class StockAppClient {
   private readonly baseUrl: string;
+  private token: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
+  }
+
+  setToken(token: string | null): void {
+    this.token = token;
+  }
+
+  getToken(): string | null {
+    return this.token;
   }
 
   private buildUrl(path: string, params?: object): string {
@@ -38,13 +54,64 @@ export class StockAppClient {
     return `${base}?${qs}`;
   }
 
+  private async clearSession(): Promise<void> {
+    this.token = null;
+    await clearToken();
+  }
+
   private async get<T>(path: string, params?: object): Promise<T> {
     const url = this.buildUrl(path, params);
-    const response = await fetch(url);
+    const response = this.token
+      ? await fetch(url, { headers: { Authorization: `Bearer ${this.token}` } })
+      : await fetch(url);
+    if (response.status === 401) {
+      await this.clearSession();
+      throw new Error(`HTTP 401: ${response.statusText}`);
+    }
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return (await response.json()) as T;
+  }
+
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (response.status === 401) {
+      await this.clearSession();
+      throw new Error(`HTTP 401: ${response.statusText}`);
+    }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return (await response.json()) as T;
+  }
+
+  // ----- Auth -----
+
+  async login(email: string, password: string): Promise<AuthUser> {
+    const data = await this.post<AuthUser>('/api/auth/login', { email, password });
+    this.token = data.token;
+    await saveToken(data.token);
+    return data;
+  }
+
+  async logout(): Promise<void> {
+    const tok = this.token;
+    await this.clearSession();
+    if (tok) {
+      await this.post<{ ok: boolean }>('/api/auth/logout', { token: tok });
+    }
+  }
+
+  getMe(): Promise<{ email: string; display_name: string }> {
+    return this.get('/api/auth/me');
   }
 
   // ----- Screener -----
