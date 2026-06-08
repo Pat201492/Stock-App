@@ -21,6 +21,18 @@ function renderLogin() {
   );
 }
 
+const originalConsoleError = console.error;
+beforeAll(() => {
+  console.error = (...args: Parameters<typeof console.error>) => {
+    if (typeof args[0] === 'string' && args[0].includes('act(...)')) return;
+    originalConsoleError(...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalConsoleError;
+});
+
 beforeEach(() => {
   mockLogin.mockReset();
   mockSetAuthToken.mockReset();

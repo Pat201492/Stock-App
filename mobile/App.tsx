@@ -10,7 +10,7 @@ function HydratedApp() {
     loadToken().then((token) => {
       if (token) setAuthToken(token);
     });
-  }, []);
+  }, [setAuthToken]);
   return <AppNavigator />;
 }
 

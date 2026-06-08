@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import ScreenerScreen from '../src/screens/ScreenerScreen';
 import { ClientContext } from '../src/context/ClientContext';
 import type { StockAppClient } from '../src/api/client';
@@ -88,5 +88,29 @@ it('shows error state when fetch fails', async () => {
   const { getByTestId } = renderScreener();
   await waitFor(() => {
     expect(getByTestId('error-state')).toBeTruthy();
+  });
+});
+
+it('pressing logout calls client.logout() then setAuthToken(null)', async () => {
+  mockGetStocks.mockResolvedValueOnce({ total: 0, stocks: [] });
+  mockLogout.mockResolvedValueOnce(undefined);
+  const { getByTestId } = renderScreener();
+  await waitFor(() => expect(getByTestId('logout-button')).toBeTruthy());
+  fireEvent.press(getByTestId('logout-button'));
+  await waitFor(() => {
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockSetAuthToken).toHaveBeenCalledWith(null);
+  });
+});
+
+it('calls setAuthToken(null) even when client.logout() rejects', async () => {
+  mockGetStocks.mockResolvedValueOnce({ total: 0, stocks: [] });
+  mockLogout.mockRejectedValueOnce(new Error('network timeout'));
+  const { getByTestId } = renderScreener();
+  await waitFor(() => expect(getByTestId('logout-button')).toBeTruthy());
+  fireEvent.press(getByTestId('logout-button'));
+  await waitFor(() => {
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockSetAuthToken).toHaveBeenCalledWith(null);
   });
 });

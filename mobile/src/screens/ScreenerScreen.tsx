@@ -29,8 +29,13 @@ export default function ScreenerScreen() {
   }, []);
 
   async function handleLogout() {
-    await client.logout();
-    setAuthToken(null);
+    try {
+      await client.logout();
+    } catch {
+      // server-side logout failure is acceptable; local session cleared below
+    } finally {
+      setAuthToken(null);
+    }
   }
 
   if (loading) {

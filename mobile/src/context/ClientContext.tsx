@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { StockAppClient } from '../api/client';
 import { API_BASE_URL } from '../config';
 
@@ -14,10 +14,10 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new StockAppClient(API_BASE_URL));
   const [authToken, setAuthTokenState] = useState<string | null>(null);
 
-  function setAuthToken(token: string | null) {
+  const setAuthToken = useCallback((token: string | null) => {
     client.setToken(token);
     setAuthTokenState(token);
-  }
+  }, [client]);
 
   return (
     <ClientContext.Provider value={{ client, authToken, setAuthToken }}>
