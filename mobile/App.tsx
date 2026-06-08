@@ -1,20 +1,25 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { ClientProvider, useClient } from './src/context/ClientContext';
+import { loadToken } from './src/auth/session';
+import AppNavigator from './src/navigation/AppNavigator';
+
+function HydratedApp() {
+  const { setAuthToken } = useClient();
+  useEffect(() => {
+    loadToken().then((token) => {
+      if (token) setAuthToken(token);
+    });
+  }, [setAuthToken]);
+  return <AppNavigator />;
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Stock App</Text>
-      <StatusBar style="auto" />
-    </View>
+    <ClientProvider>
+      <NavigationContainer>
+        <HydratedApp />
+      </NavigationContainer>
+    </ClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
