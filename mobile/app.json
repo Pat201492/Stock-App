@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "StockApp",
+    "slug": "stock-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["android"],
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    }
+  }
+}
