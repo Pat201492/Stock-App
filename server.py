@@ -24,7 +24,7 @@ from politicians_database import (
 )
 from accounts_database import (
     get_acct_db, init_accounts_db, Favorite, PaperTrade,
-    User, Session as AuthSession, ResetToken,
+    User, Session as AuthSession, ResetToken, DeviceToken,
     SessionLocal as AcctSessionLocal,
 )
 import auth as _auth
@@ -559,6 +559,34 @@ def auth_reset(payload: dict = Body(...), db: Session = Depends(get_acct_db)):
     rt.used = 1
     db.query(AuthSession).filter(AuthSession.user_id == u.id).delete()  # log out everywhere
     db.commit()
+    return {"ok": True}
+
+
+# ── Push-notification device-token registration ───────────────────────────────
+
+@app.post("/api/push/register")
+def push_register(
+    payload: dict = Body(...),
+    token: str = "",
+    authorization: str = Header(None),
+    db: Session = Depends(get_acct_db),
+):
+    email = _email_from_token(token, authorization)
+    if not email:
+        return _UNAUTH
+    fcm_token = (payload.get("fcm_token") or "").strip()
+    if not fcm_token:
+        return JSONResponse(status_code=422, content={"error": "fcm_token required"})
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return _UNAUTH
+    exists = db.query(DeviceToken).filter(
+        DeviceToken.user_id == user.id,
+        DeviceToken.fcm_token == fcm_token,
+    ).first()
+    if not exists:
+        db.add(DeviceToken(user_id=user.id, fcm_token=fcm_token))
+        db.commit()
     return {"ok": True}
 
 

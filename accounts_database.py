@@ -72,6 +72,14 @@ class ResetToken(Base):
     used       = Column(Integer, default=0)   # 0/1
 
 
+class DeviceToken(Base):
+    __tablename__ = "device_tokens"
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(Integer, index=True)
+    fcm_token  = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 def init_accounts_db():
     Base.metadata.create_all(engine)
 

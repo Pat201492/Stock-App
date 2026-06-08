@@ -93,6 +93,12 @@ export class StockAppClient {
     return (await response.json()) as T;
   }
 
+  // ----- Push notifications -----
+
+  registerFcmToken(fcmToken: string): Promise<{ ok: boolean }> {
+    return this.post<{ ok: boolean }>('/api/push/register', { fcm_token: fcmToken });
+  }
+
   // ----- Auth -----
 
   async login(email: string, password: string): Promise<AuthUser> {
