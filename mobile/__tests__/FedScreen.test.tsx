@@ -1,0 +1,69 @@
+import React from 'react';
+import { render, waitFor } from '@testing-library/react-native';
+import FedScreen from '../src/screens/FedScreen';
+import { ClientContext } from '../src/context/ClientContext';
+import type { StockAppClient } from '../src/api/client';
+import type { FedSummaryResponse } from '../src/api/types';
+
+const mockGetFedSummary = jest.fn();
+
+const mockClient = {
+  getFedSummary: mockGetFedSummary,
+} as unknown as StockAppClient;
+
+function renderScreen() {
+  return render(
+    <ClientContext.Provider
+      value={{ client: mockClient, authToken: 'tok', setAuthToken: jest.fn() }}
+    >
+      <FedScreen />
+    </ClientContext.Provider>,
+  );
+}
+
+const FED_RESPONSE: FedSummaryResponse = {
+  configured: true,
+  series: [
+    {
+      id: 'FEDFUNDS',
+      label: 'Federal Funds Rate',
+      context: 'Target range for the federal funds rate',
+      unit: '%',
+    },
+    {
+      id: 'T10Y2Y',
+      label: '10Y-2Y Treasury Spread',
+      context: 'Difference between 10-year and 2-year Treasury yields',
+      unit: '%',
+    },
+  ],
+};
+
+beforeEach(() => {
+  mockGetFedSummary.mockReset();
+});
+
+it('shows loading state before fetch completes', () => {
+  mockGetFedSummary.mockReturnValue(new Promise(() => {}));
+  const { getByTestId } = renderScreen();
+  expect(getByTestId('loading-state')).toBeTruthy();
+});
+
+it('renders Fed series rows from mocked response', async () => {
+  mockGetFedSummary.mockResolvedValueOnce(FED_RESPONSE);
+  const { getByTestId } = renderScreen();
+  await waitFor(() => {
+    expect(getByTestId('fed-row-FEDFUNDS')).toBeTruthy();
+  });
+  expect(getByTestId('fed-row-T10Y2Y')).toBeTruthy();
+  expect(getByTestId('fed-label-FEDFUNDS')).toBeTruthy();
+  expect(getByTestId('fed-context-FEDFUNDS')).toBeTruthy();
+});
+
+it('shows error state when fetch fails', async () => {
+  mockGetFedSummary.mockRejectedValueOnce(new Error('Network error'));
+  const { getByTestId } = renderScreen();
+  await waitFor(() => {
+    expect(getByTestId('error-state')).toBeTruthy();
+  });
+});
