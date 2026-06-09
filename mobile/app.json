@@ -4,11 +4,24 @@
     "slug": "stock-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
+    },
     "android": {
+      "package": "com.pat201492.stockapp",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       }
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0997e5d1-2375-454e-9a2f-2115d0282aff"
+      }
+    },
+    "owner": "patsea"
   }
 }
