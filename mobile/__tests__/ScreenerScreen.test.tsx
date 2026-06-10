@@ -7,11 +7,13 @@ import type { StockListItem } from '../src/api/types';
 
 const mockGetStocks = jest.fn();
 const mockLogout = jest.fn();
+const mockToggleFavorite = jest.fn();
 const mockSetAuthToken = jest.fn();
 
 const mockClient = {
   getStocks: mockGetStocks,
   logout: mockLogout,
+  toggleFavorite: mockToggleFavorite,
 } as unknown as StockAppClient;
 
 function renderScreener() {
@@ -61,6 +63,7 @@ const STOCK_B: StockListItem = {
 beforeEach(() => {
   mockGetStocks.mockReset();
   mockLogout.mockReset();
+  mockToggleFavorite.mockReset();
   mockSetAuthToken.mockReset();
 });
 
@@ -112,5 +115,16 @@ it('calls setAuthToken(null) even when client.logout() rejects', async () => {
   await waitFor(() => {
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(mockSetAuthToken).toHaveBeenCalledWith(null);
+  });
+});
+
+it('pressing favorite toggle calls client.toggleFavorite with the ticker', async () => {
+  mockGetStocks.mockResolvedValueOnce({ total: 1, stocks: [STOCK_A] });
+  mockToggleFavorite.mockResolvedValueOnce({ ticker: 'AAPL', favorited: true });
+  const { getByTestId } = renderScreener();
+  await waitFor(() => expect(getByTestId('fav-AAPL')).toBeTruthy());
+  fireEvent.press(getByTestId('fav-AAPL'));
+  await waitFor(() => {
+    expect(mockToggleFavorite).toHaveBeenCalledWith('AAPL');
   });
 });
