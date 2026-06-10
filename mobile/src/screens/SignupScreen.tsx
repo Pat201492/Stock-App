@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useClient } from '../context/ClientContext';
+import { shared, colors, spacing } from '../theme';
 
 export default function SignupScreen() {
   const { client, setAuthToken } = useClient();
@@ -32,11 +33,12 @@ export default function SignupScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <View style={shared.authContainer}>
+      <Text style={shared.screenTitle}>Create Account</Text>
       <TextInput
-        style={styles.input}
+        style={shared.input}
         placeholder="Email"
+        placeholderTextColor={colors.textMuted}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -44,8 +46,9 @@ export default function SignupScreen() {
         testID="email-input"
       />
       <TextInput
-        style={styles.input}
+        style={shared.input}
         placeholder="Password"
+        placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -57,7 +60,7 @@ export default function SignupScreen() {
         </Text>
       )}
       <TouchableOpacity
-        style={styles.button}
+        style={shared.primaryButton}
         onPress={handleSignup}
         disabled={loading}
         testID="signup-button"
@@ -65,38 +68,20 @@ export default function SignupScreen() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={shared.primaryButtonText}>Sign Up</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.link}
+        style={shared.linkButton}
         onPress={() => navigation.goBack()}
         testID="back-to-login"
       >
-        <Text style={styles.linkText}>Already have an account? Log In</Text>
+        <Text style={shared.linkText}>Already have an account? Log In</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 32, textAlign: 'center' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  error: { color: '#c00', marginBottom: 16 },
-  button: {
-    backgroundColor: '#007aff',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  link: { marginTop: 16, alignItems: 'center' },
-  linkText: { color: '#007aff' },
+  error: { color: colors.error, marginBottom: spacing.sm },
 });

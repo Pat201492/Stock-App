@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { NewsItem } from '../api/types';
+import { shared, colors } from '../theme';
 
 export default function NewsScreen() {
   const { client } = useClient();
@@ -27,22 +28,22 @@ export default function NewsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center} testID="loading-state">
-        <ActivityIndicator size="large" />
+      <View style={shared.center} testID="loading-state">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error != null) {
     return (
-      <View style={styles.center} testID="error-state">
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={shared.center} testID="error-state">
+        <Text style={shared.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView testID="news-list">
+    <ScrollView testID="news-list" style={shared.screen}>
       {news.map((item) => (
         <View key={item.id} style={styles.row} testID={`news-row-${item.id}`}>
           <Text style={styles.title} testID={`news-title-${item.id}`}>
@@ -58,13 +59,13 @@ export default function NewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: '#c00', fontSize: 16 },
   row: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
-  title: { fontSize: 14, flex: 1 },
-  meta: { fontSize: 12, color: '#666', marginTop: 4 },
+  title: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  meta: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
 });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useClient } from '../context/ClientContext';
@@ -11,13 +12,27 @@ import PoliticiansScreen from '../screens/PoliticiansScreen';
 import InsidersScreen from '../screens/InsidersScreen';
 import FedScreen from '../screens/FedScreen';
 import WatchlistScreen from '../screens/WatchlistScreen';
+import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.inactive,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.divider,
+          borderTopWidth: StyleSheet.hairlineWidth,
+        },
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '600' },
+      }}
+    >
       <Tab.Screen name="Screener" component={ScreenerScreen} />
       <Tab.Screen name="ETF" component={EtfScreen} />
       <Tab.Screen name="News" component={NewsScreen} />
@@ -32,7 +47,13 @@ function MainTabs() {
 export default function AppNavigator() {
   const { authToken } = useClient();
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '600' },
+      }}
+    >
       {authToken == null ? (
         <>
           <Stack.Screen
