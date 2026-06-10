@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { PolTrade } from '../api/types';
+import { shared, colors } from '../theme';
 
 export default function PoliticiansScreen() {
   const { client } = useClient();
@@ -27,31 +28,31 @@ export default function PoliticiansScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center} testID="loading-state">
-        <ActivityIndicator size="large" />
+      <View style={shared.center} testID="loading-state">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error != null) {
     return (
-      <View style={styles.center} testID="error-state">
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={shared.center} testID="error-state">
+        <Text style={shared.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView testID="pol-list">
+    <ScrollView testID="pol-list" style={shared.screen}>
       {trades.map((item) => (
-        <View key={item.trade_id} style={styles.row} testID={`pol-row-${item.trade_id}`}>
+        <View key={item.trade_id} style={shared.row} testID={`pol-row-${item.trade_id}`}>
           <Text style={styles.name} testID={`pol-name-${item.trade_id}`}>
             {item.politician_name}
           </Text>
           <Text style={styles.ticker} testID={`pol-ticker-${item.trade_id}`}>
             {item.ticker}
           </Text>
-          <Text testID={`pol-type-${item.trade_id}`}>
+          <Text style={styles.type} testID={`pol-type-${item.trade_id}`}>
             {item.transaction_type}
           </Text>
         </View>
@@ -61,14 +62,7 @@ export default function PoliticiansScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: '#c00', fontSize: 16 },
-  row: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    flexDirection: 'row',
-  },
-  name: { flex: 1 },
-  ticker: { fontWeight: 'bold', width: 60 },
+  name: { flex: 1, color: colors.text, fontSize: 14 },
+  ticker: { fontWeight: 'bold', width: 60, color: colors.text },
+  type: { fontSize: 12, color: colors.textMuted },
 });

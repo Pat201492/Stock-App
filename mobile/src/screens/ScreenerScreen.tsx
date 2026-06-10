@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { StockListItem } from '../api/types';
+import { shared, colors } from '../theme';
 
 export default function ScreenerScreen() {
   const { client, setAuthToken } = useClient();
@@ -50,49 +51,49 @@ export default function ScreenerScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center} testID="loading-state">
-        <ActivityIndicator size="large" />
+      <View style={shared.center} testID="loading-state">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error != null) {
     return (
-      <View style={styles.center} testID="error-state">
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={shared.center} testID="error-state">
+        <Text style={shared.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={shared.screen}>
       <TouchableOpacity
         onPress={handleLogout}
-        style={styles.logoutButton}
+        style={shared.logoutButton}
         testID="logout-button"
       >
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={shared.logoutText}>Log Out</Text>
       </TouchableOpacity>
       <ScrollView testID="stock-list">
         {stocks.map((item) => (
-          <View key={item.ticker} style={styles.row} testID={`stock-row-${item.ticker}`}>
+          <View key={item.ticker} style={shared.row} testID={`stock-row-${item.ticker}`}>
             <Text style={styles.ticker} testID={`ticker-${item.ticker}`}>
               {item.ticker}
             </Text>
             <Text style={styles.name} testID={`name-${item.ticker}`}>
               {item.name}
             </Text>
-            <Text testID={`score-${item.ticker}`}>
+            <Text style={styles.score} testID={`score-${item.ticker}`}>
               {item.score != null ? String(item.score) : '–'}
             </Text>
-            <Text testID={`price-${item.ticker}`}>
+            <Text style={styles.price} testID={`price-${item.ticker}`}>
               {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
             </Text>
             <TouchableOpacity
               onPress={() => handleToggleFavorite(item.ticker)}
               testID={`fav-${item.ticker}`}
             >
-              <Text>{favorites[item.ticker] ? '★' : '☆'}</Text>
+              <Text style={styles.star}>{favorites[item.ticker] ? '★' : '☆'}</Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -102,18 +103,9 @@ export default function ScreenerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: '#c00', fontSize: 16 },
-  logoutButton: { padding: 16, alignItems: 'flex-end' },
-  logoutText: { color: '#007aff' },
-  row: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ticker: { fontWeight: 'bold', width: 60 },
-  name: { flex: 1 },
+  ticker: { fontWeight: 'bold', width: 60, color: colors.text },
+  name: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  score: { width: 36, textAlign: 'right', fontSize: 13, color: colors.textMuted },
+  price: { width: 60, textAlign: 'right', fontSize: 13, fontWeight: '600', color: colors.text },
+  star: { fontSize: 18, color: colors.primary, paddingLeft: 8 },
 });

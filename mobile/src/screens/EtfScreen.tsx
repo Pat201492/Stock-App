@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { EtfListItem } from '../api/types';
+import { shared, colors } from '../theme';
 
 export default function EtfScreen() {
   const { client } = useClient();
@@ -27,31 +28,31 @@ export default function EtfScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center} testID="loading-state">
-        <ActivityIndicator size="large" />
+      <View style={shared.center} testID="loading-state">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error != null) {
     return (
-      <View style={styles.center} testID="error-state">
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={shared.center} testID="error-state">
+        <Text style={shared.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView testID="etf-list">
+    <ScrollView testID="etf-list" style={shared.screen}>
       {etfs.map((item) => (
-        <View key={item.ticker} style={styles.row} testID={`etf-row-${item.ticker}`}>
+        <View key={item.ticker} style={shared.row} testID={`etf-row-${item.ticker}`}>
           <Text style={styles.ticker} testID={`etf-ticker-${item.ticker}`}>
             {item.ticker}
           </Text>
           <Text style={styles.name} testID={`etf-name-${item.ticker}`}>
             {item.name}
           </Text>
-          <Text testID={`etf-price-${item.ticker}`}>
+          <Text style={styles.price} testID={`etf-price-${item.ticker}`}>
             {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
           </Text>
         </View>
@@ -61,14 +62,7 @@ export default function EtfScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: '#c00', fontSize: 16 },
-  row: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    flexDirection: 'row',
-  },
-  ticker: { fontWeight: 'bold', width: 60 },
-  name: { flex: 1 },
+  ticker: { fontWeight: 'bold', width: 60, color: colors.text },
+  name: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  price: { fontSize: 13, fontWeight: '600', color: colors.text },
 });

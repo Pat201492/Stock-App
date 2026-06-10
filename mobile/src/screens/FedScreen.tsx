@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { FedSummaryResponse } from '../api/types';
+import { shared, colors } from '../theme';
 
 export default function FedScreen() {
   const { client } = useClient();
@@ -27,22 +28,22 @@ export default function FedScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center} testID="loading-state">
-        <ActivityIndicator size="large" />
+      <View style={shared.center} testID="loading-state">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error != null) {
     return (
-      <View style={styles.center} testID="error-state">
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={shared.center} testID="error-state">
+        <Text style={shared.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView testID="fed-list">
+    <ScrollView testID="fed-list" style={shared.screen}>
       {fed?.series.map((item) => (
         <View key={item.id} style={styles.row} testID={`fed-row-${item.id}`}>
           <Text style={styles.label} testID={`fed-label-${item.id}`}>
@@ -58,13 +59,13 @@ export default function FedScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: '#c00', fontSize: 16 },
   row: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
-  label: { fontWeight: 'bold', fontSize: 14 },
-  context: { fontSize: 12, color: '#666', marginTop: 4 },
+  label: { fontWeight: 'bold', fontSize: 14, color: colors.text },
+  context: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
 });
