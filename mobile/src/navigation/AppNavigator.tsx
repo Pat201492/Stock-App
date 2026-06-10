@@ -6,7 +6,9 @@ import { useClient } from '../context/ClientContext';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import ScreenerScreen from '../screens/ScreenerScreen';
+import StockDetailScreen from '../screens/StockDetailScreen';
 import EtfScreen from '../screens/EtfScreen';
+import EtfDetailScreen from '../screens/EtfDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PoliticiansScreen from '../screens/PoliticiansScreen';
 import InsidersScreen from '../screens/InsidersScreen';
@@ -16,6 +18,47 @@ import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const NestedStack = createNativeStackNavigator();
+
+const nestedStackOptions = {
+  headerStyle: { backgroundColor: colors.surface },
+  headerTintColor: colors.text,
+  headerTitleStyle: { fontWeight: '600' as const },
+};
+
+function ScreenerStack() {
+  return (
+    <NestedStack.Navigator screenOptions={nestedStackOptions}>
+      <NestedStack.Screen
+        name="ScreenerList"
+        component={ScreenerScreen}
+        options={{ title: 'Screener' }}
+      />
+      <NestedStack.Screen
+        name="StockDetail"
+        component={StockDetailScreen}
+        options={({ route }: any) => ({ title: route?.params?.ticker ?? 'Stock' })}
+      />
+    </NestedStack.Navigator>
+  );
+}
+
+function EtfStack() {
+  return (
+    <NestedStack.Navigator screenOptions={nestedStackOptions}>
+      <NestedStack.Screen
+        name="EtfList"
+        component={EtfScreen}
+        options={{ title: 'ETF' }}
+      />
+      <NestedStack.Screen
+        name="EtfDetail"
+        component={EtfDetailScreen}
+        options={({ route }: any) => ({ title: route?.params?.ticker ?? 'ETF' })}
+      />
+    </NestedStack.Navigator>
+  );
+}
 
 function MainTabs() {
   return (
@@ -33,8 +76,16 @@ function MainTabs() {
         headerTitleStyle: { fontWeight: '600' },
       }}
     >
-      <Tab.Screen name="Screener" component={ScreenerScreen} />
-      <Tab.Screen name="ETF" component={EtfScreen} />
+      <Tab.Screen
+        name="Screener"
+        component={ScreenerStack}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="ETF"
+        component={EtfStack}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="News" component={NewsScreen} />
       <Tab.Screen name="Politicians" component={PoliticiansScreen} />
       <Tab.Screen name="Insiders" component={InsidersScreen} />

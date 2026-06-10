@@ -74,6 +74,10 @@ export interface FedSeriesInfo {
   label: string;
   context: string;
   unit: string;
+  value: number | null;
+  asof: string | null;
+  change: number | null;
+  history?: number[];
 }
 
 export interface FedSummaryResponse {
@@ -267,4 +271,27 @@ export interface InsiderTickerTrade {
 export interface InsiderTickerResponse {
   ticker: string;
   trades: InsiderTickerTrade[];
+}
+
+export interface StockDetailResponse {
+  stock: Record<string, unknown>;
+  fundamentals: Record<string, unknown>;
+  valuation: Record<string, unknown>;
+}
+
+export interface PolTickerTrade {
+  trade_id: string;
+  transaction_date: string | null;
+  transaction_type: string;
+  amount_min: number | null;
+  amount_max: number | null;
+  bioguide_id: string;
+  politician_name: string;
+  chamber: string | null;
+  party: string | null;
+}
+
+export interface PolTickerResponse {
+  ticker: string;
+  trades: PolTickerTrade[];
 }

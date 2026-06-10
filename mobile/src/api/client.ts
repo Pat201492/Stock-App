@@ -18,6 +18,8 @@ import {
   StocksParams,
   StocksResponse,
   ToggleFavoriteResponse,
+  StockDetailResponse,
+  PolTickerResponse,
 } from './types';
 
 export interface AuthUser {
@@ -160,6 +162,12 @@ export class StockAppClient {
     return this.get<StocksResponse>('/api/stocks', params);
   }
 
+  getStockDetail(ticker: string): Promise<StockDetailResponse> {
+    return this.get<StockDetailResponse>(
+      `/api/stocks/${encodeURIComponent(ticker)}`,
+    );
+  }
+
   // ----- ETF -----
 
   getEtfs(params?: EtfsParams): Promise<EtfsResponse> {
@@ -216,6 +224,13 @@ export class StockAppClient {
   getPolPolitician(bioguideId: string): Promise<PolPoliticianResponse> {
     return this.get<PolPoliticianResponse>(
       `/api/pol/politician/${encodeURIComponent(bioguideId)}`,
+    );
+  }
+
+  getPolByTicker(ticker: string, days?: number): Promise<PolTickerResponse> {
+    return this.get<PolTickerResponse>(
+      `/api/pol/ticker/${encodeURIComponent(ticker)}`,
+      days !== undefined ? { days } : undefined,
     );
   }
 

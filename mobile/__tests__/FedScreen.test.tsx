@@ -29,12 +29,18 @@ const FED_RESPONSE: FedSummaryResponse = {
       label: 'Federal Funds Rate',
       context: 'Target range for the federal funds rate',
       unit: '%',
+      value: 3.62,
+      asof: '2026-06-09',
+      change: 0,
     },
     {
       id: 'T10Y2Y',
       label: '10Y-2Y Treasury Spread',
       context: 'Difference between 10-year and 2-year Treasury yields',
       unit: '%',
+      value: 0.45,
+      asof: '2026-06-09',
+      change: 0.32,
     },
   ],
 };
@@ -58,6 +64,9 @@ it('renders Fed series rows from mocked response', async () => {
   expect(getByTestId('fed-row-T10Y2Y')).toBeTruthy();
   expect(getByTestId('fed-label-FEDFUNDS')).toBeTruthy();
   expect(getByTestId('fed-context-FEDFUNDS')).toBeTruthy();
+  // the actual metric value must render, not just the label
+  expect(getByTestId('fed-value-FEDFUNDS').props.children).toBe('3.62%');
+  expect(getByTestId('fed-change-T10Y2Y').props.children).toBe('+0.32%');
 });
 
 it('shows error state when fetch fails', async () => {

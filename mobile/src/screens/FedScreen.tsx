@@ -44,16 +44,43 @@ export default function FedScreen() {
 
   return (
     <ScrollView testID="fed-list" style={shared.screen}>
-      {fed?.series.map((item) => (
-        <View key={item.id} style={styles.row} testID={`fed-row-${item.id}`}>
-          <Text style={styles.label} testID={`fed-label-${item.id}`}>
-            {item.label}
-          </Text>
-          <Text style={styles.context} testID={`fed-context-${item.id}`}>
-            {item.context}
-          </Text>
-        </View>
-      ))}
+      {fed?.series.map((item) => {
+        const val =
+          item.value != null ? `${item.value}${item.unit ?? ''}` : '–';
+        const chg =
+          item.change != null && item.change !== 0
+            ? `${item.change > 0 ? '+' : ''}${item.change}${item.unit ?? ''}`
+            : null;
+        const up = (item.change ?? 0) > 0;
+        return (
+          <View key={item.id} style={styles.row} testID={`fed-row-${item.id}`}>
+            <View style={styles.headerRow}>
+              <Text style={styles.label} testID={`fed-label-${item.id}`}>
+                {item.label}
+              </Text>
+              <View style={styles.valueWrap}>
+                <Text style={styles.value} testID={`fed-value-${item.id}`}>
+                  {val}
+                </Text>
+                {chg != null ? (
+                  <Text
+                    style={[styles.change, up ? styles.up : styles.down]}
+                    testID={`fed-change-${item.id}`}
+                  >
+                    {chg}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <Text style={styles.context} testID={`fed-context-${item.id}`}>
+              {item.context}
+            </Text>
+            {item.asof ? (
+              <Text style={styles.asof}>as of {item.asof}</Text>
+            ) : null}
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -66,6 +93,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
-  label: { fontWeight: 'bold', fontSize: 14, color: colors.text },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  label: { fontWeight: 'bold', fontSize: 15, color: colors.text, flex: 1 },
+  valueWrap: { flexDirection: 'row', alignItems: 'baseline' },
+  value: { fontWeight: '700', fontSize: 17, color: colors.text },
+  change: { fontSize: 13, fontWeight: '600', marginLeft: 8 },
+  up: { color: '#1b8a3a' },
+  down: { color: colors.error },
   context: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+  asof: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
 });
