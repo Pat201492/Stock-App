@@ -3,6 +3,7 @@ import { saveToken, clearToken } from '../auth/session';
 import {
   EtfsParams,
   EtfsResponse,
+  FavoritesResponse,
   FedCalendarResponse,
   FedHistoryResponse,
   FedSeriesResponse,
@@ -16,6 +17,7 @@ import {
   PolTradesResponse,
   StocksParams,
   StocksResponse,
+  ToggleFavoriteResponse,
 } from './types';
 
 export interface AuthUser {
@@ -74,6 +76,21 @@ export class StockAppClient {
     return (await response.json()) as T;
   }
 
+  private async postQuery<T>(path: string, params?: object): Promise<T> {
+    const url = this.buildUrl(path, params);
+    const headers: Record<string, string> = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const response = await fetch(url, { method: 'POST', headers });
+    if (response.status === 401) {
+      await this.clearSession();
+      throw new Error(`HTTP 401: ${response.statusText}`);
+    }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return (await response.json()) as T;
+  }
+
   private async post<T>(path: string, body: unknown): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -101,6 +118,13 @@ export class StockAppClient {
 
   // ----- Auth -----
 
+  async signup(email: string, password: string, display_name?: string): Promise<AuthUser> {
+    const data = await this.post<AuthUser>('/api/auth/signup', { email, password, display_name });
+    this.token = data.token;
+    await saveToken(data.token);
+    return data;
+  }
+
   async login(email: string, password: string): Promise<AuthUser> {
     const data = await this.post<AuthUser>('/api/auth/login', { email, password });
     this.token = data.token;
@@ -118,6 +142,16 @@ export class StockAppClient {
 
   getMe(): Promise<{ email: string; display_name: string }> {
     return this.get('/api/auth/me');
+  }
+
+  // ----- Account / Favorites -----
+
+  getFavorites(): Promise<FavoritesResponse> {
+    return this.get<FavoritesResponse>('/api/account/favorites');
+  }
+
+  toggleFavorite(ticker: string, kind: string = 'stock'): Promise<ToggleFavoriteResponse> {
+    return this.postQuery<ToggleFavoriteResponse>('/api/account/favorite', { ticker, kind });
   }
 
   // ----- Screener -----

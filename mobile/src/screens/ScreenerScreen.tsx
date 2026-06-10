@@ -15,6 +15,7 @@ export default function ScreenerScreen() {
   const [stocks, setStocks] = useState<StockListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     client
@@ -35,6 +36,15 @@ export default function ScreenerScreen() {
       // server-side logout failure is acceptable; local session cleared below
     } finally {
       setAuthToken(null);
+    }
+  }
+
+  async function handleToggleFavorite(ticker: string) {
+    try {
+      const result = await client.toggleFavorite(ticker);
+      setFavorites((prev) => ({ ...prev, [ticker]: result.favorited }));
+    } catch {
+      // ignore toggle errors silently
     }
   }
 
@@ -78,6 +88,12 @@ export default function ScreenerScreen() {
             <Text testID={`price-${item.ticker}`}>
               {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
             </Text>
+            <TouchableOpacity
+              onPress={() => handleToggleFavorite(item.ticker)}
+              testID={`fav-${item.ticker}`}
+            >
+              <Text>{favorites[item.ticker] ? '★' : '☆'}</Text>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
@@ -96,6 +112,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     flexDirection: 'row',
+    alignItems: 'center',
   },
   ticker: { fontWeight: 'bold', width: 60 },
   name: { flex: 1 },

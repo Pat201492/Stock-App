@@ -207,6 +207,23 @@ export interface PolPoliticianResponse {
   recent_trades: PolPoliticianTrade[];
 }
 
+// ----- Account / Favorites -----
+
+export interface FavoriteItem {
+  ticker: string;
+  kind: string;
+  last_price: number | null;
+}
+
+export interface FavoritesResponse {
+  favorites: FavoriteItem[];
+}
+
+export interface ToggleFavoriteResponse {
+  ticker: string;
+  favorited: boolean;
+}
+
 // ----- Insiders -----
 
 export interface InsiderTrade {

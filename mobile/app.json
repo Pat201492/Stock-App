@@ -22,6 +22,12 @@
         "projectId": "0997e5d1-2375-454e-9a2f-2115d0282aff"
       }
     },
-    "owner": "patsea"
+    "owner": "patsea",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0997e5d1-2375-454e-9a2f-2115d0282aff"
+    }
   }
 }

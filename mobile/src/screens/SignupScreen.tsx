@@ -10,7 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useClient } from '../context/ClientContext';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const { client, setAuthToken } = useClient();
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
@@ -18,14 +18,14 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
+  async function handleSignup() {
     setError(null);
     setLoading(true);
     try {
-      const result = await client.login(email, password);
+      const result = await client.signup(email, password);
       setAuthToken(result.token);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      setError(e instanceof Error ? e.message : 'Signup failed');
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Stock App</Text>
+      <Text style={styles.title}>Create Account</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -58,22 +58,22 @@ export default function LoginScreen() {
       )}
       <TouchableOpacity
         style={styles.button}
-        onPress={handleLogin}
+        onPress={handleSignup}
         disabled={loading}
-        testID="login-button"
+        testID="signup-button"
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Log In</Text>
+          <Text style={styles.buttonText}>Sign Up</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.link}
-        onPress={() => navigation.navigate('Signup' as never)}
-        testID="signup-link"
+        onPress={() => navigation.goBack()}
+        testID="back-to-login"
       >
-        <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
+        <Text style={styles.linkText}>Already have an account? Log In</Text>
       </TouchableOpacity>
     </View>
   );

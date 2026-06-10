@@ -4,6 +4,10 @@ import LoginScreen from '../src/screens/LoginScreen';
 import { ClientContext } from '../src/context/ClientContext';
 import type { StockAppClient } from '../src/api/client';
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
+
 const mockLogin = jest.fn();
 const mockSetAuthToken = jest.fn();
 
