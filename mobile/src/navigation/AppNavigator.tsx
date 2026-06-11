@@ -11,6 +11,8 @@ import EtfScreen from '../screens/EtfScreen';
 import EtfDetailScreen from '../screens/EtfDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PoliticiansScreen from '../screens/PoliticiansScreen';
+import PoliticianTradesScreen from '../screens/PoliticianTradesScreen';
+import PolStockTradesScreen from '../screens/PolStockTradesScreen';
 import InsidersScreen from '../screens/InsidersScreen';
 import FedScreen from '../screens/FedScreen';
 import WatchlistScreen from '../screens/WatchlistScreen';
@@ -39,6 +41,11 @@ function ScreenerStack() {
         component={StockDetailScreen}
         options={({ route }: any) => ({ title: route?.params?.ticker ?? 'Stock' })}
       />
+      <NestedStack.Screen
+        name="PoliticianTrades"
+        component={PoliticianTradesScreen}
+        options={({ route }: any) => ({ title: route?.params?.name ?? 'Politician' })}
+      />
     </NestedStack.Navigator>
   );
 }
@@ -55,6 +62,33 @@ function EtfStack() {
         name="EtfDetail"
         component={EtfDetailScreen}
         options={({ route }: any) => ({ title: route?.params?.ticker ?? 'ETF' })}
+      />
+      <NestedStack.Screen
+        name="PoliticianTrades"
+        component={PoliticianTradesScreen}
+        options={({ route }: any) => ({ title: route?.params?.name ?? 'Politician' })}
+      />
+    </NestedStack.Navigator>
+  );
+}
+
+function PoliticiansStack() {
+  return (
+    <NestedStack.Navigator screenOptions={nestedStackOptions}>
+      <NestedStack.Screen
+        name="PoliticiansHome"
+        component={PoliticiansScreen}
+        options={{ title: 'Politicians' }}
+      />
+      <NestedStack.Screen
+        name="PoliticianTrades"
+        component={PoliticianTradesScreen}
+        options={({ route }: any) => ({ title: route?.params?.name ?? 'Politician' })}
+      />
+      <NestedStack.Screen
+        name="PolStockTrades"
+        component={PolStockTradesScreen}
+        options={({ route }: any) => ({ title: route?.params?.ticker ?? 'Stock' })}
       />
     </NestedStack.Navigator>
   );
@@ -87,7 +121,11 @@ function MainTabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen name="News" component={NewsScreen} />
-      <Tab.Screen name="Politicians" component={PoliticiansScreen} />
+      <Tab.Screen
+        name="Politicians"
+        component={PoliticiansStack}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Insiders" component={InsidersScreen} />
       <Tab.Screen name="Fed" component={FedScreen} />
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
