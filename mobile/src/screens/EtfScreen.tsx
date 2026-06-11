@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -10,7 +11,7 @@ import { useClient } from '../context/ClientContext';
 import { EtfListItem } from '../api/types';
 import { shared, colors } from '../theme';
 
-export default function EtfScreen() {
+export default function EtfScreen({ navigation }: any) {
   const { client } = useClient();
   const [etfs, setEtfs] = useState<EtfListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,12 @@ export default function EtfScreen() {
   return (
     <ScrollView testID="etf-list" style={shared.screen}>
       {etfs.map((item) => (
-        <View key={item.ticker} style={shared.row} testID={`etf-row-${item.ticker}`}>
+        <TouchableOpacity
+          key={item.ticker}
+          style={shared.row}
+          testID={`etf-row-${item.ticker}`}
+          onPress={() => navigation?.navigate('EtfDetail', { ticker: item.ticker })}
+        >
           <Text style={styles.ticker} testID={`etf-ticker-${item.ticker}`}>
             {item.ticker}
           </Text>
@@ -55,7 +61,7 @@ export default function EtfScreen() {
           <Text style={styles.price} testID={`etf-price-${item.ticker}`}>
             {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );

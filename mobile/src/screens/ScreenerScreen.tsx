@@ -11,7 +11,7 @@ import { useClient } from '../context/ClientContext';
 import { StockListItem } from '../api/types';
 import { shared, colors } from '../theme';
 
-export default function ScreenerScreen() {
+export default function ScreenerScreen({ navigation }: any) {
   const { client, setAuthToken } = useClient();
   const [stocks, setStocks] = useState<StockListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,18 +77,26 @@ export default function ScreenerScreen() {
       <ScrollView testID="stock-list">
         {stocks.map((item) => (
           <View key={item.ticker} style={shared.row} testID={`stock-row-${item.ticker}`}>
-            <Text style={styles.ticker} testID={`ticker-${item.ticker}`}>
-              {item.ticker}
-            </Text>
-            <Text style={styles.name} testID={`name-${item.ticker}`}>
-              {item.name}
-            </Text>
-            <Text style={styles.score} testID={`score-${item.ticker}`}>
-              {item.score != null ? String(item.score) : '–'}
-            </Text>
-            <Text style={styles.price} testID={`price-${item.ticker}`}>
-              {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
-            </Text>
+            <TouchableOpacity
+              style={styles.rowMain}
+              onPress={() =>
+                navigation?.navigate('StockDetail', { ticker: item.ticker })
+              }
+              testID={`stock-open-${item.ticker}`}
+            >
+              <Text style={styles.ticker} testID={`ticker-${item.ticker}`}>
+                {item.ticker}
+              </Text>
+              <Text style={styles.name} testID={`name-${item.ticker}`}>
+                {item.name}
+              </Text>
+              <Text style={styles.score} testID={`score-${item.ticker}`}>
+                {item.score != null ? String(item.score) : '–'}
+              </Text>
+              <Text style={styles.price} testID={`price-${item.ticker}`}>
+                {item.price != null ? `$${item.price.toFixed(2)}` : '–'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleToggleFavorite(item.ticker)}
               testID={`fav-${item.ticker}`}
@@ -103,6 +111,7 @@ export default function ScreenerScreen() {
 }
 
 const styles = StyleSheet.create({
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   ticker: { fontWeight: 'bold', width: 60, color: colors.text },
   name: { flex: 1, color: colors.textSecondary, fontSize: 13 },
   score: { width: 36, textAlign: 'right', fontSize: 13, color: colors.textMuted },
