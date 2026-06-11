@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import PoliticiansScreen from '../src/screens/PoliticiansScreen';
 import { ClientContext } from '../src/context/ClientContext';
 import type { StockAppClient } from '../src/api/client';
@@ -69,20 +69,22 @@ it('shows loading state before fetch completes', () => {
   expect(getByTestId('loading-state')).toBeTruthy();
 });
 
-it('renders politician trade rows from mocked response', async () => {
+it('aggregates by politician, and by stock when toggled', async () => {
   mockGetPolTrades.mockResolvedValueOnce({
     total: 2,
     trades: [TRADE_A, TRADE_B],
     jurisdiction: null,
   });
   const { getByTestId } = renderScreen();
+  // default: By Politician — one row per member
   await waitFor(() => {
-    expect(getByTestId('pol-row-trade-001')).toBeTruthy();
+    expect(getByTestId('pol-agg-A000001')).toBeTruthy();
   });
-  expect(getByTestId('pol-row-trade-002')).toBeTruthy();
-  expect(getByTestId('pol-name-trade-001')).toBeTruthy();
-  expect(getByTestId('pol-ticker-trade-001')).toBeTruthy();
-  expect(getByTestId('pol-type-trade-001')).toBeTruthy();
+  expect(getByTestId('pol-agg-B000002')).toBeTruthy();
+  // toggle to By Stock — one row per ticker
+  fireEvent.press(getByTestId('toggle-stock'));
+  expect(getByTestId('stock-agg-NVDA')).toBeTruthy();
+  expect(getByTestId('stock-agg-TSLA')).toBeTruthy();
 });
 
 it('shows error state when fetch fails', async () => {

@@ -6,27 +6,22 @@ import {
   PolTickerTrade,
   InsiderTickerTrade,
 } from '../api/types';
-import { shared, colors } from '../theme';
+import { shared, colors, spacing } from '../theme';
 import { Section, ListSection, LineRow } from './DetailView';
+import PolTimeline, { TLTrade, money } from '../components/PolTimeline';
 
-function money(n: number | null): string {
-  if (n == null) return '–';
-  const abs = Math.abs(n);
-  if (abs >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
-  if (abs >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  if (abs >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n}`;
-}
-
-function polRows(trades: PolTickerTrade[]): LineRow[] {
+function polToTimeline(trades: PolTickerTrade[]): TLTrade[] {
   return trades.map((t) => ({
-    primary: t.politician_name,
-    secondary: [t.party, t.chamber].filter(Boolean).join(' · ') || undefined,
-    right: `${t.transaction_type}`,
-    sub:
-      t.amount_min != null
-        ? `${money(t.amount_min)}–${money(t.amount_max)} · ${t.transaction_date ?? ''}`
-        : t.transaction_date ?? undefined,
+    id: t.trade_id,
+    date: t.transaction_date,
+    politician: t.politician_name,
+    party: t.party,
+    chamber: t.chamber,
+    ticker: '',
+    type: t.transaction_type,
+    amountMin: t.amount_min,
+    amountMax: t.amount_max,
+    bioguideId: t.bioguide_id,
   }));
 }
 
@@ -45,7 +40,7 @@ function insiderRows(trades: InsiderTickerTrade[]): LineRow[] {
   }));
 }
 
-export default function StockDetailScreen({ route }: any) {
+export default function StockDetailScreen({ route, navigation }: any) {
   const ticker: string = route?.params?.ticker ?? '';
   const { client } = useClient();
   const [detail, setDetail] = useState<StockDetailResponse | null>(null);
@@ -96,10 +91,14 @@ export default function StockDetailScreen({ route }: any) {
           <Section title="Valuation" data={detail.valuation} />
         </>
       )}
-      <ListSection
-        title="Congress Trades"
-        rows={polRows(pol)}
+      <Text style={styles.sectionTitle}>Congress Trades</Text>
+      <PolTimeline
+        trades={polToTimeline(pol)}
+        filterByPolitician
         emptyText="No congressional trades on record."
+        onPressPolitician={(bioguideId, name) =>
+          navigation?.navigate('PoliticianTrades', { bioguideId, name })
+        }
       />
       <ListSection
         title="Insider Trades"
@@ -110,3 +109,15 @@ export default function StockDetailScreen({ route }: any) {
     </ScrollView>
   );
 }
+
+const styles = {
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: colors.textMuted,
+    textTransform: 'uppercase' as const,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    marginLeft: spacing.md + spacing.xs,
+  },
+};
