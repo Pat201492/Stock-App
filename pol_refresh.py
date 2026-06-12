@@ -4,6 +4,7 @@ Usage:
   python pol_refresh.py            # incremental (default: committees + house + insider_mirror)
   python pol_refresh.py --full     # full refresh from scratch
   python pol_refresh.py --house    # House Clerk official PTRs only
+  python pol_refresh.py --senate-efd # Senate efdsearch official PTRs only
   python pol_refresh.py --edgar    # insider trades only
   python pol_refresh.py --committees # committee data only
   python pol_refresh.py --congress # DEPRECATED legacy peez49 CSV (frozen 2026-02)
@@ -14,12 +15,13 @@ from datetime import datetime
 
 FULL     = "--full"      in sys.argv
 HOUSE    = "--house"     in sys.argv
+SENATE_EFD = "--senate-efd" in sys.argv
 SENATE   = "--senate"    in sys.argv   # legacy mirror (dead) — explicit only
 CONGRESS = "--congress"  in sys.argv   # legacy peez49 (frozen) — explicit only
 EDGAR    = "--edgar"     in sys.argv
 MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
-ALL      = not any([HOUSE, SENATE, CONGRESS, EDGAR, MIRROR, COMS])
+ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS])
 
 DIV = "=" * 58
 
@@ -55,6 +57,10 @@ def main():
     if ALL or HOUSE:
         from ingest_house import ingest as ingest_house
         results["house"] = run_step("house", ingest_house, full_refresh=FULL)
+
+    if ALL or SENATE_EFD:
+        from ingest_senate_efd import ingest as ingest_senate_efd
+        results["senate_efd"] = run_step("senate_efd", ingest_senate_efd, full_refresh=FULL)
 
     if CONGRESS:   # explicit only — legacy peez49 CSV (frozen since 2026-02)
         from ingest_congress import ingest as ingest_congress
