@@ -35,3 +35,6 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+
+# Local PTR PDF download cache (House eFD ingest)
+.cache/

@@ -1,4 +1,10 @@
 """
+ingest_congress.py — DEPRECATED. The upstream Peez49/Informed-Trading CSV froze
+in Feb 2026 (newest trade 2026-01-30). Superseded by ingest_house.py (official
+House Clerk PTRs). Kept for historical rows already in the DB and as an explicit
+`--congress` escape hatch; no longer runs by default. Will be removed once the
+official Senate eFD ingest lands.
+
 ingest_congress.py — Pull House + Senate trades from Peez49/Informed-Trading
 Source: https://github.com/Peez49/Informed-Trading
 File:   raw:/Trading_Data.csv (~21MB, ~109k trades, both chambers, real BioGuideIDs)

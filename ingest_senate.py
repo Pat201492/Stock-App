@@ -1,4 +1,10 @@
 """
+ingest_senate.py — DEPRECATED. The senate-stock-watcher mirror has been dead
+since 2020 (newest trade 2020-12-02). Senate coverage will move to an official
+efdsearch.senate.gov ingest. Retained only for `_normalize_name` /
+`_build_bioguide_lookup` (reused by ingest_house.py) and as an explicit
+`--senate` escape hatch; no longer runs by default.
+
 ingest_senate.py — Pull Senate Stock Watcher JSON into congressional_trades
 Source: https://github.com/timothycarambat/senate-stock-watcher-data
 """

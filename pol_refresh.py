@@ -1,22 +1,25 @@
 """
 pol_refresh.py — Daily orchestrator for political + insider trade ingestion
 Usage:
-  python pol_refresh.py            # incremental update (default)
+  python pol_refresh.py            # incremental (default: committees + house + insider_mirror)
   python pol_refresh.py --full     # full refresh from scratch
-  python pol_refresh.py --senate   # senate only
+  python pol_refresh.py --house    # House Clerk official PTRs only
   python pol_refresh.py --edgar    # insider trades only
   python pol_refresh.py --committees # committee data only
+  python pol_refresh.py --congress # DEPRECATED legacy peez49 CSV (frozen 2026-02)
+  python pol_refresh.py --senate   # DEPRECATED legacy senate mirror (dead 2020)
 """
 import sys, time
 from datetime import datetime
 
 FULL     = "--full"      in sys.argv
-SENATE   = "--senate"    in sys.argv
-CONGRESS = "--congress"  in sys.argv
+HOUSE    = "--house"     in sys.argv
+SENATE   = "--senate"    in sys.argv   # legacy mirror (dead) — explicit only
+CONGRESS = "--congress"  in sys.argv   # legacy peez49 (frozen) — explicit only
 EDGAR    = "--edgar"     in sys.argv
 MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
-ALL      = not any([SENATE, CONGRESS, EDGAR, MIRROR, COMS])
+ALL      = not any([HOUSE, SENATE, CONGRESS, EDGAR, MIRROR, COMS])
 
 DIV = "=" * 58
 
@@ -49,11 +52,15 @@ def main():
         from ingest_committees import ingest as ingest_committees
         results["committees"] = run_step("committees", ingest_committees)
 
-    if ALL or CONGRESS:
+    if ALL or HOUSE:
+        from ingest_house import ingest as ingest_house
+        results["house"] = run_step("house", ingest_house, full_refresh=FULL)
+
+    if CONGRESS:   # explicit only — legacy peez49 CSV (frozen since 2026-02)
         from ingest_congress import ingest as ingest_congress
         results["congress"] = run_step("congress", ingest_congress, full_refresh=FULL)
 
-    if SENATE:   # only when explicitly requested — legacy fallback source
+    if SENATE:   # explicit only — legacy senate-stock-watcher mirror (dead since 2020)
         from ingest_senate import ingest as ingest_senate
         results["senate"] = run_step("senate", ingest_senate, full_refresh=FULL)
 
