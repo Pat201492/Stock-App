@@ -1,0 +1,36 @@
+P        T           R
+Clerk of the House of Representatives • Legislative Resource Center • B81 Cannon Building • Washington, DC 20515
+F     I
+Name: Hon. Richard W. Allen
+Status: Member
+State/District:GA12
+T
+ID Owner Asset Transaction
+Type
+Date Notification
+Date
+Amount Cap.
+Gains >
+$200?
+SP Abbott Laboratories Common Stock
+(ABT) [ST]
+S 04/16/202605/04/2026$15,001 -
+$50,000
+F      S     : New
+S          O : R.W. Allen & Associates, Inc.
+JT Apple Inc. - Common Stock (AAPL) [ST]P 04/10/202605/04/2026$1,001 - $15,000
+F      S     : New
+Amazon.com, Inc. - Common Stock
+(AMZN) [ST]
+S (partial) 03/16/202603/16/2026$1,001 - $15,000
+F      S     : New
+Pennsylvania State Turnpike
+Commission Bond [GS]
+P 03/06/202603/09/2026$50,001 -
+$100,000
+F      S     : New
+US Treasury Note 3.75% DUE
+12/31/28 (91282CJR3)) [GS]
+S 04/16/202605/04/2026$100,001 -
+$250,000
+Filing ID #20034473
