@@ -227,6 +227,13 @@ export class StockAppClient {
     );
   }
 
+  getPolCommittees(): Promise<{ committees: Array<{
+    committee_id: string; name: string; chamber: string | null;
+    trade_count: number; sectors: string[];
+  }> }> {
+    return this.get('/api/pol/committees');
+  }
+
   getPolByTicker(ticker: string, days?: number): Promise<PolTickerResponse> {
     return this.get<PolTickerResponse>(
       `/api/pol/ticker/${encodeURIComponent(ticker)}`,

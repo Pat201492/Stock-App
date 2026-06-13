@@ -93,26 +93,57 @@ const RANGE_OPTIONS: { key: RangeKey; label: string; days?: number }[] = [
   { key: 'all', label: 'All' },
 ];
 
+interface Committee {
+  committee_id: string;
+  name: string;
+  chamber: string | null;
+  trade_count: number;
+  sectors: string[];
+}
+
 export default function PoliticiansScreen({ navigation }: any) {
   const { client } = useClient();
   const [trades, setTrades] = useState<PolTrade[]>([]);
+  const [committees, setCommittees] = useState<Committee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('politician');
   const [sortKey, setSortKey] = useState<SortKey>('count');
   const [range, setRange] = useState<RangeKey>('all');
+  const [committeeId, setCommitteeId] = useState<string | null>(null);
+  const [conflictsOnly, setConflictsOnly] = useState(false);
+
+  // Committees are stable across filters — fetched once, ranked by trade_count.
+  useEffect(() => {
+    client
+      .getPolCommittees()
+      .then((r) =>
+        setCommittees(
+          [...r.committees]
+            .sort((a, b) => b.trade_count - a.trade_count)
+            .slice(0, 12),
+        ),
+      )
+      .catch(() => undefined);
+  }, [client]);
 
   const load = useCallback(async () => {
     try {
       const days = RANGE_OPTIONS.find((r) => r.key === range)?.days;
-      const resp = await client.getPolTrades(days != null ? { days } : undefined);
+      const params: Record<string, unknown> = {};
+      if (days != null) params.days = days;
+      if (committeeId) params.committee = committeeId;
+      if (conflictsOnly) params.conflicts_only = true;
+      const resp = await client.getPolTrades(
+        Object.keys(params).length ? params : undefined,
+      );
       setTrades(resp.trades);
       setError(null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load politician trades');
     }
-  }, [client, range]);
+  }, [client, range, committeeId, conflictsOnly]);
 
   useEffect(() => {
     setLoading(true);
@@ -224,6 +255,69 @@ export default function PoliticiansScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {committees.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.committeeRow}
+          testID="pol-committees"
+        >
+          <TouchableOpacity
+            style={[styles.chip, committeeId == null && styles.chipActive]}
+            onPress={() => setCommitteeId(null)}
+            testID="committee-all"
+          >
+            <Text
+              style={[
+                styles.chipText,
+                committeeId == null && styles.chipTextActive,
+              ]}
+            >
+              All committees
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.chip, conflictsOnly && styles.chipActive]}
+            onPress={() => setConflictsOnly((v) => !v)}
+            testID="conflicts-only"
+          >
+            <Text
+              style={[
+                styles.chipText,
+                conflictsOnly && styles.chipTextActive,
+              ]}
+            >
+              {conflictsOnly ? '✓ conflicts only' : 'Conflicts only'}
+            </Text>
+          </TouchableOpacity>
+          {committees.map((c) => (
+            <TouchableOpacity
+              key={c.committee_id}
+              style={[
+                styles.chip,
+                committeeId === c.committee_id && styles.chipActive,
+              ]}
+              onPress={() =>
+                setCommitteeId(
+                  committeeId === c.committee_id ? null : c.committee_id,
+                )
+              }
+              testID={`committee-${c.committee_id}`}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  committeeId === c.committee_id && styles.chipTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {c.name.replace(/Committee on /i, '')} · {c.trade_count}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : null}
 
       <ScrollView
         testID="pol-list"
@@ -342,6 +436,12 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
   chipTextActive: { color: '#fff' },
+  committeeRow: {
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
+    gap: 6,
+    alignItems: 'center',
+  },
   tabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   tabTextActive: { color: '#fff' },
   left: { flex: 1, marginRight: spacing.sm },

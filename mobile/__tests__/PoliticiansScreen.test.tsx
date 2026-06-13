@@ -6,9 +6,11 @@ import type { StockAppClient } from '../src/api/client';
 import type { PolTrade } from '../src/api/types';
 
 const mockGetPolTrades = jest.fn();
+const mockGetPolCommittees = jest.fn().mockResolvedValue({ committees: [] });
 
 const mockClient = {
   getPolTrades: mockGetPolTrades,
+  getPolCommittees: mockGetPolCommittees,
 } as unknown as StockAppClient;
 
 function renderScreen() {

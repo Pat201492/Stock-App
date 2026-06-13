@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { shared, colors, spacing } from '../theme';
 
 function formatValue(v: unknown): string {
@@ -63,6 +63,8 @@ export interface LineRow {
   secondary?: string;
   right?: string;
   sub?: string;
+  onPress?: () => void;
+  testID?: string;
 }
 
 export function ListSection({
@@ -81,23 +83,29 @@ export function ListSection({
         {rows.length === 0 ? (
           <Text style={styles.emptyLine}>{emptyText}</Text>
         ) : (
-          rows.map((r, i) => (
-            <View
-              key={i}
-              style={[styles.lineRow, i === rows.length - 1 && styles.kvRowLast]}
-            >
-              <View style={styles.lineLeft}>
-                <Text style={styles.linePrimary}>{r.primary}</Text>
-                {r.secondary ? (
-                  <Text style={styles.lineSecondary}>{r.secondary}</Text>
-                ) : null}
-              </View>
-              <View style={styles.lineRight}>
-                {r.right ? <Text style={styles.lineRightTop}>{r.right}</Text> : null}
-                {r.sub ? <Text style={styles.lineSub}>{r.sub}</Text> : null}
-              </View>
-            </View>
-          ))
+          rows.map((r, i) => {
+            const RowWrap: any = r.onPress ? TouchableOpacity : View;
+            return (
+              <RowWrap
+                key={i}
+                onPress={r.onPress}
+                testID={r.testID}
+                style={[styles.lineRow, i === rows.length - 1 && styles.kvRowLast]}
+              >
+                <View style={styles.lineLeft}>
+                  <Text style={styles.linePrimary}>{r.primary}</Text>
+                  {r.secondary ? (
+                    <Text style={styles.lineSecondary}>{r.secondary}</Text>
+                  ) : null}
+                </View>
+                <View style={styles.lineRight}>
+                  {r.right ? <Text style={styles.lineRightTop}>{r.right}</Text> : null}
+                  {r.sub ? <Text style={styles.lineSub}>{r.sub}</Text> : null}
+                </View>
+                {r.onPress ? <Text style={styles.chev}>›</Text> : null}
+              </RowWrap>
+            );
+          })
         )}
       </View>
     </View>
@@ -179,5 +187,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  chev: {
+    fontSize: 18,
+    color: colors.textMuted,
+    marginLeft: spacing.sm,
+    alignSelf: 'center',
   },
 });

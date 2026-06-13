@@ -5,11 +5,11 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
-  StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { NewsItem } from '../api/types';
 import { shared, colors } from '../theme';
+import NewsRow from '../components/NewsRow';
 
 export default function NewsScreen() {
   const { client } = useClient();
@@ -69,27 +69,8 @@ export default function NewsScreen() {
       }
     >
       {news.map((item) => (
-        <View key={item.id} style={styles.row} testID={`news-row-${item.id}`}>
-          <Text style={styles.title} testID={`news-title-${item.id}`}>
-            {item.title}
-          </Text>
-          <Text style={styles.meta} testID={`news-publisher-${item.id}`}>
-            {item.publisher ?? ''}
-          </Text>
-        </View>
+        <NewsRow key={item.id} item={item} />
       ))}
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-  },
-  title: { fontSize: 14, color: colors.text, lineHeight: 20 },
-  meta: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
-});

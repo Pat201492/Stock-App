@@ -5,10 +5,12 @@ import {
   StockDetailResponse,
   PolTickerTrade,
   InsiderTickerTrade,
+  NewsItem,
 } from '../api/types';
 import { shared, colors, spacing } from '../theme';
 import { Section, ListSection, LineRow } from './DetailView';
 import PolTimeline, { TLTrade, money } from '../components/PolTimeline';
+import NewsRow from '../components/NewsRow';
 
 function polToTimeline(trades: PolTickerTrade[]): TLTrade[] {
   return trades.map((t) => ({
@@ -46,6 +48,7 @@ export default function StockDetailScreen({ route, navigation }: any) {
   const [detail, setDetail] = useState<StockDetailResponse | null>(null);
   const [pol, setPol] = useState<PolTickerTrade[]>([]);
   const [insider, setInsider] = useState<InsiderTickerTrade[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,11 +57,13 @@ export default function StockDetailScreen({ route, navigation }: any) {
       client.getStockDetail(ticker),
       client.getPolByTicker(ticker).catch(() => ({ ticker, trades: [] })),
       client.getInsiderTicker(ticker).catch(() => ({ ticker, trades: [] })),
+      client.getTickerNews(ticker, 8).catch(() => [] as NewsItem[]),
     ])
-      .then(([d, p, ins]) => {
+      .then(([d, p, ins, n]) => {
         setDetail(d);
         setPol(p.trades);
         setInsider(ins.trades);
+        setNews(n);
       })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : 'Failed to load stock');
@@ -91,6 +96,14 @@ export default function StockDetailScreen({ route, navigation }: any) {
           <Section title="Valuation" data={detail.valuation} />
         </>
       )}
+      {news.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>News</Text>
+          {news.map((n) => (
+            <NewsRow key={n.id} item={n} />
+          ))}
+        </>
+      ) : null}
       <Text style={styles.sectionTitle}>Congress Trades</Text>
       <PolTimeline
         trades={polToTimeline(pol)}

@@ -96,6 +96,9 @@ export default function EtfDetailScreen({ route, navigation }: any) {
     secondary: h.name ?? undefined,
     right: h.weight != null ? `${(h.weight * 100).toFixed(2)}%` : undefined,
     sub: h.sector ?? undefined,
+    onPress: () =>
+      navigation?.navigate('StockDetail', { ticker: h.ticker }),
+    testID: `holding-${h.ticker}`,
   }));
   const sectorRows: LineRow[] = sectorWeights.map((s) => ({
     primary: s.sector,

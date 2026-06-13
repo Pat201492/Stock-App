@@ -65,6 +65,11 @@ function EtfStack() {
         options={({ route }: any) => ({ title: route?.params?.ticker ?? 'ETF' })}
       />
       <NestedStack.Screen
+        name="StockDetail"
+        component={StockDetailScreen}
+        options={({ route }: any) => ({ title: route?.params?.ticker ?? 'Stock' })}
+      />
+      <NestedStack.Screen
         name="PoliticianTrades"
         component={PoliticianTradesScreen}
         options={({ route }: any) => ({ title: route?.params?.name ?? 'Politician' })}
