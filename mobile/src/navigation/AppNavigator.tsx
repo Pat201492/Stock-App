@@ -15,6 +15,7 @@ import PoliticianTradesScreen from '../screens/PoliticianTradesScreen';
 import PolStockTradesScreen from '../screens/PolStockTradesScreen';
 import InsidersScreen from '../screens/InsidersScreen';
 import FedScreen from '../screens/FedScreen';
+import FedMetricScreen from '../screens/FedMetricScreen';
 import WatchlistScreen from '../screens/WatchlistScreen';
 import { colors } from '../theme';
 
@@ -94,6 +95,23 @@ function PoliticiansStack() {
   );
 }
 
+function FedStack() {
+  return (
+    <NestedStack.Navigator screenOptions={nestedStackOptions}>
+      <NestedStack.Screen
+        name="FedHome"
+        component={FedScreen}
+        options={{ title: 'Fed' }}
+      />
+      <NestedStack.Screen
+        name="FedMetric"
+        component={FedMetricScreen}
+        options={({ route }: any) => ({ title: route?.params?.label ?? 'Metric' })}
+      />
+    </NestedStack.Navigator>
+  );
+}
+
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -127,7 +145,11 @@ function MainTabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen name="Insiders" component={InsidersScreen} />
-      <Tab.Screen name="Fed" component={FedScreen} />
+      <Tab.Screen
+        name="Fed"
+        component={FedStack}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
     </Tab.Navigator>
   );

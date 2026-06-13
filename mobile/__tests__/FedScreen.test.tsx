@@ -6,9 +6,13 @@ import type { StockAppClient } from '../src/api/client';
 import type { FedSummaryResponse } from '../src/api/types';
 
 const mockGetFedSummary = jest.fn();
+const mockGetFedCalendar = jest.fn();
+const mockGetFedHistory = jest.fn();
 
 const mockClient = {
   getFedSummary: mockGetFedSummary,
+  getFedCalendar: mockGetFedCalendar,
+  getFedHistory: mockGetFedHistory,
 } as unknown as StockAppClient;
 
 function renderScreen() {
@@ -47,6 +51,11 @@ const FED_RESPONSE: FedSummaryResponse = {
 
 beforeEach(() => {
   mockGetFedSummary.mockReset();
+  mockGetFedCalendar.mockReset();
+  mockGetFedHistory.mockReset();
+  // default best-effort secondaries to empty so screen logic still proceeds
+  mockGetFedCalendar.mockResolvedValue({ upcoming: [] });
+  mockGetFedHistory.mockResolvedValue({ configured: true, decisions: [] });
 });
 
 it('shows loading state before fetch completes', () => {

@@ -13,7 +13,12 @@ function formatValue(v: unknown): string {
     return Number.isInteger(v) ? String(v) : v.toFixed(2);
   }
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  return String(v);
+  if (typeof v === 'string') return v;
+  return '–';
+}
+
+function isPrimitive(v: unknown): boolean {
+  return v == null || ['string', 'number', 'boolean'].includes(typeof v);
 }
 
 function prettyLabel(key: string): string {
@@ -29,7 +34,11 @@ export function Section({
   title: string;
   data: Record<string, unknown>;
 }) {
-  const entries = Object.entries(data).filter(([k]) => k !== 'id');
+  // Drop the row id and any nested objects/arrays the backend may surface in JSON
+  // columns — rendering them produces "[object Object]" noise.
+  const entries = Object.entries(data).filter(
+    ([k, v]) => k !== 'id' && isPrimitive(v),
+  );
   if (entries.length === 0) return null;
   return (
     <View style={styles.section} testID={`section-${title}`}>

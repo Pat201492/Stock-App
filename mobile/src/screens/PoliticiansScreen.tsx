@@ -82,6 +82,16 @@ function aggStocks(trades: PolTrade[]): StockAgg[] {
 }
 
 type Mode = 'politician' | 'stock';
+type SortKey = 'count' | 'volume';
+type RangeKey = '7d' | '30d' | '90d' | '1y' | 'all';
+
+const RANGE_OPTIONS: { key: RangeKey; label: string; days?: number }[] = [
+  { key: '7d', label: '7d', days: 7 },
+  { key: '30d', label: '30d', days: 30 },
+  { key: '90d', label: '90d', days: 90 },
+  { key: '1y', label: '1y', days: 365 },
+  { key: 'all', label: 'All' },
+];
 
 export default function PoliticiansScreen({ navigation }: any) {
   const { client } = useClient();
@@ -90,18 +100,22 @@ export default function PoliticiansScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('politician');
+  const [sortKey, setSortKey] = useState<SortKey>('count');
+  const [range, setRange] = useState<RangeKey>('all');
 
   const load = useCallback(async () => {
     try {
-      const resp = await client.getPolTrades();
+      const days = RANGE_OPTIONS.find((r) => r.key === range)?.days;
+      const resp = await client.getPolTrades(days != null ? { days } : undefined);
       setTrades(resp.trades);
       setError(null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load politician trades');
     }
-  }, [client]);
+  }, [client, range]);
 
   useEffect(() => {
+    setLoading(true);
     load().finally(() => setLoading(false));
   }, [load]);
 
@@ -111,8 +125,18 @@ export default function PoliticiansScreen({ navigation }: any) {
     setRefreshing(false);
   }, [load]);
 
-  const politicians = useMemo(() => aggPoliticians(trades), [trades]);
-  const stocks = useMemo(() => aggStocks(trades), [trades]);
+  const politicians = useMemo(() => {
+    const list = aggPoliticians(trades);
+    return sortKey === 'volume'
+      ? [...list].sort((a, b) => b.volume - a.volume)
+      : list;
+  }, [trades, sortKey]);
+  const stocks = useMemo(() => {
+    const list = aggStocks(trades);
+    return sortKey === 'volume'
+      ? [...list].sort((a, b) => b.volume - a.volume)
+      : list;
+  }, [trades, sortKey]);
   const latestDate = useMemo(() => {
     let max = '';
     for (const t of trades) {
@@ -163,6 +187,40 @@ export default function PoliticiansScreen({ navigation }: any) {
         >
           <Text style={[styles.tabText, mode === 'stock' && styles.tabTextActive]}>
             By Stock
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.filterRow} testID="pol-range">
+        {RANGE_OPTIONS.map((r) => (
+          <TouchableOpacity
+            key={r.key}
+            style={[styles.chip, range === r.key && styles.chipActive]}
+            onPress={() => setRange(r.key)}
+            testID={`range-${r.key}`}
+          >
+            <Text style={[styles.chipText, range === r.key && styles.chipTextActive]}>
+              {r.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={[styles.chip, sortKey === 'count' && styles.chipActive]}
+          onPress={() => setSortKey('count')}
+          testID="sort-count"
+        >
+          <Text style={[styles.chipText, sortKey === 'count' && styles.chipTextActive]}>
+            # trades
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.chip, sortKey === 'volume' && styles.chipActive]}
+          onPress={() => setSortKey('volume')}
+          testID="sort-volume"
+        >
+          <Text style={[styles.chipText, sortKey === 'volume' && styles.chipTextActive]}>
+            $ vol
           </Text>
         </TouchableOpacity>
       </View>
@@ -261,6 +319,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: { backgroundColor: colors.primary },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.background,
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.surface,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  chipTextActive: { color: '#fff' },
   tabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   tabTextActive: { color: '#fff' },
   left: { flex: 1, marginRight: spacing.sm },
