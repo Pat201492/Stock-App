@@ -78,9 +78,47 @@ export default function EtfDetailScreen({ route, navigation }: any) {
     );
   }
 
+  // The /api/etf/{ticker} response wraps the ETF's primitive fields under
+  // `etf` and exposes nested `holdings` + `sector_weights` arrays.  Surface
+  // them as their own sections — feeding the raw response to <Section> would
+  // render nested objects/arrays as "[object Object]" rows.
+  const etfFields = (detail?.etf ?? {}) as Record<string, unknown>;
+  const holdings = (detail?.holdings ?? []) as Array<{
+    ticker: string; name?: string | null;
+    weight?: number | null; sector?: string | null;
+  }>;
+  const sectorWeights = (detail?.sector_weights ?? []) as Array<{
+    sector: string; weight: number;
+  }>;
+
+  const holdingRows: LineRow[] = holdings.slice(0, 15).map((h) => ({
+    primary: h.ticker,
+    secondary: h.name ?? undefined,
+    right: h.weight != null ? `${(h.weight * 100).toFixed(2)}%` : undefined,
+    sub: h.sector ?? undefined,
+  }));
+  const sectorRows: LineRow[] = sectorWeights.map((s) => ({
+    primary: s.sector,
+    right: `${(s.weight * 100).toFixed(1)}%`,
+  }));
+
   return (
     <ScrollView style={shared.screen} testID="etf-detail">
-      {detail && <Section title={ticker} data={detail} />}
+      {detail && <Section title={ticker} data={etfFields} />}
+      {sectorRows.length > 0 ? (
+        <ListSection
+          title="Sector Weights"
+          rows={sectorRows}
+          emptyText="No sector data."
+        />
+      ) : null}
+      {holdingRows.length > 0 ? (
+        <ListSection
+          title={`Top Holdings (${holdings.length})`}
+          rows={holdingRows}
+          emptyText="No holdings on record."
+        />
+      ) : null}
       <Text style={styles.sectionTitle}>Congress Trades</Text>
       <PolTimeline
         trades={polToTimeline(pol)}
