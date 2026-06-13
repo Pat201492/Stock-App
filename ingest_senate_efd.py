@@ -19,7 +19,7 @@ import httpx
 from lxml import html as LH
 
 from politicians_database import init_pol_db, SessionLocal, CongressionalTrade, Politician
-from ingest_house import _trade_id, _parse_date, _norm_name
+from ingest_house import _trade_id, _parse_date, _norm_name, _norm_last
 
 # Senate PTR amount labels -> (min, max) integers
 AMOUNT_RANGES = {
@@ -137,7 +137,7 @@ def ingest(full_refresh=False):
             key = _norm_name(p.first_name or "", p.last_name or "")
             if key:
                 name_map[key] = p.bioguide_id
-            ln = (p.last_name or "").strip().lower()
+            ln = _norm_last(p.last_name or "")
             if ln and getattr(p, "active", False):
                 last_count[ln] = last_count.get(ln, 0) + 1
                 last_map[ln] = p.bioguide_id
@@ -145,7 +145,7 @@ def ingest(full_refresh=False):
 
         def _match(first, last):
             return name_map.get(_norm_name(first, last)) \
-                or last_unique.get(last.strip().lower())
+                or last_unique.get(_norm_last(last))
 
         existing_ids = set()
         if not full_refresh:
@@ -160,6 +160,7 @@ def ingest(full_refresh=False):
 
         c = _session()
         inserted = skipped = paper = unmatched = no_txn = 0
+        unmatched_names = []
         for first, last, href, report_date in _iter_ptr_rows(c, start_date):
             if "/view/paper/" in href or "/view/ptr/" not in href:
                 paper += 1
@@ -167,6 +168,7 @@ def ingest(full_refresh=False):
             bioguide = _match(first, last)
             if not bioguide:
                 unmatched += 1
+                unmatched_names.append(f"{first} {last}")
                 continue
             try:
                 rep = c.get(BASE + href, headers={"Referer": HOME})
@@ -199,6 +201,12 @@ def ingest(full_refresh=False):
         db.commit()
         print(f"[senate_efd] Done — inserted={inserted} skipped={skipped} "
               f"paper={paper} unmatched={unmatched} no_txn={no_txn}")
+        if unmatched_names:
+            from collections import Counter
+            top = Counter(unmatched_names).most_common()
+            print(f"[senate_efd] unmatched filers ({len(top)} unique):")
+            for name, count in top:
+                print(f"[senate_efd]   {count}x  {name}")
     finally:
         db.close()
 

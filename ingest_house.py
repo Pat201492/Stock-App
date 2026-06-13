@@ -14,7 +14,7 @@ Transaction detail lives in per-filing PDFs. E-filed PTRs are text PDFs we parse
 with pypdf (portable) or `pdftotext -layout` when available. Scanned/handwritten
 PTRs yield no text and are skipped + logged (no OCR in scope).
 """
-import csv, hashlib, io, os, re, sys, time, urllib.request, zipfile
+import csv, hashlib, io, os, re, sys, time, unicodedata, urllib.request, zipfile
 from datetime import datetime, date
 
 from politicians_database import init_pol_db, SessionLocal, CongressionalTrade, Politician
@@ -61,15 +61,28 @@ def _trade_id(bioguide, ticker, txn_date, amount_min, txn_type):
     return hashlib.sha1(raw.encode()).hexdigest()
 
 
+def _strip_accents(s):
+    """'Sánchez' -> 'Sanchez'. Filers register as ASCII; DB seed may carry accents."""
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+
 def _norm_name(first, last):
     """'David A Perdue, Jr' -> 'david perdue'. Mirrors ingest_senate._normalize_name."""
-    full = f"{first} {last}".strip().lower()
+    full = _strip_accents(f"{first} {last}").strip().lower()
     full = re.sub(r"[,.]", " ", full)
     full = re.sub(r"\b(jr|sr|ii|iii|iv|md|phd)\b", "", full)
     tokens = [t for t in full.split() if len(t) > 1]
     if len(tokens) >= 2:
         return f"{tokens[0]} {tokens[-1]}"
     return " ".join(tokens)
+
+
+def _norm_last(s):
+    """Strip suffix + accents for last-name matching: 'Hagerty, IV' -> 'hagerty'."""
+    s = _strip_accents(s or "").strip().lower()
+    s = re.sub(r",.*$", "", s).strip()  # 'hagerty, iv' -> 'hagerty'
+    s = re.sub(r"\s+(jr|sr|ii|iii|iv|md|phd)\.?$", "", s).strip()
+    return s
 
 
 def _int(s):
@@ -202,25 +215,39 @@ def extract_text(path):
 
 
 def _build_house_lookup(db):
-    """(normalized_name -> bioguide) and ((name, statedst) -> bioguide) for House."""
+    """Return (by_name, by_name_dist, by_dist_last).
+
+    by_dist_last keys on (state+zero-padded-district, normalized last name) and is
+    restricted to active reps — covers nickname mismatches (Rob/Robert, Ro/Rohit,
+    Greg/W., Jim/James, ...) since the filer's last name + seat is unambiguous.
+    DB stores district as '8'; House index emits 'PA08' — pad to match.
+    """
     by_name = {}
     by_name_dist = {}
+    by_dist_last = {}
     for p in db.query(Politician).filter(Politician.chamber.in_(("rep", "house"))).all():
         key = _norm_name(p.first_name or "", p.last_name or "")
-        if not key:
-            continue
-        by_name[key] = p.bioguide_id
-        sd = f"{(p.state or '').strip()}{(p.district or '').strip()}"
-        if sd:
-            by_name_dist[(key, sd)] = p.bioguide_id
-    return by_name, by_name_dist
+        state = (p.state or "").strip()
+        dist = (p.district or "").strip()
+        if dist.isdigit():
+            dist = dist.zfill(2)
+        sd = f"{state}{dist}"
+        if key:
+            by_name[key] = p.bioguide_id
+            if sd:
+                by_name_dist[(key, sd)] = p.bioguide_id
+        if sd and getattr(p, "active", False):
+            last = _norm_last(p.last_name or "")
+            if last:
+                by_dist_last[(sd, last)] = p.bioguide_id
+    return by_name, by_name_dist, by_dist_last
 
 
 def ingest(full_refresh=False):
     init_pol_db()
     db = SessionLocal()
     try:
-        by_name, by_name_dist = _build_house_lookup(db)
+        by_name, by_name_dist, by_dist_last = _build_house_lookup(db)
 
         existing_ids = set()
         if not full_refresh:
@@ -231,6 +258,7 @@ def ingest(full_refresh=False):
             print(f"[house] {len(existing_ids)} existing house trades — incremental")
 
         inserted = skipped = scanned = unmatched = no_txn = 0
+        unmatched_names = []
         for year in YEARS:
             try:
                 ptrs = download_index(year)
@@ -246,9 +274,13 @@ def ingest(full_refresh=False):
                 if not doc:
                     continue
                 key = _norm_name(first, last)
-                bioguide = by_name_dist.get((key, statedst)) or by_name.get(key)
+                last_norm = _norm_last(last)
+                bioguide = (by_dist_last.get((statedst, last_norm))
+                            or by_name_dist.get((key, statedst))
+                            or by_name.get(key))
                 if not bioguide:
                     unmatched += 1
+                    unmatched_names.append(f"{first} {last} ({statedst})")
                     continue
                 try:
                     path = fetch_pdf(year, doc)
@@ -295,6 +327,12 @@ def ingest(full_refresh=False):
         db.commit()
         print(f"[house] Done — inserted={inserted} skipped={skipped} "
               f"scanned={scanned} unmatched_filer={unmatched} no_txn={no_txn}")
+        if unmatched_names:
+            from collections import Counter
+            top = Counter(unmatched_names).most_common()
+            print(f"[house] unmatched filers ({len(top)} unique):")
+            for name, count in top:
+                print(f"[house]   {count}x  {name}")
     finally:
         db.close()
 
