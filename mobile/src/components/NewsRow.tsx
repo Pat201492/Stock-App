@@ -21,19 +21,28 @@ function googleSearchUrl(title: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(title)}&tbm=nws`;
 }
 
-function sentimentTone(s: string | null) {
-  if (!s) return null;
-  const v = s.toLowerCase();
-  if (['positive', 'bullish', 'pos', 'up'].includes(v)) return 'pos';
-  if (['negative', 'bearish', 'neg', 'down'].includes(v)) return 'neg';
-  // numeric ("0.42")
-  const n = Number(v);
+function sentimentTone(s: unknown): 'pos' | 'neg' | 'neu' | null {
+  // Server stores polarity as a float (TextBlob, e.g. 0.42), but older rows or
+  // future LLM labels could surface as strings — handle both without throwing.
+  if (s == null || s === '') return null;
+  if (typeof s === 'number') {
+    if (!Number.isFinite(s)) return null;
+    if (s > 0.1) return 'pos';
+    if (s < -0.1) return 'neg';
+    return 'neu';
+  }
+  const str = String(s).toLowerCase().trim();
+  if (!str) return null;
+  if (['positive', 'bullish', 'pos', 'up'].includes(str)) return 'pos';
+  if (['negative', 'bearish', 'neg', 'down'].includes(str)) return 'neg';
+  if (['neutral', 'neu', 'mixed'].includes(str)) return 'neu';
+  const n = Number(str);
   if (Number.isFinite(n)) {
     if (n > 0.1) return 'pos';
     if (n < -0.1) return 'neg';
     return 'neu';
   }
-  return 'neu';
+  return null;
 }
 
 export default function NewsRow({ item, testID, fallbackGoogle = true }: Props) {

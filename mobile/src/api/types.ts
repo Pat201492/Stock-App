@@ -129,7 +129,7 @@ export interface NewsItem {
   url: string;
   publisher: string | null;
   published_at: string | null;
-  sentiment: string | null;
+  sentiment: number | string | null;
   summary: string | null;
 }
 
