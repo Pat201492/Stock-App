@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -14,17 +15,28 @@ export default function InsidersScreen() {
   const { client } = useClient();
   const [trades, setTrades] = useState<InsiderTrade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getInsiderTrades();
+      setTrades(resp.trades);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load insider trades');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getInsiderTrades()
-      .then((resp) => setTrades(resp.trades))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load insider trades');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   if (loading) {
     return (
@@ -43,7 +55,19 @@ export default function InsidersScreen() {
   }
 
   return (
-    <ScrollView testID="insider-list" style={shared.screen}>
+    <ScrollView
+      testID="insider-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          testID="insider-refresh"
+        />
+      }
+    >
       {trades.map((item) => (
         <View key={item.filing_id} style={shared.row} testID={`insider-row-${item.filing_id}`}>
           <Text style={styles.name} testID={`insider-name-${item.filing_id}`}>

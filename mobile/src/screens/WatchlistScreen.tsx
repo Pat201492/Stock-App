@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -14,19 +15,28 @@ export default function WatchlistScreen() {
   const { client } = useClient();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getFavorites();
+      setFavorites(resp.favorites);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load watchlist');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getFavorites()
-      .then((resp) => {
-        setFavorites(resp.favorites);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load watchlist');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   if (loading) {
     return (
@@ -45,7 +55,19 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <ScrollView testID="favorites-list" style={shared.screen}>
+    <ScrollView
+      testID="favorites-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          testID="favorites-refresh"
+        />
+      }
+    >
       {favorites.length === 0 ? (
         <View style={shared.empty} testID="empty-state">
           <Text style={shared.emptyText}>No favorites yet. Star stocks from the Screener.</Text>

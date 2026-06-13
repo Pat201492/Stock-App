@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -14,17 +15,28 @@ export default function NewsScreen() {
   const { client } = useClient();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const items = await client.getNews();
+      setNews(items);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load news');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getNews()
-      .then((items) => setNews(items))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load news');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   if (loading) {
     return (
@@ -43,7 +55,19 @@ export default function NewsScreen() {
   }
 
   return (
-    <ScrollView testID="news-list" style={shared.screen}>
+    <ScrollView
+      testID="news-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          testID="news-refresh"
+        />
+      }
+    >
       {news.map((item) => (
         <View key={item.id} style={styles.row} testID={`news-row-${item.id}`}>
           <Text style={styles.title} testID={`news-title-${item.id}`}>

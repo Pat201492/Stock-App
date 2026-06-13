@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -86,18 +87,29 @@ export default function PoliticiansScreen({ navigation }: any) {
   const { client } = useClient();
   const [trades, setTrades] = useState<PolTrade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('politician');
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getPolTrades();
+      setTrades(resp.trades);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load politician trades');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getPolTrades()
-      .then((resp) => setTrades(resp.trades))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load politician trades');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   const politicians = useMemo(() => aggPoliticians(trades), [trades]);
   const stocks = useMemo(() => aggStocks(trades), [trades]);
@@ -155,7 +167,18 @@ export default function PoliticiansScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView testID="pol-list">
+      <ScrollView
+        testID="pol-list"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            testID="pol-refresh"
+          />
+        }
+      >
         {mode === 'politician'
           ? politicians.map((p) => (
               <TouchableOpacity

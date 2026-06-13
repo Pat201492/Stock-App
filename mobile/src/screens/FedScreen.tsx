@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -14,17 +15,28 @@ export default function FedScreen() {
   const { client } = useClient();
   const [fed, setFed] = useState<FedSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getFedSummary();
+      setFed(resp);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load Fed data');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getFedSummary()
-      .then((resp) => setFed(resp))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load Fed data');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   if (loading) {
     return (
@@ -43,7 +55,19 @@ export default function FedScreen() {
   }
 
   return (
-    <ScrollView testID="fed-list" style={shared.screen}>
+    <ScrollView
+      testID="fed-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+          testID="fed-refresh"
+        />
+      }
+    >
       {fed?.series.map((item) => {
         const val =
           item.value != null ? `${item.value}${item.unit ?? ''}` : '–';
