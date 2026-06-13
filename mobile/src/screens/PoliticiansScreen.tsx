@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
+  TextInput,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
@@ -101,6 +104,71 @@ interface Committee {
   sectors: string[];
 }
 
+type FilterSheet = 'range' | 'committee' | 'sort' | null;
+
+const RANGE_LABEL: Record<RangeKey, string> = {
+  '7d':  'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  '1y':  'Last year',
+  'all': 'All time',
+};
+const SORT_LABEL: Record<SortKey, string> = {
+  count: 'Most trades',
+  volume: 'Highest $ volume',
+};
+
+function FilterPill({
+  icon, label, active, onPress, testID,
+}: {
+  icon: string;
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+  testID?: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[pillStyles.pill, active && pillStyles.pillActive]}
+      testID={testID}
+    >
+      <Text style={pillStyles.icon}>{icon}</Text>
+      <Text
+        style={[pillStyles.text, active && pillStyles.textActive]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <Text style={[pillStyles.caret, active && pillStyles.textActive]}>▾</Text>
+    </TouchableOpacity>
+  );
+}
+
+const pillStyles = StyleSheet.create({
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    marginRight: 6,
+    flexShrink: 1,
+    maxWidth: 180,
+  },
+  pillActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(0,120,212,0.08)',
+  },
+  icon: { fontSize: 13, marginRight: 4 },
+  text: { fontSize: 13, color: colors.text, fontWeight: '600', flexShrink: 1 },
+  textActive: { color: colors.primary },
+  caret: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
+});
+
 export default function PoliticiansScreen({ navigation }: any) {
   const { client } = useClient();
   const [trades, setTrades] = useState<PolTrade[]>([]);
@@ -113,16 +181,18 @@ export default function PoliticiansScreen({ navigation }: any) {
   const [range, setRange] = useState<RangeKey>('all');
   const [committeeId, setCommitteeId] = useState<string | null>(null);
   const [conflictsOnly, setConflictsOnly] = useState(false);
+  const [sheet, setSheet] = useState<FilterSheet>(null);
+  const [committeeQuery, setCommitteeQuery] = useState('');
 
-  // Committees are stable across filters — fetched once, ranked by trade_count.
+  // Committees are stable across filters — fetched once.  Keep the full list
+  // (sorted by trade_count) so the bottom-sheet picker can search across all,
+  // not just a top-12 slice.
   useEffect(() => {
     client
       .getPolCommittees()
       .then((r) =>
         setCommittees(
-          [...r.committees]
-            .sort((a, b) => b.trade_count - a.trade_count)
-            .slice(0, 12),
+          [...r.committees].sort((a, b) => b.trade_count - a.trade_count),
         ),
       )
       .catch(() => undefined);
@@ -222,102 +292,54 @@ export default function PoliticiansScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.filterRow} testID="pol-range">
-        {RANGE_OPTIONS.map((r) => (
-          <TouchableOpacity
-            key={r.key}
-            style={[styles.chip, range === r.key && styles.chipActive]}
-            onPress={() => setRange(r.key)}
-            testID={`range-${r.key}`}
-          >
-            <Text style={[styles.chipText, range === r.key && styles.chipTextActive]}>
-              {r.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <View style={{ flex: 1 }} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.summaryRow}
+        testID="pol-filters"
+      >
+        <FilterPill
+          icon="⏱"
+          label={RANGE_LABEL[range]}
+          onPress={() => setSheet('range')}
+          testID="filter-range"
+        />
+        <FilterPill
+          icon="🏛"
+          label={
+            committeeId
+              ? (committees.find((c) => c.committee_id === committeeId)?.name
+                  .replace(/Committee on /i, '') ?? 'Committee')
+              : 'All committees'
+          }
+          active={committeeId != null}
+          onPress={() => setSheet('committee')}
+          testID="filter-committee"
+        />
+        <FilterPill
+          icon="⇅"
+          label={SORT_LABEL[sortKey]}
+          onPress={() => setSheet('sort')}
+          testID="filter-sort"
+        />
         <TouchableOpacity
-          style={[styles.chip, sortKey === 'count' && styles.chipActive]}
-          onPress={() => setSortKey('count')}
-          testID="sort-count"
+          onPress={() => setConflictsOnly((v) => !v)}
+          style={[
+            styles.conflictBtn,
+            conflictsOnly && styles.conflictBtnActive,
+          ]}
+          testID="conflicts-only"
         >
-          <Text style={[styles.chipText, sortKey === 'count' && styles.chipTextActive]}>
-            # trades
+          <Text
+            style={[
+              styles.conflictText,
+              conflictsOnly && styles.conflictTextActive,
+            ]}
+          >
+            {conflictsOnly ? '⚖ Conflicts ✓' : '⚖ Conflicts'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.chip, sortKey === 'volume' && styles.chipActive]}
-          onPress={() => setSortKey('volume')}
-          testID="sort-volume"
-        >
-          <Text style={[styles.chipText, sortKey === 'volume' && styles.chipTextActive]}>
-            $ vol
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {committees.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.committeeRow}
-          testID="pol-committees"
-        >
-          <TouchableOpacity
-            style={[styles.chip, committeeId == null && styles.chipActive]}
-            onPress={() => setCommitteeId(null)}
-            testID="committee-all"
-          >
-            <Text
-              style={[
-                styles.chipText,
-                committeeId == null && styles.chipTextActive,
-              ]}
-            >
-              All committees
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chip, conflictsOnly && styles.chipActive]}
-            onPress={() => setConflictsOnly((v) => !v)}
-            testID="conflicts-only"
-          >
-            <Text
-              style={[
-                styles.chipText,
-                conflictsOnly && styles.chipTextActive,
-              ]}
-            >
-              {conflictsOnly ? '✓ conflicts only' : 'Conflicts only'}
-            </Text>
-          </TouchableOpacity>
-          {committees.map((c) => (
-            <TouchableOpacity
-              key={c.committee_id}
-              style={[
-                styles.chip,
-                committeeId === c.committee_id && styles.chipActive,
-              ]}
-              onPress={() =>
-                setCommitteeId(
-                  committeeId === c.committee_id ? null : c.committee_id,
-                )
-              }
-              testID={`committee-${c.committee_id}`}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  committeeId === c.committee_id && styles.chipTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                {c.name.replace(/Committee on /i, '')} · {c.trade_count}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      ) : null}
+      </ScrollView>
 
       <ScrollView
         testID="pol-list"
@@ -389,9 +411,146 @@ export default function PoliticiansScreen({ navigation }: any) {
             ))}
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      <Modal
+        visible={sheet !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSheet(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSheet(null)} />
+        <View style={styles.modalSheet} testID="filter-sheet">
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>
+            {sheet === 'range'
+              ? 'Time range'
+              : sheet === 'sort'
+              ? 'Sort by'
+              : 'Committee'}
+          </Text>
+
+          {sheet === 'range' ? (
+            <View testID="sheet-range-list">
+              {RANGE_OPTIONS.map((r) => (
+                <SheetOption
+                  key={r.key}
+                  label={RANGE_LABEL[r.key]}
+                  selected={range === r.key}
+                  onPress={() => {
+                    setRange(r.key);
+                    setSheet(null);
+                  }}
+                  testID={`sheet-range-${r.key}`}
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {sheet === 'sort' ? (
+            <View testID="sheet-sort-list">
+              {(['count', 'volume'] as SortKey[]).map((k) => (
+                <SheetOption
+                  key={k}
+                  label={SORT_LABEL[k]}
+                  selected={sortKey === k}
+                  onPress={() => {
+                    setSortKey(k);
+                    setSheet(null);
+                  }}
+                  testID={`sheet-sort-${k}`}
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {sheet === 'committee' ? (
+            <>
+              <TextInput
+                value={committeeQuery}
+                onChangeText={setCommitteeQuery}
+                placeholder="Search committees…"
+                placeholderTextColor={colors.textMuted}
+                style={styles.searchInput}
+                testID="sheet-committee-search"
+              />
+              <ScrollView style={{ maxHeight: 380 }}>
+                <SheetOption
+                  label="All committees"
+                  selected={committeeId == null}
+                  onPress={() => {
+                    setCommitteeId(null);
+                    setSheet(null);
+                  }}
+                  testID="sheet-committee-all"
+                />
+                {committees
+                  .filter((c) =>
+                    c.name
+                      .toLowerCase()
+                      .includes(committeeQuery.trim().toLowerCase()),
+                  )
+                  .map((c) => (
+                    <SheetOption
+                      key={c.committee_id}
+                      label={c.name.replace(/Committee on /i, '')}
+                      sub={`${c.trade_count} trades${c.chamber ? ` · ${c.chamber}` : ''}`}
+                      selected={committeeId === c.committee_id}
+                      onPress={() => {
+                        setCommitteeId(c.committee_id);
+                        setSheet(null);
+                      }}
+                      testID={`sheet-committee-${c.committee_id}`}
+                    />
+                  ))}
+              </ScrollView>
+            </>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
+
+function SheetOption({
+  label, sub, selected, onPress, testID,
+}: {
+  label: string;
+  sub?: string;
+  selected: boolean;
+  onPress: () => void;
+  testID?: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={sheetStyles.row}
+      testID={testID}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={[sheetStyles.label, selected && sheetStyles.labelSelected]}>
+          {label}
+        </Text>
+        {sub ? <Text style={sheetStyles.sub}>{sub}</Text> : null}
+      </View>
+      {selected ? <Text style={sheetStyles.check}>✓</Text> : null}
+    </TouchableOpacity>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  label: { fontSize: 15, color: colors.text },
+  labelSelected: { color: colors.primary, fontWeight: '700' },
+  sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  check: { fontSize: 18, color: colors.primary, marginLeft: spacing.sm },
+});
 
 const styles = StyleSheet.create({
   dataDateBar: {
@@ -413,34 +572,67 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: { backgroundColor: colors.primary },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+  summaryRow: {
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.background,
-    gap: 6,
+    alignItems: 'center',
+    flexDirection: 'row',
   },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+  conflictBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.divider,
+  },
+  conflictBtnActive: {
+    backgroundColor: colors.error,
+    borderColor: colors.error,
+  },
+  conflictText: { fontSize: 13, color: colors.text, fontWeight: '600' },
+  conflictTextActive: { color: '#fff' },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalSheet: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
     backgroundColor: colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    maxHeight: '80%',
   },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  modalHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.divider,
+    marginBottom: spacing.sm,
   },
-  chipText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  committeeRow: {
-    paddingHorizontal: spacing.sm,
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    gap: 6,
-    alignItems: 'center',
+  },
+  searchInput: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 8,
+    color: colors.text,
+    fontSize: 14,
   },
   tabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   tabTextActive: { color: '#fff' },
