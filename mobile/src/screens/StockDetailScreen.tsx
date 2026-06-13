@@ -53,8 +53,15 @@ export default function StockDetailScreen({ route, navigation }: any) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Each fetch is independent — a missing stock row (e.g. ETF holding outside
+    // our universe) shouldn't blank out the Congress/Insider/News sections,
+    // which can still have content keyed off the same ticker.
     Promise.all([
-      client.getStockDetail(ticker),
+      client.getStockDetail(ticker).catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : '';
+        if (msg.startsWith('HTTP 404')) return null;
+        throw e;
+      }),
       client.getPolByTicker(ticker).catch(() => ({ ticker, trades: [] })),
       client.getInsiderTicker(ticker).catch(() => ({ ticker, trades: [] })),
       client.getTickerNews(ticker, 8).catch(() => [] as NewsItem[]),
@@ -89,12 +96,18 @@ export default function StockDetailScreen({ route, navigation }: any) {
 
   return (
     <ScrollView style={shared.screen} testID="stock-detail">
-      {detail && (
+      {detail ? (
         <>
           <Section title="Overview" data={detail.stock} />
           <Section title="Fundamentals" data={detail.fundamentals} />
           <Section title="Valuation" data={detail.valuation} />
         </>
+      ) : (
+        <View style={{ padding: spacing.md }}>
+          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+            {ticker} is not in the screener universe — showing related data only.
+          </Text>
+        </View>
       )}
       {news.length > 0 ? (
         <>

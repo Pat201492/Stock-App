@@ -86,18 +86,23 @@ export default function EtfDetailScreen({ route, navigation }: any) {
   const holdings = (detail?.holdings ?? []) as Array<{
     ticker: string; name?: string | null;
     weight?: number | null; sector?: string | null;
+    in_universe?: boolean;
   }>;
   const sectorWeights = (detail?.sector_weights ?? []) as Array<{
     sector: string; weight: number;
   }>;
 
+  // Only stocks in our screener universe have a StockDetail page —
+  // /api/stocks/{ticker} returns 404 for others. Skip the tap (and chevron)
+  // for non-universe holdings so we don't navigate into a broken screen.
   const holdingRows: LineRow[] = holdings.slice(0, 15).map((h) => ({
     primary: h.ticker,
     secondary: h.name ?? undefined,
     right: h.weight != null ? `${(h.weight * 100).toFixed(2)}%` : undefined,
     sub: h.sector ?? undefined,
-    onPress: () =>
-      navigation?.navigate('StockDetail', { ticker: h.ticker }),
+    onPress: h.in_universe
+      ? () => navigation?.navigate('StockDetail', { ticker: h.ticker })
+      : undefined,
     testID: `holding-${h.ticker}`,
   }));
   const sectorRows: LineRow[] = sectorWeights.map((s) => ({
