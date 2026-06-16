@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# NOTE (2026-06 repo reorg): the backend now lives under web-dashboard/. This
+# clone-based provisioner is LEGACY/unused for the current private repo (the VPS
+# has no GitHub creds and cannot clone). The CANONICAL code deploy ships only the
+# backend subtree so the server layout is unchanged:
+#     git archive HEAD:web-dashboard | ssh <vps> 'tar -xzf - -C /opt/stockapp'
+#     ssh <vps> 'sudo systemctl restart stockapp'
+# That keeps server.py at /opt/stockapp/ (matching stockapp.service
+# WorkingDirectory=/opt/stockapp). If you ever revive this clone-based flow,
+# point venv/requirements/service/Caddyfile at $APP_DIR/web-dashboard and set the
+# service WorkingDirectory accordingly.
+#
 # setup_vps.sh - one-time provisioning for a fresh Ubuntu/Debian VPS (e.g. Hetzner).
 # Run as root:  curl -fsSL https://raw.githubusercontent.com/Pat201492/Stock-App/master/deploy/setup_vps.sh | DOMAIN=stocks.example.com bash
 # or:           sudo DOMAIN=stocks.example.com bash deploy/setup_vps.sh

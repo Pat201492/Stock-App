@@ -29,9 +29,10 @@ else
   echo "[update] Updating code in $DIR ..."
   git -C "$DIR" pull --ff-only
 fi
-cd "$DIR"
+# backend lives under web-dashboard/ after the 2026-06 repo reorg
+cd "$DIR/web-dashboard"
 
-PY="$DIR/.venv/bin/python"
+PY="$DIR/web-dashboard/.venv/bin/python"
 if [ ! -x "$PY" ]; then
   echo "[update] Creating venv + installing dependencies ..."
   python3 -m venv .venv

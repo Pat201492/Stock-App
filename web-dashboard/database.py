@@ -6,7 +6,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 import os as _os
-_DB_PATH    = _os.environ.get("DB_PATH", "stocks.db")
+_DB_PATH    = _os.environ.get(
+    "DB_PATH",
+    _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "stocks.db"),
+)
 DATABASE_URL = f"sqlite:///{_DB_PATH}"
 engine = create_engine(
     DATABASE_URL,

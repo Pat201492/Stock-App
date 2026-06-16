@@ -31,9 +31,10 @@ if (-not (Test-Path (Join-Path $Dir ".git"))) {
   Write-Host "[update] Updating code in $Dir ..."
   git -C $Dir pull --ff-only
 }
-Set-Location $Dir
+# backend lives under web-dashboard/ after the 2026-06 repo reorg
+Set-Location (Join-Path $Dir "web-dashboard")
 
-$py = Join-Path $Dir ".venv\Scripts\python.exe"
+$py = Join-Path $Dir "web-dashboard\.venv\Scripts\python.exe"
 if (-not (Test-Path $py)) {
   Write-Host "[update] Creating venv + installing dependencies ..."
   python -m venv .venv

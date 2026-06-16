@@ -9,13 +9,13 @@ per affected ticker and UPDATEs the two columns in place — no full re-fetch.
 
 Run: PYTHONUTF8=1 .venv/Scripts/python backfill_eps.py
 """
-import sqlite3, time
+import os, sqlite3, time
 from concurrent.futures import ThreadPoolExecutor
 
 import yfinance as yf
 from fundamentals import _eps_surprise, _next_earnings_from_df
 
-DB = "stocks.db"
+DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stocks.db")
 WORKERS = 3          # low — yfinance throttles bursts and silently returns None
 RETRIES = 2
 
