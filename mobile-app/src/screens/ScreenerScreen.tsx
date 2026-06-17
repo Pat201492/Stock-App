@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { StockListItem } from '../api/types';
 import { shared, colors } from '../theme';
+import { useRefresh } from '../lib/useRefresh';
 
 export default function ScreenerScreen({ navigation }: any) {
   const { client, setAuthToken } = useClient();
@@ -18,17 +20,21 @@ export default function ScreenerScreen({ navigation }: any) {
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getStocks();
+      setStocks(resp.stocks);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load stocks');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getStocks()
-      .then((resp) => {
-        setStocks(resp.stocks);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load stocks');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const { refreshing, onRefresh } = useRefresh(load);
 
   async function handleLogout() {
     try {
@@ -74,7 +80,12 @@ export default function ScreenerScreen({ navigation }: any) {
       >
         <Text style={shared.logoutText}>Log Out</Text>
       </TouchableOpacity>
-      <ScrollView testID="stock-list">
+      <ScrollView
+        testID="stock-list"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
         {stocks.map((item) => (
           <View key={item.ticker} style={shared.row} testID={`stock-row-${item.ticker}`}>
             <TouchableOpacity

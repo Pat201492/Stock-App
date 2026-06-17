@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { InsiderTrade } from '../api/types';
 import { shared, colors, spacing } from '../theme';
 import { insiderTypeLabel, insiderTypeColor, fmtVal, fmtShares } from '../lib/insider';
+import { useRefresh } from '../lib/useRefresh';
 
 export default function InsidersScreen() {
   const { client } = useClient();
@@ -17,15 +19,21 @@ export default function InsidersScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getInsiderTrades();
+      setTrades(resp.trades);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load insider trades');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getInsiderTrades()
-      .then((resp) => setTrades(resp.trades))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load insider trades');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const { refreshing, onRefresh } = useRefresh(load);
 
   if (loading) {
     return (
@@ -44,7 +52,13 @@ export default function InsidersScreen() {
   }
 
   return (
-    <ScrollView testID="insider-list" style={shared.screen}>
+    <ScrollView
+      testID="insider-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+    >
       {trades.map((item) => (
         <View key={item.filing_id} style={styles.row} testID={`insider-row-${item.filing_id}`}>
           <View style={styles.top}>
