@@ -160,7 +160,12 @@ def _normalize_fcf(stock):
       4. Falls back to net income × 0.80 if FCF is missing / negative
     """
     fcf_3yr  = sf(stock.get("fcf_3yr_avg_raw"))  # raw $, 3yr avg
-    fcf_raw  = sf(stock.get("fcf_raw"))           # raw $, single year
+    # Accept either the cache key ("fcf_raw") or the DB column ("fcf"). When the
+    # model loads from the DB the dict carries column names, so reading only
+    # "fcf_raw" silently dropped single-year FCF for every stock.
+    fcf_raw  = sf(stock.get("fcf_raw"))
+    if fcf_raw is None:
+        fcf_raw = sf(stock.get("fcf"))
     revenue  = sf(stock.get("rev_now"))           # $B
     net_inc  = sf(stock.get("net_income"))        # $B
     shares   = sf(stock.get("shares")) or 1
@@ -180,7 +185,9 @@ def _normalize_fcf(stock):
     # distorted by one-time tax benefits, asset sales, or interest income.
     # We apply a 65% conversion factor: ~21% tax + ~14% capex/working-capital.
     if fcf is None or fcf <= 0:
-        op_inc = sf(stock.get("op_income"))  # $B
+        op_inc = sf(stock.get("op_income"))  # $B (cache key)
+        if op_inc is None:
+            op_inc = sf(stock.get("operating_income"))  # DB column
         op_raw = op_inc * 1e9 if op_inc is not None else None
         if op_raw and op_raw > 0:
             fcf = op_raw * 0.65
@@ -358,13 +365,17 @@ def calc_dcf(stock):
     mos_raw       = intrinsic_raw * (1 - DCF_MOS)
 
     # ── Plausibility check ────────────────────────────────────────────
-    # Discard results that are implausibly extreme — likely bad input data.
-    # Upper bound 8× (not 4×): high-growth companies like NVDA legitimately
-    # have intrinsic > 4× price once FCF and 20% growth are discounted.
-    # Lower bound 0.10× catches structural errors (e.g. negative equity runs).
+    # Upper bound 8×: high-growth names (NVDA) legitimately exceed 4× once FCF
+    # and 20% growth are discounted; above 8× is almost always a growth-
+    # extrapolation glitch.
+    # Lower bound 0.02× (was 0.10×): structural errors (negative-equity runs) are
+    # already caught by the equity_value<=0 guard + the 80% net-debt cap above, so
+    # a strict 0.10× floor only DISCARDED legitimately-overvalued stocks (trading
+    # 10–50× their DCF) — a valid bearish signal, not bad data. 0.02× still drops
+    # the truly implausible (>50× price) cases.
     if price and price > 0:
         ratio_check = intrinsic_raw / price
-        if ratio_check > 8.0 or ratio_check < 0.10:
+        if ratio_check > 8.0 or ratio_check < 0.02:
             return _null
 
     intrinsic = fmt(intrinsic_raw)
@@ -584,7 +595,9 @@ def calc_epv(stock):
     EPV = NOPAT / WACC.  Assumes zero growth — a conservative floor.
     If price < EPV, the stock earns its cost of capital with no growth priced in.
     """
-    op_income = sf(stock.get("op_income"))   # $B
+    op_income = sf(stock.get("op_income"))   # $B (cache key)
+    if op_income is None:
+        op_income = sf(stock.get("operating_income"))  # DB column
     shares    = sf(stock.get("shares")) or 1
     price     = sf(stock.get("price"))
 
