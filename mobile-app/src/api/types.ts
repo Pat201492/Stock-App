@@ -58,6 +58,38 @@ export interface EtfsResponse {
   etfs: EtfListItem[];
 }
 
+export interface HoldingPosition {
+  ticker: string;
+  shares: number;
+  cost_basis: number | null;
+  last_price: number | null;
+  market_value: number | null;
+  cost_total: number | null;
+  unrealized_pl: number | null;
+  unrealized_pct: number | null;
+  score: number | null;
+}
+
+export interface HoldingsResponse {
+  positions: HoldingPosition[];
+  totals: { market_value: number; cost_basis: number; unrealized_pl: number };
+}
+
+export interface EtfHolding {
+  ticker: string;
+  name: string;
+  weight: number | null;
+  score: number | null;
+  sector: string | null;
+  in_universe: boolean;
+}
+
+export interface EtfDetailResponse {
+  etf: Record<string, unknown>;
+  holdings: EtfHolding[];
+  sector_weights: { sector: string; weight: number }[];
+}
+
 export interface EtfsParams {
   search?: string;
   category?: string;
@@ -122,6 +154,17 @@ export interface FedSeriesResponse {
 
 // ----- News -----
 
+// Minimal shape the NewsList renders — satisfied by both stored News and the
+// Fed/Google news feed (which lacks id/ticker).
+export interface NewsLike {
+  title: string;
+  url: string;
+  publisher?: string | null;
+  published_at?: string | null;
+  sentiment?: number | null;
+  source_trust?: number | null;
+}
+
 export interface NewsItem {
   id: number;
   ticker: string | null;
@@ -129,7 +172,8 @@ export interface NewsItem {
   url: string;
   publisher: string | null;
   published_at: string | null;
-  sentiment: string | null;
+  sentiment: number | null;
+  source_trust: number | null;   // 0..1 predictive track record; null = unrated
   summary: string | null;
 }
 

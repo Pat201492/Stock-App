@@ -3,7 +3,9 @@ import { saveToken, clearToken } from '../auth/session';
 import {
   EtfsParams,
   EtfsResponse,
+  EtfDetailResponse,
   FavoritesResponse,
+  HoldingsResponse,
   FedCalendarResponse,
   FedHistoryResponse,
   FedSeriesResponse,
@@ -12,6 +14,7 @@ import {
   InsiderTradesParams,
   InsiderTradesResponse,
   NewsItem,
+  NewsLike,
   PolPoliticianResponse,
   PolTradesParams,
   PolTradesResponse,
@@ -156,6 +159,10 @@ export class StockAppClient {
     return this.postQuery<ToggleFavoriteResponse>('/api/account/favorite', { ticker, kind });
   }
 
+  getHoldings(): Promise<HoldingsResponse> {
+    return this.get<HoldingsResponse>('/api/account/holdings');
+  }
+
   // ----- Screener -----
 
   getStocks(params?: StocksParams): Promise<StocksResponse> {
@@ -174,8 +181,8 @@ export class StockAppClient {
     return this.get<EtfsResponse>('/api/etfs', params);
   }
 
-  getEtfDetail(ticker: string): Promise<unknown> {
-    return this.get(`/api/etf/${encodeURIComponent(ticker)}`);
+  getEtfDetail(ticker: string): Promise<EtfDetailResponse> {
+    return this.get<EtfDetailResponse>(`/api/etf/${encodeURIComponent(ticker)}`);
   }
 
   // ----- Fed -----
@@ -190,6 +197,10 @@ export class StockAppClient {
 
   getFedHistory(): Promise<FedHistoryResponse> {
     return this.get<FedHistoryResponse>('/api/fed/history');
+  }
+
+  getFedNews(): Promise<NewsLike[]> {
+    return this.get<NewsLike[]>('/api/fed/news');
   }
 
   getFedSeries(seriesId: string, limit?: number): Promise<FedSeriesResponse> {

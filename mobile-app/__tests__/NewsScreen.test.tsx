@@ -28,7 +28,8 @@ const NEWS_A: NewsItem = {
   url: 'https://example.com/news/1',
   publisher: 'Reuters',
   published_at: '2024-01-15T10:00:00Z',
-  sentiment: 'positive',
+  sentiment: 0.6,
+  source_trust: 0.8,
   summary: 'Apple Inc. reported record quarterly earnings.',
 };
 
@@ -39,7 +40,8 @@ const NEWS_B: NewsItem = {
   url: 'https://example.com/news/2',
   publisher: 'Bloomberg',
   published_at: '2024-01-15T09:00:00Z',
-  sentiment: 'neutral',
+  sentiment: 0,
+  source_trust: null,
   summary: null,
 };
 
@@ -55,13 +57,16 @@ it('shows loading state before fetch completes', () => {
 
 it('renders news rows from mocked response', async () => {
   mockGetNews.mockResolvedValueOnce([NEWS_A, NEWS_B]);
-  const { getByTestId } = renderScreen();
+  const { getByTestId, getByText } = renderScreen();
   await waitFor(() => {
-    expect(getByTestId('news-row-1')).toBeTruthy();
+    expect(getByTestId('news-0')).toBeTruthy();
   });
-  expect(getByTestId('news-row-2')).toBeTruthy();
-  expect(getByTestId('news-title-1')).toBeTruthy();
-  expect(getByTestId('news-publisher-1')).toBeTruthy();
+  expect(getByTestId('news-1')).toBeTruthy();
+  expect(getByText('Apple Reports Record Earnings')).toBeTruthy();
+  // sentiment + source-trust indicators render
+  expect(getByText('Bullish')).toBeTruthy();
+  expect(getByText('Source 80%')).toBeTruthy();
+  expect(getByText('Source: unrated')).toBeTruthy();
 });
 
 it('shows error state when fetch fails', async () => {

@@ -9,6 +9,9 @@ const mockGetFedSummary = jest.fn();
 
 const mockClient = {
   getFedSummary: mockGetFedSummary,
+  getFedCalendar: jest.fn().mockResolvedValue({ upcoming: [] }),
+  getFedHistory: jest.fn().mockResolvedValue({ configured: true, decisions: [] }),
+  getFedNews: jest.fn().mockResolvedValue([]),
 } as unknown as StockAppClient;
 
 function renderScreen() {

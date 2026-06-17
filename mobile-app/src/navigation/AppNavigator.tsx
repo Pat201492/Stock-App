@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useClient } from '../context/ClientContext';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import ScreenerScreen from '../screens/ScreenerScreen';
@@ -16,6 +15,7 @@ import PolStockTradesScreen from '../screens/PolStockTradesScreen';
 import InsidersScreen from '../screens/InsidersScreen';
 import FedScreen from '../screens/FedScreen';
 import WatchlistScreen from '../screens/WatchlistScreen';
+import PortfolioScreen from '../screens/PortfolioScreen';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
@@ -129,12 +129,14 @@ function MainTabs() {
       <Tab.Screen name="Insiders" component={InsidersScreen} />
       <Tab.Screen name="Fed" component={FedScreen} />
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
+      <Tab.Screen name="Portfolio" component={PortfolioScreen} />
     </Tab.Navigator>
   );
 }
 
 export default function AppNavigator() {
-  const { authToken } = useClient();
+  // The app is browsable without an account. Login/Signup are pushed on demand
+  // (from the auth-gated Watchlist/Portfolio tabs).
   return (
     <Stack.Navigator
       screenOptions={{
@@ -143,26 +145,17 @@ export default function AppNavigator() {
         headerTitleStyle: { fontWeight: '600' },
       }}
     >
-      {authToken == null ? (
-        <>
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Signup"
-            component={SignupScreen}
-            options={{ title: 'Create Account' }}
-          />
-        </>
-      ) : (
-        <Stack.Screen
-          name="Main"
-          component={MainTabs}
-          options={{ headerShown: false }}
-        />
-      )}
+      <Stack.Screen
+        name="Main"
+        component={MainTabs}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />
+      <Stack.Screen
+        name="Signup"
+        component={SignupScreen}
+        options={{ title: 'Create Account' }}
+      />
     </Stack.Navigator>
   );
 }
