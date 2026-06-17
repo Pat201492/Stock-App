@@ -196,7 +196,7 @@ function renderBatch() {
              style="color:var(--text);font-size:13px;line-height:1.4;font-weight:600">${escapeHtml(short)}</a>
           ${story ? `<div class="muted" style="font-size:12px;line-height:1.4;margin-top:3px">${escapeHtml(story)}</div>` : ""}
         </td>
-        <td class="muted" style="font-size:12px">${a.publisher || "—"}</td>
+        <td style="font-size:12px"><div class="muted">${a.publisher || "—"}</div>${trustHtml(a.source_trust)}</td>
         <td class="muted" style="font-size:12px">${date}</td>
       </tr>
     `;

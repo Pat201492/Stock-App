@@ -121,6 +121,30 @@
         <tbody id="trades"><tr><td colspan="8"><div class="muted">No trades yet.</div></td></tr></tbody>
       </table></div>
     </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Imported Holdings</div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">
+        Upload a holdings CSV exported from your broker (Fidelity, Schwab, Robinhood, …).
+        Columns are auto-detected — needs a <b>ticker/symbol</b> column and a
+        <b>shares/quantity</b> column; cost basis is optional. Uploading replaces your prior import.
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <input type="file" id="hold-file" accept=".csv,text/csv" class="fld" />
+        <button class="btn btn-primary btn-sm" onclick="uploadHoldings()">Upload CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="clearHoldings()">Clear</button>
+        <span id="hold-msg" style="font-size:12px"></span>
+      </div>
+      <div id="hold-totals" class="muted" style="font-size:13px;margin:8px 0;display:none"></div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Ticker</th><th style="text-align:right">Shares</th><th style="text-align:right">Cost/Sh</th>
+          <th style="text-align:right">Last</th><th style="text-align:right">Mkt Value</th>
+          <th style="text-align:right">Unrealized P/L</th><th style="text-align:right">Score</th>
+        </tr></thead>
+        <tbody id="holdings"><tr><td colspan="7"><div class="muted">No holdings imported yet.</div></td></tr></tbody>
+      </table></div>
+    </div>
   </div>
 </div>
 
@@ -173,7 +197,7 @@ async function boot() {
       show("who", true); show("app", true); show("auth-card", false);
       if (!document.getElementById("tr-date").value)
         document.getElementById("tr-date").value = new Date().toISOString().slice(0,10);
-      loadPortfolio(); loadFavorites(); loadTrades();
+      loadPortfolio(); loadFavorites(); loadTrades(); loadHoldings();
       return;
     }
     clearAuth();
@@ -270,6 +294,57 @@ async function loadTrades() {
       <td class="muted" style="font-size:12px">${t.note||''}</td>
       <td style="text-align:right"><span style="cursor:pointer;color:var(--muted)" title="Delete" onclick="delTrade(${t.id})">✕</span></td>
     </tr>`).join("") : `<tr><td colspan="8"><div class="muted">No trades yet.</div></td></tr>`;
+}
+
+async function loadHoldings() {
+  const d = await fetch(`/api/account/holdings?token=${encodeURIComponent(getToken())}`).then(r=>r.json()).catch(()=>({positions:[]}));
+  const tb = document.getElementById("holdings");
+  const tot = document.getElementById("hold-totals");
+  const ps = (d && d.positions) || [];
+  if (ps.length && d.totals) {
+    const pct = d.totals.cost_basis ? (d.totals.unrealized_pl / d.totals.cost_basis * 100) : null;
+    tot.style.display = "block";
+    tot.innerHTML = `Market value <b style="color:var(--text)">${money(d.totals.market_value)}</b> · `
+      + `Cost <b style="color:var(--text)">${money(d.totals.cost_basis)}</b> · `
+      + `Unrealized <b style="color:${plColor(d.totals.unrealized_pl)}">${money(d.totals.unrealized_pl)}${pct!=null?` (${pct>=0?"+":""}${pct.toFixed(2)}%)`:""}</b> · ${ps.length} holdings`;
+  } else {
+    tot.style.display = "none";
+  }
+  tb.innerHTML = ps.length ? ps.map(p=>`
+    <tr>
+      <td><a href="/stock/${p.ticker}" class="ticker-cell">${p.ticker}</a></td>
+      <td style="text-align:right">${p.shares}</td>
+      <td style="text-align:right">${p.cost_basis!=null?'$'+p.cost_basis.toFixed(2):'—'}</td>
+      <td style="text-align:right">${p.last_price!=null?'$'+p.last_price.toFixed(2):'—'}</td>
+      <td style="text-align:right;font-weight:600">${p.market_value!=null?money(p.market_value):'—'}</td>
+      <td style="text-align:right;color:${plColor(p.unrealized_pl)};font-weight:600">${p.unrealized_pl!=null?money(p.unrealized_pl):'—'}${p.unrealized_pct!=null?`<br><span style="font-size:11px">${p.unrealized_pct>=0?"+":""}${p.unrealized_pct}%</span>`:''}</td>
+      <td style="text-align:right">${p.score!=null?p.score:'—'}</td>
+    </tr>`).join("") : `<tr><td colspan="7"><div class="muted">No holdings imported yet.</div></td></tr>`;
+}
+
+async function uploadHoldings() {
+  const msg = document.getElementById("hold-msg");
+  const f = document.getElementById("hold-file").files[0];
+  if (!f) { msg.style.color="var(--muted)"; msg.textContent="Choose a CSV file first."; return; }
+  msg.style.color="var(--muted)"; msg.textContent="Uploading…";
+  const csv = await f.text();
+  const r = await fetch(`/api/account/holdings/upload?token=${encodeURIComponent(getToken())}`,
+    {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({csv})})
+    .then(r=>r.json()).catch(()=>null);
+  if (r && r.ok) {
+    msg.style.color="#1b8a3a"; msg.textContent=`Imported ${r.count} holdings.`;
+    document.getElementById("hold-file").value="";
+    loadHoldings();
+  } else {
+    msg.style.color="var(--danger,#c00)"; msg.textContent=(r && r.error) || "Upload failed.";
+  }
+  setTimeout(()=>{msg.textContent="";}, 4000);
+}
+
+async function clearHoldings() {
+  if (!confirm("Remove all imported holdings?")) return;
+  await fetch(`/api/account/holdings?token=${encodeURIComponent(getToken())}`,{method:"DELETE"}).catch(()=>{});
+  loadHoldings();
 }
 
 async function submitTrade() {

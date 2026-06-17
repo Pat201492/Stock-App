@@ -24,10 +24,11 @@ from politicians_database import (
 )
 from accounts_database import (
     get_acct_db, init_accounts_db, Favorite, PaperTrade,
-    User, Session as AuthSession, ResetToken, DeviceToken,
+    User, Session as AuthSession, ResetToken, DeviceToken, Holding,
     SessionLocal as AcctSessionLocal,
 )
 import auth as _auth
+import news_trust as _news_trust
 
 app = FastAPI(title="Stock Tracker")
 init_db()
@@ -745,9 +746,147 @@ def acct_portfolio(token: str = "", authorization: str = Header(None), db: Sessi
     }
 
 
+# ── Imported holdings (CSV upload) ─────────────────────────────────────────────
+
+def _num(s):
+    """Parse a money/quantity cell -> float. Handles $, commas, (parens)=negative."""
+    if s is None:
+        return None
+    s = str(s).strip().replace("$", "").replace(",", "").replace("%", "")
+    if not s or s in ("-", "--", "N/A", "n/a"):
+        return None
+    neg = s.startswith("(") and s.endswith(")")
+    s = s.strip("()")
+    try:
+        v = float(s)
+        return -v if neg else v
+    except ValueError:
+        return None
+
+
+def _parse_holdings_csv(text):
+    """Flexible CSV -> [{ticker, shares, cost_basis}]. Auto-detects columns by
+    header keywords so common broker exports (Fidelity/Schwab/Robinhood) work."""
+    import csv as _csv, io as _io
+    try:
+        rows = list(_csv.DictReader(_io.StringIO(text)))
+    except Exception:
+        return []
+    if not rows:
+        return []
+    headers = {(h or "").lower().strip(): h for h in rows[0].keys() if h}
+
+    def find(*needles):
+        for n in needles:
+            for hl, h in headers.items():
+                if n in hl:
+                    return h
+        return None
+
+    tcol = find("ticker", "symbol", "sym")
+    qcol = find("quantity", "shares", "qty", "units")
+    avgcol = find("average cost", "avg cost", "cost per share", "cost/share",
+                  "unit cost", "price paid", "purchase price")
+    totcol = find("cost basis total", "total cost", "cost basis")
+    out, seen = [], set()
+    for r in rows:
+        tk = (r.get(tcol) or "").strip().upper() if tcol else ""
+        tk = _re.sub(r"[^A-Z.\-]", "", tk)
+        if not tk or len(tk) > 6 or tk in seen:
+            continue
+        sh = _num(r.get(qcol)) if qcol else None
+        if not sh or sh <= 0:
+            continue
+        cost = _num(r.get(avgcol)) if avgcol else None
+        if cost is None and totcol:
+            tot = _num(r.get(totcol))
+            if tot is not None and sh:
+                cost = round(tot / sh, 4)
+        seen.add(tk)
+        out.append({"ticker": tk, "shares": sh, "cost_basis": cost})
+    return out
+
+
+@app.post("/api/account/holdings/upload")
+def acct_holdings_upload(payload: dict = Body(...), token: str = "",
+                         authorization: str = Header(None),
+                         db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email:
+        return _UNAUTH
+    text = payload.get("csv") or ""
+    parsed = _parse_holdings_csv(text)
+    if not parsed:
+        return JSONResponse(status_code=400, content={
+            "error": "No holdings found. CSV needs a ticker/symbol column and a "
+                     "shares/quantity column."})
+    # an upload replaces the user's prior holdings snapshot
+    db.query(Holding).filter(Holding.username == email).delete()
+    for h in parsed:
+        db.add(Holding(username=email, ticker=h["ticker"],
+                       shares=h["shares"], cost_basis=h["cost_basis"]))
+    db.commit()
+    return {"ok": True, "count": len(parsed),
+            "tickers": [h["ticker"] for h in parsed]}
+
+
+@app.get("/api/account/holdings")
+def acct_holdings(token: str = "", authorization: str = Header(None),
+                  db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email:
+        return _UNAUTH
+    rows = db.query(Holding).filter(Holding.username == email).all()
+    sdb = SessionLocal()
+    try:
+        positions, tmv, tcost, tupl = [], 0.0, 0.0, 0.0
+        for h in rows:
+            last = _last_price(h.ticker)
+            sc = sdb.query(Valuation.score_composite).filter(
+                Valuation.ticker == h.ticker).first()
+            score = sc[0] if sc else None
+            mv = (last or 0) * (h.shares or 0)
+            cost_tot = (h.cost_basis or 0) * (h.shares or 0) if h.cost_basis else None
+            upl = (mv - cost_tot) if cost_tot is not None and last is not None else None
+            positions.append({
+                "ticker": h.ticker, "shares": round(h.shares or 0, 4),
+                "cost_basis": h.cost_basis, "last_price": last,
+                "market_value": round(mv, 2) if last is not None else None,
+                "cost_total": round(cost_tot, 2) if cost_tot is not None else None,
+                "unrealized_pl": round(upl, 2) if upl is not None else None,
+                "unrealized_pct": round((upl / cost_tot) * 100, 2)
+                                  if (upl is not None and cost_tot) else None,
+                "score": round(score, 1) if score is not None else None,
+            })
+            if last is not None:
+                tmv += mv
+            if cost_tot is not None:
+                tcost += cost_tot
+            if upl is not None:
+                tupl += upl
+    finally:
+        sdb.close()
+    positions.sort(key=lambda x: -(x["market_value"] or 0))
+    return {"positions": positions, "totals": {
+        "market_value": round(tmv, 2), "cost_basis": round(tcost, 2),
+        "unrealized_pl": round(tupl, 2)}}
+
+
+@app.delete("/api/account/holdings")
+def acct_holdings_clear(token: str = "", authorization: str = Header(None),
+                        db: Session = Depends(get_acct_db)):
+    email = _email_from_token(token, authorization)
+    if not email:
+        return _UNAUTH
+    db.query(Holding).filter(Holding.username == email).delete()
+    db.commit()
+    return {"ok": True}
+
+
 # ── News ──────────────────────────────────────────────────────────────────────
 
 def _news_dict(r):
+    import news_trust as _nt
     return {
         "id":           r.id,
         "ticker":       r.ticker,
@@ -756,6 +895,7 @@ def _news_dict(r):
         "publisher":    r.publisher,
         "published_at": r.published_at.isoformat() if r.published_at else None,
         "sentiment":    r.sentiment,
+        "source_trust": _nt.trust_for(r.publisher),
         "summary":      r.summary,
     }
 
@@ -865,6 +1005,7 @@ def _fetch_google_news_rss(ticker: str, limit: int = 10):
                 "publisher":    publisher,
                 "published_at": pub_iso,
                 "sentiment":    sentiment_score(title),
+                "source_trust": _news_trust.trust_for(publisher),
                 "source":       "google",
             })
         if len(out) >= limit:
@@ -1006,6 +1147,7 @@ def live_news(ticker: str, limit: int = 10):
                 "publisher":    publisher,
                 "published_at": pub_iso,
                 "sentiment":    sentiment_score(title),
+                "source_trust": _news_trust.trust_for(publisher),
                 "source":       "yahoo",
             })
 
@@ -1975,6 +2117,10 @@ def politician_detail_page(bioguide_id: str):
 @app.get("/insiders")
 def insiders_page():
     return FileResponse(os.path.join(STATIC_DIR, "insiders.html"))
+
+@app.get("/news")
+def news_page():
+    return FileResponse(os.path.join(STATIC_DIR, "news.html"))
 
 
 if __name__ == "__main__":
