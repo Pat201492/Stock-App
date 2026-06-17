@@ -180,7 +180,10 @@ function renderHeader({ stock, fundamentals: f, valuation: v }) {
 
 // ── Valuations ────────────────────────────────────────────────────────────────
 function renderValuations(v) {
-  if (!v || !v.dcf_fair_value) return;
+  // Show the section if ANY model has a fair value — previously this bailed on
+  // a missing DCF alone, hiding comps + EPV/Graham too. Each card renders "—"
+  // for whichever individual models are missing.
+  if (!v || (!v.dcf_fair_value && !v.comps_fair_value && !v.m3_fair_value)) return;
   document.getElementById("val-grid").style.display = "grid";
 
   const models = [

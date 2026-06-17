@@ -80,6 +80,18 @@ class DeviceToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class Holding(Base):
+    """User-uploaded brokerage holdings (from a CSV import). A user's full
+    portfolio = all rows for their username; an upload replaces the prior set."""
+    __tablename__ = "holdings"
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    username    = Column(String, index=True)   # email
+    ticker      = Column(String)
+    shares      = Column(Float)
+    cost_basis  = Column(Float)   # per-share cost; nullable
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+
+
 def init_accounts_db():
     Base.metadata.create_all(engine)
 

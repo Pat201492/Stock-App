@@ -4,6 +4,17 @@
 function _nsLabel(s) { return s > 0.05 ? "Positive" : s < -0.05 ? "Negative" : "Neutral"; }
 function _nsColor(s) { return s > 0.05 ? "#22c55e" : s < -0.05 ? "#ef4444" : "#94a3b8"; }
 
+// Source trustworthiness (predictive track record), red(0) -> green(1).
+function _trustColor(t) { return `hsl(${Math.round(Math.max(0, Math.min(1, t)) * 120)}, 65%, 42%)`; }
+function trustHtml(t) {
+  if (t == null) return `<div class="muted" style="font-size:10px;margin-top:2px">source: unrated</div>`;
+  const c = _trustColor(t), pct = Math.round(t * 100);
+  return `<div title="Source predictive track record (sentiment vs forward price move)" style="display:flex;align-items:center;gap:5px;margin-top:3px">
+      <div style="width:42px;height:5px;border-radius:3px;background:var(--border);overflow:hidden">
+        <div style="width:${pct}%;height:5px;background:${c}"></div></div>
+      <span style="font-size:10px;font-weight:700;color:${c}">${pct}%</span></div>`;
+}
+
 function newsSummaryHTML(articles) {
   if (!articles || !articles.length) return "";
   let pos = 0, neg = 0, neu = 0;
@@ -34,6 +45,7 @@ function newsSummaryHTML(articles) {
           <span style="color:${_nsColor(a.sentiment)};font-weight:600">${_nsLabel(a.sentiment)}</span>
           <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--text);margin-left:6px">${(a.title || "").slice(0, 100)}</a>
           ${a.publisher ? `<span class="muted" style="font-size:11px"> · ${a.publisher}</span>` : ""}
+          ${trustHtml(a.source_trust)}
         </div>`).join("")}` : "";
 
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
