@@ -9,8 +9,9 @@ import {
 import { useClient } from '../context/ClientContext';
 import { FavoriteItem } from '../api/types';
 import { shared, colors } from '../theme';
+import AuthGate from '../components/AuthGate';
 
-export default function WatchlistScreen() {
+function WatchlistContent() {
   const { client } = useClient();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,14 @@ export default function WatchlistScreen() {
         ))
       )}
     </ScrollView>
+  );
+}
+
+export default function WatchlistScreen({ navigation }: any) {
+  return (
+    <AuthGate navigation={navigation} feature="watchlist">
+      <WatchlistContent />
+    </AuthGate>
   );
 }
 

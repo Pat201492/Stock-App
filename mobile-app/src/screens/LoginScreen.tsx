@@ -25,6 +25,7 @@ export default function LoginScreen() {
     try {
       const result = await client.login(email, password);
       setAuthToken(result.token);
+      if (navigation.canGoBack()) navigation.goBack();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
     } finally {

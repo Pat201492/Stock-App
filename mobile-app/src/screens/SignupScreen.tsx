@@ -25,6 +25,9 @@ export default function SignupScreen() {
     try {
       const result = await client.signup(email, password);
       setAuthToken(result.token);
+      // pop Signup then Login (if both on the stack) back to the gated tab
+      if (navigation.canGoBack()) navigation.goBack();
+      if (navigation.canGoBack()) navigation.goBack();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Signup failed');
     } finally {

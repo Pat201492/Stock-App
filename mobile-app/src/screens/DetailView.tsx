@@ -26,14 +26,14 @@ export function Section({
   title,
   data,
 }: {
-  title: string;
+  title?: string;
   data: Record<string, unknown>;
 }) {
   const entries = Object.entries(data).filter(([k]) => k !== 'id');
   if (entries.length === 0) return null;
   return (
-    <View style={styles.section} testID={`section-${title}`}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.section} testID={`section-${title ?? 'data'}`}>
+      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
       <View style={shared.card}>
         {entries.map(([k, v], i) => (
           <View
@@ -61,13 +61,13 @@ export function ListSection({
   rows,
   emptyText,
 }: {
-  title: string;
+  title?: string;
   rows: LineRow[];
   emptyText: string;
 }) {
   return (
-    <View style={styles.section} testID={`section-${title}`}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.section} testID={`section-${title ?? 'list'}`}>
+      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
       <View style={shared.card}>
         {rows.length === 0 ? (
           <Text style={styles.emptyLine}>{emptyText}</Text>
