@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { EtfListItem } from '../api/types';
 import { shared, colors } from '../theme';
+import { useRefresh } from '../lib/useRefresh';
 
 export default function EtfScreen({ navigation }: any) {
   const { client } = useClient();
@@ -17,15 +19,21 @@ export default function EtfScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getEtfs();
+      setEtfs(resp.etfs);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load ETFs');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getEtfs()
-      .then((resp) => setEtfs(resp.etfs))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load ETFs');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const { refreshing, onRefresh } = useRefresh(load);
 
   if (loading) {
     return (
@@ -44,7 +52,13 @@ export default function EtfScreen({ navigation }: any) {
   }
 
   return (
-    <ScrollView testID="etf-list" style={shared.screen}>
+    <ScrollView
+      testID="etf-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+    >
       {etfs.map((item) => (
         <TouchableOpacity
           key={item.ticker}

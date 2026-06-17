@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useClient } from '../context/ClientContext';
 import { FavoriteItem } from '../api/types';
 import { shared, colors } from '../theme';
 import AuthGate from '../components/AuthGate';
+import { useRefresh } from '../lib/useRefresh';
 
 function WatchlistContent() {
   const { client } = useClient();
@@ -17,17 +19,21 @@ function WatchlistContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await client.getFavorites();
+      setFavorites(resp.favorites);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load watchlist');
+    }
+  }, [client]);
+
   useEffect(() => {
-    client
-      .getFavorites()
-      .then((resp) => {
-        setFavorites(resp.favorites);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Failed to load watchlist');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const { refreshing, onRefresh } = useRefresh(load);
 
   if (loading) {
     return (
@@ -46,7 +52,13 @@ function WatchlistContent() {
   }
 
   return (
-    <ScrollView testID="favorites-list" style={shared.screen}>
+    <ScrollView
+      testID="favorites-list"
+      style={shared.screen}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+    >
       {favorites.length === 0 ? (
         <View style={shared.empty} testID="empty-state">
           <Text style={shared.emptyText}>No favorites yet. Star stocks from the Screener.</Text>

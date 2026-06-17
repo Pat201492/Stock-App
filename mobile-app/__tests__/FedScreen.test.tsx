@@ -69,7 +69,7 @@ it('renders Fed series rows from mocked response', async () => {
   expect(getByTestId('fed-context-FEDFUNDS')).toBeTruthy();
   // the actual metric value must render, not just the label
   expect(getByTestId('fed-value-FEDFUNDS').props.children).toBe('3.62%');
-  expect(getByTestId('fed-change-T10Y2Y').props.children).toBe('+0.32%');
+  expect(getByTestId('fed-change-T10Y2Y').props.children.join('')).toBe('▲ 0.32% since prior');
 });
 
 it('shows error state when fetch fails', async () => {
