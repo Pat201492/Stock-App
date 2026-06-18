@@ -43,6 +43,30 @@ READ_ONLY = os.environ.get("READ_ONLY") == "1"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Curated political-relationship overlay (exec-branch / business ties). Cached,
+# reloaded on file change, tolerant of a missing/broken file (-> empty overlay).
+_REL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "political_relationships.json")
+_rel_cache = {"mtime": None, "data": None}
+
+def _load_relationships():
+    import json
+    try:
+        mtime = os.path.getmtime(_REL_PATH)
+    except OSError:
+        return {"external_nodes": [], "edges": []}
+    if _rel_cache["mtime"] != mtime or _rel_cache["data"] is None:
+        try:
+            with open(_REL_PATH, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            _rel_cache["data"] = {
+                "external_nodes": raw.get("external_nodes", []),
+                "edges":          raw.get("edges", []),
+            }
+            _rel_cache["mtime"] = mtime
+        except (OSError, ValueError):
+            return _rel_cache["data"] or {"external_nodes": [], "edges": []}
+    return _rel_cache["data"]
+
 _pipeline_status = {
     "running": False, "last_run": None, "last_result": None,
     "current_script": None, "script_index": 0, "script_total": 4,
@@ -2010,6 +2034,194 @@ def pol_leaderboard(
     return JSONResponse(status_code=400, content={"error": f"Unknown metric: {metric}"})
 
 
+@app.get("/api/pol/relationships")
+def pol_relationships(
+    party: str = "republican",
+    limit: int = 30,
+    min_shared_stocks: int = 3,
+    min_shared_committees: int = 2,
+    db: Session = Depends(get_pol_db),
+):
+    """Radial relationship web for one party.
+
+    Main ring  = top `limit` active members of `party` by trade volume, plus any
+                 member of that party named in a curated edge.
+    Outer rings = figures (other-party members, executive branch, businesses)
+                 reachable from the main ring through the curated overlay.
+    Edges       = curated overlay (business deals, appointments, exec-branch ties)
+                 merged with DB-derived shared-stock / shared-committee overlap
+                 among the bounded node set.
+    """
+    from collections import defaultdict
+    party_norm = "Democrat" if party.lower().startswith("d") else "Republican"
+    hub_id = "HUB_DEM" if party_norm == "Democrat" else "HUB_REP"
+
+    overlay  = _load_relationships()
+    ext_by_id = {n["id"]: n for n in overlay["external_nodes"]}
+
+    # 1) Main set: top active members of this party by trade volume …
+    vol_rows = db.execute(text("""
+        SELECT p.bioguide_id
+        FROM politicians p
+        JOIN congressional_trades t ON t.bioguide_id = p.bioguide_id
+        WHERE p.party = :party AND p.active = 1
+        GROUP BY p.bioguide_id
+        ORDER BY SUM((t.amount_min + t.amount_max) / 2) DESC
+        LIMIT :lim
+    """), {"party": party_norm, "lim": limit}).fetchall()
+    main_ids = {r[0] for r in vol_rows}
+
+    # … plus any member of this party explicitly named in a curated edge (so a
+    #    cabinet pick's former seat shows even if the member is now inactive).
+    curated_member_ids = {
+        e for edge in overlay["edges"] for e in (edge["source"], edge["target"])
+        if e not in ext_by_id
+    }
+    if curated_member_ids:
+        main_ids |= {
+            p.bioguide_id for p in db.query(Politician).filter(
+                Politician.bioguide_id.in_(curated_member_ids),
+                Politician.party == party_norm,
+            ).all()
+        }
+
+    if not main_ids:
+        return {"party": party_norm, "hub": hub_id, "nodes": [], "edges": [], "counts": {}}
+
+    # 2) Curated-adjacency closure from the main set — pulls in the connected
+    #    cluster (e.g. member -> cabinet pick -> President). Bounded to 3 hops.
+    adj = defaultdict(list)
+    for edge in overlay["edges"]:
+        adj[edge["source"]].append(edge["target"])
+        adj[edge["target"]].append(edge["source"])
+    depth = {bio: 1 for bio in main_ids}     # main ring = depth 1
+    frontier = set(main_ids)
+    for _ in range(3):
+        nxt = set()
+        for node in frontier:
+            for nb in adj.get(node, []):
+                if nb not in depth:
+                    depth[nb] = depth[node] + 1
+                    nxt.add(nb)
+        frontier = nxt
+        if not frontier:
+            break
+    included = set(depth)
+
+    edges = []
+
+    # 3) Curated edges fully inside the included set.
+    for edge in overlay["edges"]:
+        s, t = edge["source"], edge["target"]
+        if s in included and t in included:
+            edges.append({
+                "from": s, "to": t,
+                "kind":  edge.get("kind", "other"),
+                "label": edge.get("label", ""),
+                "weight": edge.get("weight", 1),
+                "illustrative": bool(edge.get("illustrative", False)),
+                "source_url": edge.get("source_url"),
+            })
+
+    # 4) Derived edges over the bounded congress set (>=1 endpoint in main ring).
+    congress_ids = [n for n in included if n not in ext_by_id]
+    if congress_ids:
+        tickers_by_pol = defaultdict(set)
+        for bio, tk in (db.query(CongressionalTrade.bioguide_id, CongressionalTrade.ticker)
+                          .filter(CongressionalTrade.bioguide_id.in_(congress_ids),
+                                  CongressionalTrade.ticker.isnot(None),
+                                  CongressionalTrade.ticker != "")
+                          .distinct().all()):
+            tickers_by_pol[bio].add(tk)
+        comms_by_pol = defaultdict(set)
+        for bio, cm in (db.query(CommitteeMembership.bioguide_id, CommitteeMembership.committee_id)
+                          .filter(CommitteeMembership.bioguide_id.in_(congress_ids))
+                          .distinct().all()):
+            comms_by_pol[bio].add(cm)
+
+        ids_sorted = sorted(congress_ids)
+        for i in range(len(ids_sorted)):
+            for j in range(i + 1, len(ids_sorted)):
+                a, b = ids_sorted[i], ids_sorted[j]
+                if a not in main_ids and b not in main_ids:
+                    continue
+                shared_tk = tickers_by_pol[a] & tickers_by_pol[b]
+                if len(shared_tk) >= min_shared_stocks:
+                    top = sorted(shared_tk)[:5]
+                    edges.append({
+                        "from": a, "to": b, "kind": "shared_stock",
+                        "label": f"{len(shared_tk)} shared stocks: {', '.join(top)}"
+                                 + ("…" if len(shared_tk) > 5 else ""),
+                        "weight": len(shared_tk), "illustrative": False, "source_url": None,
+                    })
+                shared_cm = comms_by_pol[a] & comms_by_pol[b]
+                if len(shared_cm) >= min_shared_committees:
+                    edges.append({
+                        "from": a, "to": b, "kind": "shared_committee",
+                        "label": f"{len(shared_cm)} shared committees",
+                        "weight": len(shared_cm), "illustrative": False, "source_url": None,
+                    })
+
+    # 5) Assemble nodes (hub + every congress / external node in `included`).
+    deg = defaultdict(int)
+    for e in edges:
+        deg[e["from"]] += 1
+        deg[e["to"]] += 1
+
+    nodes = [{
+        "id": hub_id, "name": f"{party_norm} Party", "party": party_norm,
+        "type": "hub", "ring": 0, "value": max(8, len(main_ids)),
+    }]
+    pol_map = {
+        p.bioguide_id: p for p in db.query(Politician).filter(
+            Politician.bioguide_id.in_(congress_ids)).all()
+    } if congress_ids else {}
+    for bio in congress_ids:
+        p = pol_map.get(bio)
+        nodes.append({
+            "id": bio,
+            "name": f"{p.first_name} {p.last_name}" if p else bio,
+            "party": p.party if p else None,
+            "type": "congress",
+            "ring": depth.get(bio, 2),
+            "value": deg.get(bio, 1),
+            "chamber": p.chamber if p else None,
+            "state": p.state if p else None,
+        })
+    for ext_id in included:
+        if ext_id not in ext_by_id:
+            continue
+        n = ext_by_id[ext_id]
+        nodes.append({
+            "id": ext_id, "name": n.get("name", ext_id),
+            "party": n.get("party"), "type": n.get("type", "other"),
+            "role": n.get("role"),
+            "ring": depth.get(ext_id, 2), "value": deg.get(ext_id, 1),
+        })
+
+    # 6) Hub spokes to each main node (anchors the radial web).
+    for bio in main_ids:
+        edges.append({"from": hub_id, "to": bio, "kind": "hub", "label": "",
+                      "weight": 1, "illustrative": False, "source_url": None})
+
+    kind_of = lambda k: sum(1 for e in edges if e["kind"] == k)
+    return {
+        "party": party_norm,
+        "hub":   hub_id,
+        "nodes": nodes,
+        "edges": edges,
+        "counts": {
+            "main":             len(main_ids),
+            "connected":        len(included) - len(main_ids),
+            "shared_stock":     kind_of("shared_stock"),
+            "shared_committee": kind_of("shared_committee"),
+            "curated":          sum(1 for e in edges if e["kind"] in
+                                    ("business_deal", "appointment", "former_member",
+                                     "donor", "family", "other")),
+        },
+    }
+
+
 def _mid(t):
     if t.amount_min is None:
         return 0.0
@@ -2269,6 +2481,10 @@ def audit_page():
 @app.get("/politicians")
 def politicians_page():
     return FileResponse(os.path.join(STATIC_DIR, "politicians.html"))
+
+@app.get("/relationships")
+def relationships_page():
+    return FileResponse(os.path.join(STATIC_DIR, "relationships.html"))
 
 @app.get("/politician/{bioguide_id}")
 def politician_detail_page(bioguide_id: str):

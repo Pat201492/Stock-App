@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "purpose": "Curated political relationships overlaid on the DB-derived (shared-stock / shared-committee) edges in the relationship web. See /relationships.",
+    "how_to_extend": "Add executive-branch / business / outside figures to `external_nodes`, then add `edges`. An edge endpoint is EITHER a congressional bioguide_id (resolved against the politicians table) OR an external_nodes id. Set a real `source_url` for factual ties. Mark fill-in templates with \"illustrative\": true so the UI fades them and labels them (sample).",
+    "edge_kinds": ["business_deal", "appointment", "former_member", "donor", "family", "other"]
+  },
+
+  "external_nodes": [
+    {"id": "EXEC_TRUMP",   "name": "Donald Trump",   "role": "President",            "party": "Republican", "type": "executive"},
+    {"id": "EXEC_VANCE",   "name": "JD Vance",        "role": "Vice President",       "party": "Republican", "type": "executive"},
+    {"id": "EXEC_RUBIO",   "name": "Marco Rubio",     "role": "Secretary of State",   "party": "Republican", "type": "executive"},
+    {"id": "EXEC_BESSENT", "name": "Scott Bessent",   "role": "Treasury Secretary",   "party": "Republican", "type": "executive"},
+    {"id": "EXEC_BONDI",   "name": "Pam Bondi",       "role": "Attorney General",     "party": "Republican", "type": "executive"},
+    {"id": "BIZ_TMTG",     "name": "Trump Media & Technology Group (DJT)", "party": "Republican", "type": "business"},
+
+    {"id": "EXEC_BIDEN",   "name": "Joseph R. Biden", "role": "President (2021-2025)", "party": "Democrat",   "type": "executive"},
+    {"id": "EXEC_HARRIS",  "name": "Kamala Harris",   "role": "Vice President (2021-2025)", "party": "Democrat", "type": "executive"},
+
+    {"id": "BIZ_EXAMPLE_R", "name": "Example Holdings LLC (sample)",  "party": null, "type": "business"},
+    {"id": "BIZ_EXAMPLE_D", "name": "Example Capital Partners (sample)", "party": null, "type": "business"}
+  ],
+
+  "edges": [
+    {"source": "EXEC_TRUMP", "target": "EXEC_VANCE",   "kind": "appointment",   "label": "2024 running mate; Vice President", "weight": 2, "source_url": "https://www.whitehouse.gov/administration/"},
+    {"source": "EXEC_TRUMP", "target": "EXEC_RUBIO",   "kind": "appointment",   "label": "Secretary of State", "weight": 2, "source_url": "https://www.state.gov/biographies/marco-rubio/"},
+    {"source": "EXEC_TRUMP", "target": "EXEC_BESSENT", "kind": "appointment",   "label": "Treasury Secretary", "weight": 2, "source_url": "https://home.treasury.gov/"},
+    {"source": "EXEC_TRUMP", "target": "EXEC_BONDI",   "kind": "appointment",   "label": "Attorney General", "weight": 2, "source_url": "https://www.justice.gov/ag"},
+    {"source": "EXEC_TRUMP", "target": "BIZ_TMTG",     "kind": "business_deal", "label": "Founder & majority owner, Trump Media (DJT)", "weight": 3, "source_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=trump+media"},
+
+    {"source": "EXEC_VANCE", "target": "V000137", "kind": "former_member", "label": "Former U.S. Senator (OH)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/V000137"},
+    {"source": "EXEC_RUBIO", "target": "R000595", "kind": "former_member", "label": "Former U.S. Senator (FL)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/R000595"},
+
+    {"source": "EXEC_BIDEN",  "target": "EXEC_HARRIS", "kind": "appointment",   "label": "2020 running mate; Vice President", "weight": 2, "source_url": "https://bidenwhitehouse.archives.gov/"},
+    {"source": "EXEC_HARRIS", "target": "H001075",     "kind": "former_member", "label": "Former U.S. Senator (CA)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/H001075"},
+
+    {"source": "EXEC_TRUMP",    "target": "BIZ_EXAMPLE_R", "kind": "business_deal", "label": "(sample) licensing deal — replace with sourced data", "weight": 2, "illustrative": true},
+    {"source": "BIZ_EXAMPLE_R", "target": "T000278",       "kind": "other",         "label": "(sample) discloses ownership stake — replace with sourced data", "weight": 1, "illustrative": true},
+
+    {"source": "EXEC_BIDEN",    "target": "BIZ_EXAMPLE_D", "kind": "business_deal", "label": "(sample) contract — replace with sourced data", "weight": 2, "illustrative": true},
+    {"source": "BIZ_EXAMPLE_D", "target": "P000197",       "kind": "family",        "label": "(sample) family business interest — replace with sourced data", "weight": 1, "illustrative": true}
+  ]
+}

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relationship Web — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/relationships" class="active">Network</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Political Relationship Web</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;max-width:880px">
+    Radial spider-web of political relationships. The party hub sits at the centre, its
+    highest-volume members form the inner ring, and connected figures — other-party members,
+    <strong>executive branch</strong> (President / cabinet) and businesses — fan out on the
+    outer rings. Edges merge a <strong>curated overlay</strong> (business deals, appointments,
+    exec-branch ties) with edges <strong>derived from the live database</strong> (members who
+    trade the same stocks or sit on the same committees).
+    <br><span style="color:var(--yellow)">Edges marked “(sample)” are illustrative templates</span> —
+    edit <code>political_relationships.json</code> to add sourced ties.
+  </p>
+
+  <!-- Party toggle -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+    <button class="sub-tab active" data-party="republican" onclick="switchParty('republican')">🐘 Republican web</button>
+    <button class="sub-tab"        data-party="democrat"   onclick="switchParty('democrat')">🫏 Democrat web</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="filters" style="align-items:center;flex-wrap:wrap;gap:14px">
+    <label style="font-size:12px;color:var(--muted)">Main nodes:
+      <select id="limit-sel" onchange="reload()" style="font-size:12px">
+        <option value="12">Top 12</option>
+        <option value="20">Top 20</option>
+        <option value="30" selected>Top 30</option>
+        <option value="40">Top 40</option>
+      </select>
+    </label>
+    <span style="width:1px;height:18px;background:var(--border)"></span>
+    <label class="ek"><input type="checkbox" id="ek-curated"   checked onchange="rerender()"> Curated ties</label>
+    <label class="ek"><input type="checkbox" id="ek-stock"     checked onchange="rerender()"> Shared stocks</label>
+    <label class="ek"><input type="checkbox" id="ek-committee" checked onchange="rerender()"> Shared committees</label>
+    <span id="rel-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend" class="card" style="margin:10px 0;padding:10px 14px;display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted)">
+    <span><b style="color:var(--text)">Nodes:</b></span>
+    <span><span class="dot" style="background:#ef4444"></span>Republican</span>
+    <span><span class="dot" style="background:#3b82f6"></span>Democrat</span>
+    <span><span class="dot" style="background:#94a3b8"></span>Independent/other</span>
+    <span><span class="dot" style="background:#f59e0b;border-radius:2px;transform:rotate(45deg)"></span>Executive branch</span>
+    <span><span class="dot" style="background:#fb923c;border-radius:2px"></span>Business</span>
+    <span style="width:1px;height:16px;background:var(--border)"></span>
+    <span><b style="color:var(--text)">Edges:</b></span>
+    <span><span class="ln" style="background:#f59e0b"></span>Business deal</span>
+    <span><span class="ln" style="background:#a855f7"></span>Appointment</span>
+    <span><span class="ln" style="background:#14b8a6"></span>Former member</span>
+    <span><span class="ln" style="background:#eab308"></span>Family</span>
+    <span><span class="ln" style="background:#22c55e"></span>Shared stock</span>
+    <span><span class="ln" style="background:#60a5fa"></span>Shared committee</span>
+  </div>
+
+  <div class="card" style="padding:0;position:relative">
+    <div id="net" style="height:700px;border-radius:var(--radius)"></div>
+    <div id="net-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center"
+         class="muted">No relationship data for this party.</div>
+  </div>
+</div>
+
+<script>
+let curParty = "republican";
+let raw = { nodes: [], edges: [] };   // last API payload (positions added in-place)
+let network = null;
+let nodeMeta = {};                    // id -> node (for click routing)
+
+const PARTY_COLORS = { Republican:"#ef4444", Democrat:"#3b82f6", Independent:"#94a3b8" };
+const EDGE_STYLE = {
+  business_deal:    { color:"#f59e0b", dashes:false  },
+  appointment:      { color:"#a855f7", dashes:[6,4]  },
+  former_member:    { color:"#14b8a6", dashes:[2,4]  },
+  donor:            { color:"#ec4899", dashes:false  },
+  family:           { color:"#eab308", dashes:[6,4]  },
+  other:            { color:"#94a3b8", dashes:[2,3]  },
+  shared_stock:     { color:"#22c55e", dashes:false  },
+  shared_committee: { color:"#60a5fa", dashes:false  },
+  hub:              { color:"rgba(148,163,184,.16)", dashes:false },
+  scaffold:         { color:"rgba(148,163,184,.09)", dashes:false },
+};
+const CURATED_KINDS = ["business_deal","appointment","former_member","donor","family","other"];
+function edgeGroup(kind){
+  if (kind === "shared_stock") return "stock";
+  if (kind === "shared_committee") return "committee";
+  if (kind === "hub" || kind === "scaffold") return "structure";
+  return "curated";
+}
+
+function switchParty(p){
+  curParty = p;
+  document.querySelectorAll(".sub-tab").forEach(b => b.classList.toggle("active", b.dataset.party === p));
+  reload();
+}
+
+async function reload(){
+  const limit = document.getElementById("limit-sel").value;
+  const d = await fetch(`/api/pol/relationships?party=${curParty}&limit=${limit}`)
+    .then(r => r.json()).catch(() => ({nodes:[], edges:[]}));
+  raw = d;
+  layout(raw.nodes, raw.edges);
+  rerender();
+}
+
+// ── Radial concentric placement ────────────────────────────────────────────
+// hub at centre; main ring evenly on a circle; each outer node fans out from
+// the lower-ring neighbour it connects to → spokes + rings = spider web.
+function layout(nodes, edges){
+  const byId = {}; nodes.forEach(n => byId[n.id] = n);
+  const adj = {};
+  edges.forEach(e => { (adj[e.from] = adj[e.from] || []).push(e.to);
+                       (adj[e.to]   = adj[e.to]   || []).push(e.from); });
+  const R1 = 330, STEP = 235, angle = {};
+
+  const hub = nodes.find(n => n.ring === 0);
+  if (hub){ hub.x = 0; hub.y = 0; hub.fixed = true; }
+
+  const ring1 = nodes.filter(n => n.ring === 1);
+  ring1.forEach((n, i) => {
+    const a = (i / Math.max(1, ring1.length)) * 2 * Math.PI - Math.PI / 2;
+    angle[n.id] = a; n.x = Math.cos(a) * R1; n.y = Math.sin(a) * R1; n.fixed = true;
+  });
+
+  const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring || 0), 0);
+  for (let r = 2; r <= maxRing; r++){
+    const layer = nodes.filter(n => n.ring === r);
+    const groups = {};
+    layer.forEach(n => {
+      const parent = (adj[n.id] || []).map(id => byId[id])
+        .find(p => p && p.ring === r - 1 && angle[p.id] !== undefined);
+      const key = parent ? parent.id : "_none";
+      (groups[key] = groups[key] || []).push(n);
+    });
+    const radius = R1 + (r - 1) * STEP;
+    Object.entries(groups).forEach(([key, members], gi) => {
+      const base = key === "_none" ? (gi / Math.max(1, Object.keys(groups).length)) * 2 * Math.PI
+                                   : angle[key];
+      members.forEach((n, i) => {
+        const a = base + (members.length > 1 ? (i - (members.length - 1) / 2) * 0.30 : 0);
+        angle[n.id] = a; n.x = Math.cos(a) * radius; n.y = Math.sin(a) * radius; n.fixed = true;
+      });
+    });
+  }
+}
+
+function scaffoldEdges(nodes){
+  const ring1 = nodes.filter(n => n.ring === 1);
+  const out = [];
+  for (let i = 0; i < ring1.length; i++)
+    out.push({ from: ring1[i].id, to: ring1[(i + 1) % ring1.length].id, kind: "scaffold", label: "" });
+  return out;
+}
+
+function toVisNode(n){
+  let color, shape = "dot";
+  if (n.type === "hub")           { color = PARTY_COLORS[n.party] || "#64748b"; shape = "star"; }
+  else if (n.type === "executive"){ color = "#f59e0b"; shape = "diamond"; }
+  else if (n.type === "business") { color = "#fb923c"; shape = "square"; }
+  else                            { color = PARTY_COLORS[n.party] || "#94a3b8"; }
+  const title = n.type === "congress"
+      ? `${n.name} · ${n.party || "?"}/${n.state || "?"}${n.chamber ? " · " + n.chamber : ""}`
+      : n.role ? `${n.name} · ${n.role}` : n.name;
+  return {
+    id: n.id, label: n.name, value: n.value || 1, x: n.x, y: n.y, fixed: !!n.fixed,
+    shape, title,
+    color: { background: color, border: "#0f172a",
+             highlight: { background: color, border: "#e2e8f0" } },
+    font: n.type === "hub" ? { size: 18, color: "#fff", strokeWidth: 4, strokeColor: "#0f172a" }
+                           : { color: "#e2e8f0", size: 13, strokeWidth: 3, strokeColor: "#0f172a" },
+  };
+}
+
+function toVisEdge(e){
+  const st = EDGE_STYLE[e.kind] || EDGE_STYLE.other;
+  const structural = e.kind === "hub" || e.kind === "scaffold";
+  const width = structural ? 1 : Math.min(8, 1 + (e.weight || 1));
+  return {
+    id: `${e.kind}|${e.from}|${e.to}|${e.label || ""}`,
+    from: e.from, to: e.to,
+    title: e.label || undefined,
+    dashes: e.illustrative ? [4,4] : st.dashes,
+    width,
+    color: { color: st.color, opacity: e.illustrative ? 0.5 : (structural ? 0.5 : 0.9),
+             highlight: st.color, hover: st.color },
+    smooth: structural ? false : { type: "continuous" },
+    selectionWidth: 2,
+  };
+}
+
+function rerender(){
+  const show = {
+    curated:   document.getElementById("ek-curated").checked,
+    stock:     document.getElementById("ek-stock").checked,
+    committee: document.getElementById("ek-committee").checked,
+    structure: true,
+  };
+  const nodes = raw.nodes || [];
+  nodeMeta = {}; nodes.forEach(n => nodeMeta[n.id] = n);
+
+  const empty = document.getElementById("net-empty");
+  empty.style.display = nodes.length ? "none" : "flex";
+
+  const allEdges = (raw.edges || []).concat(scaffoldEdges(nodes));
+  const visEdges = allEdges.filter(e => show[edgeGroup(e.kind)]).map(toVisEdge);
+  const visNodes = nodes.map(toVisNode);
+
+  const counts = raw.counts || {};
+  document.getElementById("rel-count").textContent = nodes.length
+    ? `${counts.main||0} main · ${counts.connected||0} connected · `
+      + `${counts.curated||0} curated · ${counts.shared_stock||0} stock · ${counts.shared_committee||0} committee edges`
+    : "";
+
+  const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
+  const options = {
+    physics: false,
+    interaction: { hover: true, tooltipDelay: 120, dragNodes: true, zoomView: true },
+    nodes: { borderWidth: 2, scaling: { min: 10, max: 40 } },
+    edges: { arrows: { to: false } },
+  };
+  if (network){ network.setData(data); }
+  else {
+    network = new vis.Network(document.getElementById("net"), data, options);
+    network.on("click", params => {
+      if (!params.nodes.length) return;
+      const n = nodeMeta[params.nodes[0]];
+      if (n && n.type === "congress") window.location = "/politician/" + params.nodes[0];
+    });
+  }
+  network.fit({ animation: false });
+}
+
+reload();
+</script>
+
+<style>
+.sub-tab { background:transparent;border:none;color:var(--muted);padding:10px 16px;
+  font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px; }
+.sub-tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.sub-tab:hover  { color:var(--text); }
+.ek { font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:5px;cursor:pointer; }
+.ek input { cursor:pointer; }
+#legend .dot { display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle; }
+#legend .ln  { display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle; }
+#legend span { display:inline-flex;align-items:center; }
+</style>
+</body>
+</html>
