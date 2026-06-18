@@ -2040,6 +2040,9 @@ def pol_relationships(
     limit: int = 30,
     min_shared_stocks: int = 3,
     min_shared_committees: int = 2,
+    min_shared_sectors: int = 3,
+    cotrade_days: int = 14,
+    min_cotrades: int = 1,
     db: Session = Depends(get_pol_db),
 ):
     """Radial relationship web for one party.
@@ -2049,8 +2052,12 @@ def pol_relationships(
     Outer rings = figures (other-party members, executive branch, businesses)
                  reachable from the main ring through the curated overlay.
     Edges       = curated overlay (business deals, appointments, exec-branch ties)
-                 merged with DB-derived shared-stock / shared-committee overlap
-                 among the bounded node set.
+                 merged with DB-derived edges among the bounded node set:
+                   • shared_stock      — both ever traded the same tickers
+                   • co_trade          — both traded the SAME ticker within
+                                         `cotrade_days` of each other
+                   • shared_sector     — overlap in heavily-traded market sectors
+                   • shared_committee  — both sit on the same committees
     """
     from collections import defaultdict
     party_norm = "Democrat" if party.lower().startswith("d") else "Republican"
@@ -2126,18 +2133,43 @@ def pol_relationships(
     # 4) Derived edges over the bounded congress set (>=1 endpoint in main ring).
     congress_ids = [n for n in included if n not in ext_by_id]
     if congress_ids:
-        tickers_by_pol = defaultdict(set)
-        for bio, tk in (db.query(CongressionalTrade.bioguide_id, CongressionalTrade.ticker)
-                          .filter(CongressionalTrade.bioguide_id.in_(congress_ids),
-                                  CongressionalTrade.ticker.isnot(None),
-                                  CongressionalTrade.ticker != "")
-                          .distinct().all()):
+        SECTOR_HEAVY = 3   # min trades in a sector for it to count as "heavy" exposure
+        tickers_by_pol = defaultdict(set)                 # shared_stock
+        dates_by_pol_ticker = defaultdict(list)           # co_trade: (bio,ticker) -> [dates]
+        sector_trades = defaultdict(lambda: defaultdict(int))  # bio -> sector -> trade count
+        trade_rows = (db.query(CongressionalTrade.bioguide_id, CongressionalTrade.ticker,
+                               CongressionalTrade.transaction_date)
+                        .filter(CongressionalTrade.bioguide_id.in_(congress_ids),
+                                CongressionalTrade.ticker.isnot(None),
+                                CongressionalTrade.ticker != "")
+                        .all())
+        tk_sector = _ticker_sectors({tk for _, tk, _ in trade_rows})   # ticker -> sector (stocks.db)
+        for bio, tk, dt in trade_rows:
             tickers_by_pol[bio].add(tk)
+            if dt is not None:
+                dates_by_pol_ticker[(bio, tk)].append(dt)
+            sec = tk_sector.get(tk)
+            if sec:
+                sector_trades[bio][sec] += 1
+        heavy_sectors = {bio: {s for s, c in secs.items() if c >= SECTOR_HEAVY}
+                         for bio, secs in sector_trades.items()}
+
         comms_by_pol = defaultdict(set)
         for bio, cm in (db.query(CommitteeMembership.bioguide_id, CommitteeMembership.committee_id)
                           .filter(CommitteeMembership.bioguide_id.in_(congress_ids))
                           .distinct().all()):
             comms_by_pol[bio].add(cm)
+
+        def _co_timed(da, dbb, win):
+            """True if any date in `da` is within `win` days of any date in `dbb`."""
+            da, dbb = sorted(da), sorted(dbb)
+            i = j = 0
+            while i < len(da) and j < len(dbb):
+                if abs((da[i] - dbb[j]).days) <= win:
+                    return True
+                if da[i] < dbb[j]: i += 1
+                else:              j += 1
+            return False
 
         ids_sorted = sorted(congress_ids)
         for i in range(len(ids_sorted)):
@@ -2154,6 +2186,29 @@ def pol_relationships(
                                  + ("…" if len(shared_tk) > 5 else ""),
                         "weight": len(shared_tk), "illustrative": False, "source_url": None,
                     })
+
+                # co_trade: same ticker traded within `cotrade_days` of each other
+                co = [tk for tk in shared_tk
+                      if _co_timed(dates_by_pol_ticker.get((a, tk), []),
+                                   dates_by_pol_ticker.get((b, tk), []), cotrade_days)]
+                if len(co) >= min_cotrades:
+                    top = sorted(co)[:5]
+                    edges.append({
+                        "from": a, "to": b, "kind": "co_trade",
+                        "label": f"co-timed on {len(co)} stock(s) (≤{cotrade_days}d): {', '.join(top)}"
+                                 + ("…" if len(co) > 5 else ""),
+                        "weight": len(co), "illustrative": False, "source_url": None,
+                    })
+
+                # shared_sector: overlap in heavily-traded sectors
+                shared_sec = heavy_sectors.get(a, set()) & heavy_sectors.get(b, set())
+                if len(shared_sec) >= min_shared_sectors:
+                    edges.append({
+                        "from": a, "to": b, "kind": "shared_sector",
+                        "label": f"{len(shared_sec)} shared sectors: {', '.join(sorted(shared_sec))}",
+                        "weight": len(shared_sec), "illustrative": False, "source_url": None,
+                    })
+
                 shared_cm = comms_by_pol[a] & comms_by_pol[b]
                 if len(shared_cm) >= min_shared_committees:
                     edges.append({
@@ -2214,6 +2269,8 @@ def pol_relationships(
             "main":             len(main_ids),
             "connected":        len(included) - len(main_ids),
             "shared_stock":     kind_of("shared_stock"),
+            "co_trade":         kind_of("co_trade"),
+            "shared_sector":    kind_of("shared_sector"),
             "shared_committee": kind_of("shared_committee"),
             "curated":          sum(1 for e in edges if e["kind"] in
                                     ("business_deal", "appointment", "former_member",
