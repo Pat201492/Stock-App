@@ -132,12 +132,33 @@
 
   <!-- Treasury / T-Bills tab -->
   <div id="tab-treasury" style="display:none">
+    <style>
+      .tre-range-btn{padding:4px 12px;border:1px solid var(--border);border-radius:6px;
+        background:transparent;color:var(--text);cursor:pointer;font-size:12px}
+      .tre-range-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
+      #tre-filters input[type=date]{padding:3px 6px;border:1px solid var(--border);
+        border-radius:6px;background:var(--bg,#0b0f17);color:var(--text);font-size:12px}
+    </style>
+    <div class="filters" id="tre-filters" style="align-items:center;flex-wrap:wrap;gap:6px">
+      <span class="muted" style="font-size:12px">Window:</span>
+      <button class="tre-range-btn" data-years="1"  onclick="setTreasuryWindow(1)">1Y</button>
+      <button class="tre-range-btn" data-years="3"  onclick="setTreasuryWindow(3)">3Y</button>
+      <button class="tre-range-btn" data-years="5"  onclick="setTreasuryWindow(5)">5Y</button>
+      <button class="tre-range-btn" data-years="10" onclick="setTreasuryWindow(10)">10Y</button>
+      <button class="tre-range-btn active" data-years="20" onclick="setTreasuryWindow(20)">20Y</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+      <label class="muted" style="font-size:12px">Custom:</label>
+      <input type="date" id="tre-start" />
+      <span class="muted">→</span>
+      <input type="date" id="tre-end" />
+      <button class="btn btn-outline btn-sm" onclick="applyTreasuryCustom()">Apply</button>
+    </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-title">S&amp;P 500 — last 20 years</div>
+      <div class="card-title" id="sp-title">S&amp;P 500 — last 20 years</div>
       <div style="position:relative;height:240px"><canvas id="sp500-chart"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-title">Congressional Treasury / T-Bill ownership — cumulative purchase volume</div>
+      <div class="card-title">Congressional Treasury / T-Bill purchases — per period (relative)</div>
       <div style="position:relative;height:240px"><canvas id="treasury-chart"></canvas></div>
       <div class="muted" id="treasury-note" style="font-size:11px;margin-top:6px"></div>
     </div>
@@ -173,10 +194,11 @@ function switchTab(tab) {
   document.getElementById("tab-board").style.display    = tab === "board"    ? "block" : "none";
   document.getElementById("tab-treasury").style.display = tab === "treasury" ? "block" : "none";
   if (tab === "board") loadBoard();
-  if (tab === "treasury") loadTreasury();
+  if (tab === "treasury" && !_treInit) { _treInit = true; loadTreasury(); }
 }
 
-let _treasuryLoaded = false, _spChart = null, _treChart = null;
+let _treInit = false, _spChart = null, _treChart = null;
+let _treWindow = { years: 20 };          // {years} preset OR {start,end} custom
 function fmtBig(v) {
   if (v == null) return "—";
   if (v >= 1e9) return `$${(v/1e9).toFixed(2)}B`;
@@ -185,11 +207,34 @@ function fmtBig(v) {
   return `$${v.toFixed(0)}`;
 }
 
+function _treQuery() {
+  const w = _treWindow;
+  return (w.start && w.end) ? `start=${w.start}&end=${w.end}` : `years=${w.years || 20}`;
+}
+
+function setTreasuryWindow(years) {           // preset button
+  _treWindow = { years };
+  document.querySelectorAll(".tre-range-btn").forEach(
+    b => b.classList.toggle("active", Number(b.dataset.years) === years));
+  document.getElementById("tre-start").value = "";
+  document.getElementById("tre-end").value = "";
+  loadTreasury();
+}
+
+function applyTreasuryCustom() {              // custom date range
+  const start = document.getElementById("tre-start").value;
+  const end = document.getElementById("tre-end").value;
+  if (!start || !end) { alert("Pick both a start and end date."); return; }
+  _treWindow = { start, end };
+  document.querySelectorAll(".tre-range-btn").forEach(b => b.classList.remove("active"));
+  loadTreasury();
+}
+
 async function loadTreasury() {
-  if (_treasuryLoaded) return;          // build once (only marked done on success)
+  const q = _treQuery();
   const [sp, tre] = await Promise.all([
-    fetch("/api/market/sp500?years=20").then(r => r.json()).catch(() => ({points:[]})),
-    fetch("/api/pol/treasury").then(r => r.json()).catch(() => null),
+    fetch(`/api/market/sp500?${q}`).then(r => r.json()).catch(() => ({points:[]})),
+    fetch(`/api/pol/treasury?${q}`).then(r => r.json()).catch(() => null),
   ]);
 
   // S&P 500 chart (destroy any prior instance so a retry doesn't reuse the canvas)
@@ -204,28 +249,36 @@ async function loadTreasury() {
       plugins: { legend: { display: false } },
       scales: { x: { ticks: { maxTicksLimit: 10 } } } },
   });
+  const spTitle = _treWindow.start
+    ? `S&P 500 — ${_treWindow.start} → ${_treWindow.end}`
+    : `S&P 500 — last ${_treWindow.years} year${_treWindow.years > 1 ? "s" : ""}`;
+  document.getElementById("sp-title").textContent = spTitle;
 
-  if (!tre) return;                     // leave _treasuryLoaded false → allow retry
-  // Treasury cumulative-volume chart (shares the time span visually)
+  if (!tre) return;
+  // Treasury per-period histogram (relative buying within the window)
   const ts = tre.series || [];
   if (_treChart) _treChart.destroy();
   _treChart = new Chart(document.getElementById("treasury-chart"), {
-    type: "line",
-    data: { labels: ts.map(p => p.date),
-      datasets: [{ label: "Cumulative Treasury purchases", data: ts.map(p => p.cumulative_volume),
-        borderColor: "#22c55e", borderWidth: 1.5, pointRadius: 0, fill: true,
-        backgroundColor: "rgba(34,197,94,.10)" }] },
+    type: "bar",
+    data: { labels: ts.map(p => p.period),
+      datasets: [{ label: "Treasury purchases", data: ts.map(p => p.volume),
+        backgroundColor: "rgba(34,197,94,.65)", borderColor: "#22c55e", borderWidth: 1 }] },
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { ticks: { maxTicksLimit: 10 } },
-        y: { ticks: { callback: v => fmtBig(v) } } } },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => fmtBig(c.parsed.y) } } },
+      scales: { x: { ticks: { maxTicksLimit: 16 } },
+        y: { beginAtZero: true, ticks: { callback: v => fmtBig(v) } } } },
   });
   const buys = tre.purchase_count ?? tre.trade_count;
   const sales = tre.trade_count - buys;
+  const win = tre.window || {};
+  const stockActNote = win.start && win.start < "2012"
+    ? " Congressional disclosures begin ~2012 (STOCK Act), so earlier bins are empty."
+    : "";
   document.getElementById("treasury-note").textContent =
     `${buys} Treasury purchases${sales > 0 ? ` (+${sales} sales)` : ""} · ` +
-    `${fmtBig(tre.total_volume)} total purchase volume. ` +
-    `Congressional disclosures begin ~2012 (STOCK Act), so the Treasury series is shorter than the S&P axis.`;
+    `${fmtBig(tre.total_volume)} total · bars binned by ${tre.granularity || "period"}.` +
+    stockActNote;
 
   // Highlights
   document.getElementById("tre-by-pol").innerHTML = (tre.by_politician||[]).length
@@ -254,8 +307,7 @@ async function loadTreasury() {
           <td style="text-align:right">${fmtAmt(t.amount_min, t.amount_max)}</td>
           <td class="muted" style="font-size:12px">${t.asset||"—"}</td>
         </tr>`).join("")
-    : `<tr><td colspan="6"><div class="muted">No Treasury purchases on record.</div></td></tr>`;
-  _treasuryLoaded = true;               // fully built — stop further reloads
+    : `<tr><td colspan="6"><div class="muted">No Treasury purchases in this window.</div></td></tr>`;
 }
 
 function fmtAmt(min, max) {

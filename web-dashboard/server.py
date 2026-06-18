@@ -2001,13 +2001,34 @@ def _mid(t):
     return (t.amount_min + (t.amount_max or t.amount_min)) / 2.0
 
 
+def _parse_iso(s):
+    from datetime import date as _date
+    try:
+        return _date.fromisoformat(s) if s else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _window(years, start, end):
+    """Resolve a (start_date, end_date) window from an explicit ISO start/end or a
+    `years` lookback (end defaults to today, start to end − years)."""
+    from datetime import date as _date, timedelta as _td
+    end_d = _parse_iso(end) or _date.today()
+    start_d = _parse_iso(start) or (end_d - _td(days=365 * max(1, years)))
+    if start_d > end_d:
+        start_d, end_d = end_d, start_d
+    return start_d, end_d
+
+
 @app.get("/api/pol/treasury")
-def pol_treasury(db: Session = Depends(get_pol_db)):
-    """Congressional Treasury / T-Bill activity: a cumulative-purchase-volume time
-    series (ownership proxy), most-bought-by-politician and -by-committee
-    highlights, and the underlying purchase rows. Treasury = federal Treasury
-    bills/notes/bonds held directly (asset_description matches 'treasury' but
-    NOT bond ETFs/funds, e.g. iShares Treasury ETFs, which are fund shares)."""
+def pol_treasury(years: int = 20, start: str = "", end: str = "",
+                 db: Session = Depends(get_pol_db)):
+    """Congressional Treasury / T-Bill activity within a window: a per-period
+    purchase-volume histogram (relative buying), most-bought-by-politician and
+    -by-committee highlights, and the underlying rows. Window = explicit ISO
+    start/end or the last `years`. Treasury = federal Treasury bills/notes/bonds
+    held directly (asset_description matches 'treasury' but NOT bond ETFs/funds)."""
+    start_d, end_d = _window(years, start, end)
     asset = func.lower(CongressionalTrade.asset_description)
     rows = db.query(CongressionalTrade, Politician).outerjoin(
         Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
@@ -2016,6 +2037,8 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
         ~asset.like("%etf%"),
         ~asset.like("%ishares%"),
         ~asset.like("%fund%"),
+        CongressionalTrade.transaction_date >= start_d,
+        CongressionalTrade.transaction_date <= end_d,
     ).order_by(CongressionalTrade.transaction_date.asc()).all()
 
     # member -> committees (for the by-committee attribution)
@@ -2026,16 +2049,27 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
     )).fetchall():
         bio_committees.setdefault(bio, []).append(cname)
 
-    # cumulative purchase volume by month + highlights
-    by_month, pol_vol, com_vol, trades = {}, {}, {}, []
+    # histogram bucket granularity scales with the window span
+    span_days = (end_d - start_d).days
+    gran = "month" if span_days <= 900 else "quarter" if span_days <= 3300 else "year"
+
+    def bucket(d):
+        if gran == "month":
+            return d.isoformat()[:7]                       # YYYY-MM
+        if gran == "quarter":
+            return f"{d.year}-Q{(d.month - 1) // 3 + 1}"   # YYYY-Qn
+        return str(d.year)                                  # YYYY
+
+    # per-period purchase volume (histogram) + highlights
+    by_bucket, pol_vol, com_vol, trades = {}, {}, {}, []
     purchase_count = 0
     for t, p in rows:
         amt = _mid(t)
         is_buy = (t.transaction_type or "").startswith("purchase")
         if t.transaction_date and is_buy:
             purchase_count += 1
-            mkey = t.transaction_date.isoformat()[:7]  # YYYY-MM
-            by_month[mkey] = by_month.get(mkey, 0.0) + amt
+            bk = bucket(t.transaction_date)
+            by_bucket[bk] = by_bucket.get(bk, 0.0) + amt
             name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
             pv = pol_vol.setdefault(t.bioguide_id, {"name": name,
                  "party": p.party if p else None, "volume": 0.0, "count": 0})
@@ -2052,11 +2086,7 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
             "asset": t.asset_description,
         })
 
-    series, running = [], 0.0
-    for mkey in sorted(by_month):
-        running += by_month[mkey]
-        series.append({"date": mkey + "-01", "cumulative_volume": round(running, 2)})
-
+    series = [{"period": bk, "volume": round(by_bucket[bk], 2)} for bk in sorted(by_bucket)]
     top_pol = sorted(pol_vol.values(), key=lambda x: -x["volume"])[:10]
     top_com = sorted(
         ({"committee": k, **v} for k, v in com_vol.items()),
@@ -2064,24 +2094,29 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
     trades.reverse()  # newest first for the table
     return {
         "series": series,
+        "granularity": gran,
+        "window": {"start": start_d.isoformat(), "end": end_d.isoformat()},
         "by_politician": [{**p, "volume": round(p["volume"], 2)} for p in top_pol],
         "by_committee": [{**c, "volume": round(c["volume"], 2)} for c in top_com],
         "trades": trades[:200],
-        "total_volume": round(sum(by_month.values()), 2),
+        "total_volume": round(sum(by_bucket.values()), 2),
         "purchase_count": purchase_count,   # buys driving volume/series
         "trade_count": len(trades),         # all rows incl. sales (table count)
     }
 
 
 @app.get("/api/market/sp500")
-def market_sp500(years: int = 20):
-    """S&P 500 monthly closes for the last `years` (live from yfinance ^GSPC)."""
-    from datetime import date as _d, timedelta as _td
+def market_sp500(years: int = 20, start: str = "", end: str = ""):
+    """S&P 500 closes for a window (explicit ISO start/end or the last `years`),
+    live from yfinance ^GSPC. Weekly bars for ≤3y windows, else monthly."""
     try:
-        start = (_d.today() - _td(days=365 * max(1, years))).isoformat()
-        hist = yf.Ticker("^GSPC").history(start=start, interval="1mo")
+        start_d, end_d = _window(years, start, end)
+        span = (end_d - start_d).days
+        interval = "1wk" if span <= 365 * 3 else "1mo"
+        hist = yf.Ticker("^GSPC").history(
+            start=start_d.isoformat(), end=end_d.isoformat(), interval=interval)
         closes = hist["Close"].dropna()
-        return {"points": [
+        return {"interval": interval, "points": [
             {"date": idx.strftime("%Y-%m-%d"), "close": round(float(v), 2)}
             for idx, v in closes.items()
         ]}
