@@ -1647,11 +1647,16 @@ def integrity():
 
 @app.get("/api/pol/stats")
 def pol_stats(db: Session = Depends(get_pol_db)):
+    from datetime import date as _date
+    # most recent disclosed trade (ignore filer-typo'd future dates)
+    latest = db.query(func.max(CongressionalTrade.transaction_date)).filter(
+        CongressionalTrade.transaction_date <= _date.today()).scalar()
     return {
         "total_politicians":   db.query(func.count(Politician.bioguide_id)).scalar() or 0,
         "total_congressional": db.query(func.count(CongressionalTrade.trade_id)).scalar() or 0,
         "total_insider":       db.query(func.count(InsiderTrade.filing_id)).scalar() or 0,
         "total_committees":    db.query(func.count(Committee.committee_id)).scalar() or 0,
+        "latest_trade_date":   latest.isoformat() if latest else None,
     }
 
 

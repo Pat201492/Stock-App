@@ -32,6 +32,7 @@
   <p style="color:var(--muted);margin-bottom:24px;font-size:13px">
     Senate stock disclosures from STOCK Act filings —
     <span id="pol-total">—</span> trades across <span id="pol-pol-count">—</span> politicians
+    · latest disclosed trade <span id="pol-latest" style="color:var(--text);font-weight:600">—</span>
   </p>
 
   <!-- Stats -->
@@ -365,6 +366,7 @@ async function loadStats() {
   document.getElementById("stat-insider").textContent     = (d.total_insider       || 0).toLocaleString();
   document.getElementById("pol-total").textContent        = (d.total_congressional || 0).toLocaleString();
   document.getElementById("pol-pol-count").textContent    = (d.total_politicians   || 0).toLocaleString();
+  document.getElementById("pol-latest").textContent       = d.latest_trade_date || "—";
 }
 
 async function loadFeed() {
