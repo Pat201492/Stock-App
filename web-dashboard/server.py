@@ -1647,11 +1647,16 @@ def integrity():
 
 @app.get("/api/pol/stats")
 def pol_stats(db: Session = Depends(get_pol_db)):
+    from datetime import date as _date
+    # most recent disclosed trade (ignore filer-typo'd future dates)
+    latest = db.query(func.max(CongressionalTrade.transaction_date)).filter(
+        CongressionalTrade.transaction_date <= _date.today()).scalar()
     return {
         "total_politicians":   db.query(func.count(Politician.bioguide_id)).scalar() or 0,
         "total_congressional": db.query(func.count(CongressionalTrade.trade_id)).scalar() or 0,
         "total_insider":       db.query(func.count(InsiderTrade.filing_id)).scalar() or 0,
         "total_committees":    db.query(func.count(Committee.committee_id)).scalar() or 0,
+        "latest_trade_date":   latest.isoformat() if latest else None,
     }
 
 
@@ -1894,7 +1899,7 @@ def pol_trades(
 
 
 @app.get("/api/pol/politician/{bioguide_id}")
-def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
+def pol_politician(bioguide_id: str, asset: str = "", db: Session = Depends(get_pol_db)):
     pol = db.query(Politician).filter(Politician.bioguide_id == bioguide_id).first()
     if not pol:
         return JSONResponse(status_code=404, content={"error": "Not found"})
@@ -1903,19 +1908,27 @@ def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
         CommitteeMembership, Committee.committee_id == CommitteeMembership.committee_id
     ).filter(CommitteeMembership.bioguide_id == bioguide_id).all()
 
+    # optional asset filter — 'treasury' restricts to direct Treasury/T-Bill rows
+    treasury_only = asset == "treasury"
     trades_q = db.query(CongressionalTrade).filter(
-        CongressionalTrade.bioguide_id == bioguide_id
-    ).order_by(CongressionalTrade.transaction_date.desc())
+        CongressionalTrade.bioguide_id == bioguide_id)
+    if treasury_only:
+        _a = func.lower(CongressionalTrade.asset_description)
+        trades_q = trades_q.filter(
+            (CongressionalTrade.ticker == "TREAS") | _a.like("%treasury%"))
+    trades_q = trades_q.order_by(CongressionalTrade.transaction_date.desc())
     total_trades = trades_q.count()
     recent = trades_q.limit(50).all()
 
-    # Top tickers traded
+    # Top tickers traded (same asset filter)
+    tt_clause = ("AND (ticker = 'TREAS' OR LOWER(asset_description) LIKE '%treasury%')"
+                 if treasury_only else "")
     top_tickers = db.execute(
-        text("""
+        text(f"""
             SELECT ticker, COUNT(*) as cnt,
                    SUM((amount_min + amount_max) / 2) as total_vol
             FROM congressional_trades
-            WHERE bioguide_id = :bio
+            WHERE bioguide_id = :bio {tt_clause}
             GROUP BY ticker ORDER BY cnt DESC LIMIT 10
         """), {"bio": bioguide_id}
     ).fetchall()
@@ -1936,11 +1949,13 @@ def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
             for c, m in committees
         ],
         "total_trades": total_trades,
+        "asset_filter": asset or None,
         "top_tickers":  [{"ticker": r[0], "count": r[1], "volume": r[2]} for r in top_tickers],
         "recent_trades": [
             {
                 "trade_id":         t.trade_id,
                 "ticker":           t.ticker,
+                "asset":            t.asset_description,
                 "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
                 "transaction_type": t.transaction_type,
                 "amount_min":       t.amount_min,
@@ -2001,13 +2016,34 @@ def _mid(t):
     return (t.amount_min + (t.amount_max or t.amount_min)) / 2.0
 
 
+def _parse_iso(s):
+    from datetime import date as _date
+    try:
+        return _date.fromisoformat(s) if s else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _window(years, start, end):
+    """Resolve a (start_date, end_date) window from an explicit ISO start/end or a
+    `years` lookback (end defaults to today, start to end − years)."""
+    from datetime import date as _date, timedelta as _td
+    end_d = _parse_iso(end) or _date.today()
+    start_d = _parse_iso(start) or (end_d - _td(days=365 * max(1, years)))
+    if start_d > end_d:
+        start_d, end_d = end_d, start_d
+    return start_d, end_d
+
+
 @app.get("/api/pol/treasury")
-def pol_treasury(db: Session = Depends(get_pol_db)):
-    """Congressional Treasury / T-Bill activity: a cumulative-purchase-volume time
-    series (ownership proxy), most-bought-by-politician and -by-committee
-    highlights, and the underlying purchase rows. Treasury = federal Treasury
-    bills/notes/bonds held directly (asset_description matches 'treasury' but
-    NOT bond ETFs/funds, e.g. iShares Treasury ETFs, which are fund shares)."""
+def pol_treasury(years: int = 20, start: str = "", end: str = "",
+                 bioguide: str = "", db: Session = Depends(get_pol_db)):
+    """Congressional Treasury / T-Bill activity within a window: a per-period
+    purchase-volume histogram (relative buying), most-bought-by-politician and
+    -by-committee highlights, and the underlying rows. Window = explicit ISO
+    start/end or the last `years`. Treasury = federal Treasury bills/notes/bonds
+    held directly (asset_description matches 'treasury' but NOT bond ETFs/funds)."""
+    start_d, end_d = _window(years, start, end)
     asset = func.lower(CongressionalTrade.asset_description)
     rows = db.query(CongressionalTrade, Politician).outerjoin(
         Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
@@ -2016,6 +2052,8 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
         ~asset.like("%etf%"),
         ~asset.like("%ishares%"),
         ~asset.like("%fund%"),
+        CongressionalTrade.transaction_date >= start_d,
+        CongressionalTrade.transaction_date <= end_d,
     ).order_by(CongressionalTrade.transaction_date.asc()).all()
 
     # member -> committees (for the by-committee attribution)
@@ -2026,37 +2064,58 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
     )).fetchall():
         bio_committees.setdefault(bio, []).append(cname)
 
-    # cumulative purchase volume by month + highlights
-    by_month, pol_vol, com_vol, trades = {}, {}, {}, []
+    # always monthly histogram buckets (YYYY-MM); zero-filled across the window so
+    # the time axis is uniform and year dividers land correctly
+    def bucket(d):
+        return d.isoformat()[:7]
+
+    # all distinct purchasers in the window (congressperson dropdown) — built before
+    # the bioguide filter so the option list stays stable when one is selected
+    all_pols = {}
+    for t, p in rows:
+        if (t.transaction_type or "").startswith("purchase"):
+            all_pols.setdefault(t.bioguide_id,
+                                f"{p.first_name} {p.last_name}" if p else t.bioguide_id)
+    politicians = sorted(({"bioguide_id": b, "name": n} for b, n in all_pols.items()),
+                         key=lambda x: x["name"])
+
+    # per-period purchase volume (histogram) + highlights
+    by_bucket, pol_vol, com_vol, trades = {}, {}, {}, []
     purchase_count = 0
     for t, p in rows:
+        if bioguide and t.bioguide_id != bioguide:   # optional single-member filter
+            continue
         amt = _mid(t)
         is_buy = (t.transaction_type or "").startswith("purchase")
+        name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
         if t.transaction_date and is_buy:
             purchase_count += 1
-            mkey = t.transaction_date.isoformat()[:7]  # YYYY-MM
-            by_month[mkey] = by_month.get(mkey, 0.0) + amt
-            name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
-            pv = pol_vol.setdefault(t.bioguide_id, {"name": name,
+            bk = bucket(t.transaction_date)
+            by_bucket[bk] = by_bucket.get(bk, 0.0) + amt
+            pv = pol_vol.setdefault(t.bioguide_id, {"bioguide_id": t.bioguide_id, "name": name,
                  "party": p.party if p else None, "volume": 0.0, "count": 0})
             pv["volume"] += amt; pv["count"] += 1
             for cname in bio_committees.get(t.bioguide_id, []):
                 cv = com_vol.setdefault(cname, {"volume": 0.0, "count": 0})
                 cv["volume"] += amt; cv["count"] += 1
         trades.append({
+            "bioguide_id": t.bioguide_id,
             "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
-            "politician_name": f"{p.first_name} {p.last_name}" if p else t.bioguide_id,
+            "politician_name": name,
             "party": p.party if p else None,
             "transaction_type": t.transaction_type,
             "amount_min": t.amount_min, "amount_max": t.amount_max,
             "asset": t.asset_description,
         })
 
-    series, running = [], 0.0
-    for mkey in sorted(by_month):
-        running += by_month[mkey]
-        series.append({"date": mkey + "-01", "cumulative_volume": round(running, 2)})
-
+    # zero-fill every month from window start to end (uniform time axis)
+    months, y, m = [], start_d.year, start_d.month
+    while (y, m) <= (end_d.year, end_d.month):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    series = [{"period": mk, "volume": round(by_bucket.get(mk, 0.0), 2)} for mk in months]
     top_pol = sorted(pol_vol.values(), key=lambda x: -x["volume"])[:10]
     top_com = sorted(
         ({"committee": k, **v} for k, v in com_vol.items()),
@@ -2064,24 +2123,31 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
     trades.reverse()  # newest first for the table
     return {
         "series": series,
+        "granularity": "month",
+        "window": {"start": start_d.isoformat(), "end": end_d.isoformat()},
         "by_politician": [{**p, "volume": round(p["volume"], 2)} for p in top_pol],
         "by_committee": [{**c, "volume": round(c["volume"], 2)} for c in top_com],
         "trades": trades[:200],
-        "total_volume": round(sum(by_month.values()), 2),
+        "total_volume": round(sum(by_bucket.values()), 2),
         "purchase_count": purchase_count,   # buys driving volume/series
         "trade_count": len(trades),         # all rows incl. sales (table count)
+        "politicians": politicians,         # dropdown options (all purchasers in window)
+        "selected_bioguide": bioguide or None,
     }
 
 
 @app.get("/api/market/sp500")
-def market_sp500(years: int = 20):
-    """S&P 500 monthly closes for the last `years` (live from yfinance ^GSPC)."""
-    from datetime import date as _d, timedelta as _td
+def market_sp500(years: int = 20, start: str = "", end: str = ""):
+    """S&P 500 closes for a window (explicit ISO start/end or the last `years`),
+    live from yfinance ^GSPC. Weekly bars for ≤3y windows, else monthly."""
     try:
-        start = (_d.today() - _td(days=365 * max(1, years))).isoformat()
-        hist = yf.Ticker("^GSPC").history(start=start, interval="1mo")
+        start_d, end_d = _window(years, start, end)
+        span = (end_d - start_d).days
+        interval = "1wk" if span <= 365 * 3 else "1mo"
+        hist = yf.Ticker("^GSPC").history(
+            start=start_d.isoformat(), end=end_d.isoformat(), interval=interval)
         closes = hist["Close"].dropna()
-        return {"points": [
+        return {"interval": interval, "points": [
             {"date": idx.strftime("%Y-%m-%d"), "close": round(float(v), 2)}
             for idx, v in closes.items()
         ]}

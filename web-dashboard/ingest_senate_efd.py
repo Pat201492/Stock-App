@@ -55,6 +55,9 @@ def _amount(label):
     return AMOUNT_RANGES.get((label or "").strip(), (None, None))
 
 
+TREASURY_TICKER = "TREAS"  # direct-held Treasury/T-Bills carry no ticker
+
+
 def parse_ptr_html(text):
     """Parse an e-filed Senate PTR page -> list of dicts. Pure function."""
     doc = LH.fromstring(text)
@@ -65,11 +68,19 @@ def parse_ptr_html(text):
             continue
         # 0:# 1:date 2:owner 3:ticker 4:asset 5:asset_type 6:txn_type 7:amount 8:comment
         ticker = cells[3].strip().upper()
-        if not ticker or ticker in ("--", "N/A") or not re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", ticker):
-            continue
+        asset = ""
+        valid = (ticker and ticker not in ("--", "N/A")
+                 and re.fullmatch(r"[A-Z][A-Z.\-]{0,5}", ticker))
+        if not valid:
+            # keep direct Treasury/T-Bill rows (no ticker); drop everything else
+            if "treasur" in f"{cells[4]} {cells[5]}".lower():
+                ticker, asset = TREASURY_TICKER, (cells[4] or "U.S. Treasury")[:120]
+            else:
+                continue
         amin, amax = _amount(cells[7])
         out.append({
             "ticker": ticker.replace(".", "-"),
+            "asset": asset,
             "owner": (cells[2] or "self").strip().lower()[:20],
             "txn_date": _parse_date(cells[1]),
             "type": TYPE_MAP.get(cells[6], (cells[6] or "").lower().replace(" ", "_")),
@@ -192,7 +203,7 @@ def ingest(full_refresh=False):
                 existing_ids.add(tid)
                 db.merge(CongressionalTrade(
                     trade_id=tid, bioguide_id=bioguide, ticker=t["ticker"],
-                    asset_description="", transaction_date=t["txn_date"],
+                    asset_description=t.get("asset", ""), transaction_date=t["txn_date"],
                     disclosure_date=disc_date, transaction_type=t["type"],
                     amount_min=t["amount_min"], amount_max=t["amount_max"],
                     owner=t["owner"], source=SOURCE, ingested_at=datetime.utcnow(),
