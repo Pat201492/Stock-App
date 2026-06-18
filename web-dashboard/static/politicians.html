@@ -186,15 +186,15 @@ function fmtBig(v) {
 }
 
 async function loadTreasury() {
-  if (_treasuryLoaded) return;          // build once
-  _treasuryLoaded = true;
+  if (_treasuryLoaded) return;          // build once (only marked done on success)
   const [sp, tre] = await Promise.all([
     fetch("/api/market/sp500?years=20").then(r => r.json()).catch(() => ({points:[]})),
     fetch("/api/pol/treasury").then(r => r.json()).catch(() => null),
   ]);
 
-  // S&P 500 chart
+  // S&P 500 chart (destroy any prior instance so a retry doesn't reuse the canvas)
   const spPts = sp.points || [];
+  if (_spChart) _spChart.destroy();
   _spChart = new Chart(document.getElementById("sp500-chart"), {
     type: "line",
     data: { labels: spPts.map(p => p.date),
@@ -205,9 +205,10 @@ async function loadTreasury() {
       scales: { x: { ticks: { maxTicksLimit: 10 } } } },
   });
 
-  if (!tre) return;
+  if (!tre) return;                     // leave _treasuryLoaded false → allow retry
   // Treasury cumulative-volume chart (shares the time span visually)
   const ts = tre.series || [];
+  if (_treChart) _treChart.destroy();
   _treChart = new Chart(document.getElementById("treasury-chart"), {
     type: "line",
     data: { labels: ts.map(p => p.date),
@@ -219,8 +220,11 @@ async function loadTreasury() {
       scales: { x: { ticks: { maxTicksLimit: 10 } },
         y: { ticks: { callback: v => fmtBig(v) } } } },
   });
+  const buys = tre.purchase_count ?? tre.trade_count;
+  const sales = tre.trade_count - buys;
   document.getElementById("treasury-note").textContent =
-    `${tre.trade_count} Treasury trades · ${fmtBig(tre.total_volume)} total purchases. ` +
+    `${buys} Treasury purchases${sales > 0 ? ` (+${sales} sales)` : ""} · ` +
+    `${fmtBig(tre.total_volume)} total purchase volume. ` +
     `Congressional disclosures begin ~2012 (STOCK Act), so the Treasury series is shorter than the S&P axis.`;
 
   // Highlights
@@ -251,6 +255,7 @@ async function loadTreasury() {
           <td class="muted" style="font-size:12px">${t.asset||"—"}</td>
         </tr>`).join("")
     : `<tr><td colspan="6"><div class="muted">No Treasury purchases on record.</div></td></tr>`;
+  _treasuryLoaded = true;               // fully built — stop further reloads
 }
 
 function fmtAmt(min, max) {

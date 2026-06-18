@@ -2006,11 +2006,16 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
     """Congressional Treasury / T-Bill activity: a cumulative-purchase-volume time
     series (ownership proxy), most-bought-by-politician and -by-committee
     highlights, and the underlying purchase rows. Treasury = federal Treasury
-    bills/notes/bonds (asset_description matches 'treasury')."""
+    bills/notes/bonds held directly (asset_description matches 'treasury' but
+    NOT bond ETFs/funds, e.g. iShares Treasury ETFs, which are fund shares)."""
+    asset = func.lower(CongressionalTrade.asset_description)
     rows = db.query(CongressionalTrade, Politician).outerjoin(
         Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
     ).filter(
-        func.lower(CongressionalTrade.asset_description).like("%treasury%")
+        asset.like("%treasury%"),
+        ~asset.like("%etf%"),
+        ~asset.like("%ishares%"),
+        ~asset.like("%fund%"),
     ).order_by(CongressionalTrade.transaction_date.asc()).all()
 
     # member -> committees (for the by-committee attribution)
@@ -2023,10 +2028,12 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
 
     # cumulative purchase volume by month + highlights
     by_month, pol_vol, com_vol, trades = {}, {}, {}, []
+    purchase_count = 0
     for t, p in rows:
         amt = _mid(t)
         is_buy = (t.transaction_type or "").startswith("purchase")
         if t.transaction_date and is_buy:
+            purchase_count += 1
             mkey = t.transaction_date.isoformat()[:7]  # YYYY-MM
             by_month[mkey] = by_month.get(mkey, 0.0) + amt
             name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
@@ -2061,7 +2068,8 @@ def pol_treasury(db: Session = Depends(get_pol_db)):
         "by_committee": [{**c, "volume": round(c["volume"], 2)} for c in top_com],
         "trades": trades[:200],
         "total_volume": round(sum(by_month.values()), 2),
-        "trade_count": len(trades),
+        "purchase_count": purchase_count,   # buys driving volume/series
+        "trade_count": len(trades),         # all rows incl. sales (table count)
     }
 
 
