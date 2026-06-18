@@ -2049,16 +2049,10 @@ def pol_treasury(years: int = 20, start: str = "", end: str = "",
     )).fetchall():
         bio_committees.setdefault(bio, []).append(cname)
 
-    # histogram bucket granularity scales with the window span
-    span_days = (end_d - start_d).days
-    gran = "month" if span_days <= 900 else "quarter" if span_days <= 3300 else "year"
-
+    # always monthly histogram buckets (YYYY-MM); zero-filled across the window so
+    # the time axis is uniform and year dividers land correctly
     def bucket(d):
-        if gran == "month":
-            return d.isoformat()[:7]                       # YYYY-MM
-        if gran == "quarter":
-            return f"{d.year}-Q{(d.month - 1) // 3 + 1}"   # YYYY-Qn
-        return str(d.year)                                  # YYYY
+        return d.isoformat()[:7]
 
     # per-period purchase volume (histogram) + highlights
     by_bucket, pol_vol, com_vol, trades = {}, {}, {}, []
@@ -2086,7 +2080,14 @@ def pol_treasury(years: int = 20, start: str = "", end: str = "",
             "asset": t.asset_description,
         })
 
-    series = [{"period": bk, "volume": round(by_bucket[bk], 2)} for bk in sorted(by_bucket)]
+    # zero-fill every month from window start to end (uniform time axis)
+    months, y, m = [], start_d.year, start_d.month
+    while (y, m) <= (end_d.year, end_d.month):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    series = [{"period": mk, "volume": round(by_bucket.get(mk, 0.0), 2)} for mk in months]
     top_pol = sorted(pol_vol.values(), key=lambda x: -x["volume"])[:10]
     top_com = sorted(
         ({"committee": k, **v} for k, v in com_vol.items()),
@@ -2094,7 +2095,7 @@ def pol_treasury(years: int = 20, start: str = "", end: str = "",
     trades.reverse()  # newest first for the table
     return {
         "series": series,
-        "granularity": gran,
+        "granularity": "month",
         "window": {"start": start_d.isoformat(), "end": end_d.isoformat()},
         "by_politician": [{**p, "volume": round(p["volume"], 2)} for p in top_pol],
         "by_committee": [{**c, "volume": round(c["volume"], 2)} for c in top_com],

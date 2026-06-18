@@ -43,6 +43,16 @@ _DATA_RE = re.compile(
 _TICKER_RE = re.compile(r"\(([A-Z][A-Z.]{0,5})\)\s*\[([A-Z]{2})\]")
 _OWNER_RE = re.compile(r"^\s*(SP|JT|DC)\b")
 _AMT_ONLY_RE = re.compile(r"^\s*\$?([\d,]+)\s*$")
+# direct-held Treasury/T-Bill rows carry no ticker (asset_type [GS]); keyed by name
+TREASURY_TICKER = "TREAS"
+
+
+def _treasury_asset(s):
+    """Asset name from a Treasury line: text up to the [GS] tag, owner-code/spacing
+    stripped. 'SP  U.S. Treasury Bills [GS] ...' -> 'U.S. Treasury Bills'."""
+    name = re.sub(r"\s*\[[A-Z]{2}\].*$", "", s).strip()
+    name = re.sub(r"^(SP|JT|DC)\s+", "", name).strip()
+    return name[:120] or "U.S. Treasury"
 
 
 def _parse_date(s):
@@ -121,6 +131,7 @@ def parse_transactions(text):
     out = []
     pending_ticker = None
     pending_owner = None
+    pending_asset = ""
     for i, line in enumerate(lines):
         om = _OWNER_RE.match(line)
         if om:
@@ -128,16 +139,27 @@ def parse_transactions(text):
         tm = _TICKER_RE.search(line)
         if tm:
             pending_ticker = tm.group(1)
+            pending_asset = ""
+        elif "treasur" in line.lower():          # direct Treasury/T-Bill (no ticker)
+            pending_ticker = TREASURY_TICKER
+            pending_asset = _treasury_asset(line)
         dm = _DATA_RE.search(line)
         if not dm:
             continue
         type_letter, partfull, d1, d2, amin, amax = dm.groups()
-        # ticker on the same line before the data wins over a stale pending one
-        same = _TICKER_RE.search(line[: dm.start()])
-        ticker = same.group(1) if same else pending_ticker
+        # asset on the same line before the data wins over a stale pending one
+        head = line[: dm.start()]
+        same = _TICKER_RE.search(head)
+        if same:
+            ticker, asset = same.group(1), ""
+        elif "treasur" in head.lower():
+            ticker, asset = TREASURY_TICKER, _treasury_asset(head)
+        else:
+            ticker, asset = pending_ticker, pending_asset
         if not ticker:
             pending_ticker = None
             pending_owner = None
+            pending_asset = ""
             continue
         if amax is None and i + 1 < len(lines):
             nm = _AMT_ONLY_RE.match(lines[i + 1])
@@ -149,6 +171,7 @@ def parse_transactions(text):
             ttype = TYPE_MAP.get(type_letter, type_letter.lower())
         out.append({
             "ticker": ticker.upper().replace(".", "-"),
+            "asset": asset,
             "type": ttype,
             "txn_date": _parse_date(d1),
             "disc_date": _parse_date(d2),
@@ -158,6 +181,7 @@ def parse_transactions(text):
         })
         pending_ticker = None
         pending_owner = None
+        pending_asset = ""
     return out
 
 
@@ -310,7 +334,7 @@ def ingest(full_refresh=False):
                         trade_id=tid,
                         bioguide_id=bioguide,
                         ticker=t["ticker"],
-                        asset_description="",
+                        asset_description=t.get("asset", ""),
                         transaction_date=t["txn_date"],
                         disclosure_date=t["disc_date"],
                         transaction_type=t["type"],

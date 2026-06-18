@@ -32,8 +32,17 @@ def test_is_scanned():
 def test_parse_transactions_tickers():
     txns = h.parse_transactions(_sample())
     tickers = [t["ticker"] for t in txns]
-    # ABT, AAPL, AMZN are stocks; the muni bond + Treasury (CUSIP) carry no ticker
-    assert tickers == ["ABT", "AAPL", "AMZN"]
+    # ABT/AAPL/AMZN are stocks; the US Treasury Note is captured under a TREAS
+    # sentinel; the muni bond (no ticker, not a Treasury) is still dropped
+    assert tickers == ["ABT", "AAPL", "AMZN", "TREAS"]
+
+
+def test_treasury_row_captured():
+    t = next(t for t in h.parse_transactions(_sample()) if t["ticker"] == "TREAS")
+    assert "treasur" in t["asset"].lower()      # asset_description feeds the /treasury filter
+    assert t["type"] == "sale_full"
+    assert t["txn_date"] == date(2026, 4, 16)
+    assert (t["amount_min"], t["amount_max"]) == (100001, 250000)
 
 
 def test_abt_sale_full_wrapped_amount():

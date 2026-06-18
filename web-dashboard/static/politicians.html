@@ -207,6 +207,26 @@ function fmtBig(v) {
   return `$${v.toFixed(0)}`;
 }
 
+// dashed vertical divider + label at each January bin (year markers on the histogram)
+const yearDividers = {
+  id: "yearDividers",
+  afterDraw(chart) {
+    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+    const labels = chart.data.labels || [];
+    ctx.save();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = "rgba(148,163,184,.45)"; ctx.lineWidth = 1;
+    ctx.fillStyle = "#94a3b8"; ctx.font = "10px sans-serif";
+    labels.forEach((lab, i) => {
+      if (typeof lab === "string" && lab.endsWith("-01")) {
+        const xp = x.getPixelForValue(i);
+        ctx.beginPath(); ctx.moveTo(xp, top); ctx.lineTo(xp, bottom); ctx.stroke();
+        ctx.fillText(lab.slice(0, 4), xp + 2, top + 9);
+      }
+    });
+    ctx.restore();
+  },
+};
+
 function _treQuery() {
   const w = _treWindow;
   return (w.start && w.end) ? `start=${w.start}&end=${w.end}` : `years=${w.years || 20}`;
@@ -262,12 +282,19 @@ async function loadTreasury() {
     type: "bar",
     data: { labels: ts.map(p => p.period),
       datasets: [{ label: "Treasury purchases", data: ts.map(p => p.volume),
-        backgroundColor: "rgba(34,197,94,.65)", borderColor: "#22c55e", borderWidth: 1 }] },
+        backgroundColor: "rgba(34,197,94,.7)", borderColor: "#22c55e", borderWidth: 0,
+        categoryPercentage: 1.0, barPercentage: 1.0 }] },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: c => fmtBig(c.parsed.y) } } },
-      scales: { x: { ticks: { maxTicksLimit: 16 } },
+        tooltip: { callbacks: { title: items => items[0].label,
+                                label: c => fmtBig(c.parsed.y) } } },
+      scales: {
+        x: { grid: { display: false },
+          ticks: { autoSkip: false, maxRotation: 0,
+            callback: function(val) { const l = this.getLabelForValue(val);
+              return (typeof l === "string" && l.endsWith("-01")) ? l.slice(0, 4) : ""; } } },
         y: { beginAtZero: true, ticks: { callback: v => fmtBig(v) } } } },
+    plugins: [yearDividers],
   });
   const buys = tre.purchase_count ?? tre.trade_count;
   const sales = tre.trade_count - buys;

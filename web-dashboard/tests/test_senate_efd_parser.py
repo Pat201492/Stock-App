@@ -13,10 +13,17 @@ def _sample():
         return f.read()
 
 
-def test_parses_tickered_rows_only():
+def test_parses_tickered_and_treasury_rows():
     txns = s.parse_ptr_html(_sample())
-    # the "--" Treasury row is skipped; two tickered rows remain
-    assert [t["ticker"] for t in txns] == ["KHC", "AAPL"]
+    # two tickered rows + the no-ticker Treasury row under a TREAS sentinel
+    assert [t["ticker"] for t in txns] == ["KHC", "AAPL", "TREAS"]
+
+
+def test_treasury_row_captured():
+    t = next(t for t in s.parse_ptr_html(_sample()) if t["ticker"] == "TREAS")
+    assert "treasur" in t["asset"].lower()      # feeds the /treasury asset filter
+    assert t["type"] == "purchase"
+    assert (t["amount_min"], t["amount_max"]) == (50001, 100000)
 
 
 def test_fields_mapped():
