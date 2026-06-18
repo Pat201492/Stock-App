@@ -6,6 +6,7 @@
   <title>Congressional Trades — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css?v=3" />
   <script src="/static/nav-mobile.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -45,6 +46,7 @@
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border)">
     <button class="sub-tab active" data-tab="feed"  onclick="switchTab('feed')">Trade Feed</button>
     <button class="sub-tab"        data-tab="board" onclick="switchTab('board')">Leaderboards</button>
+    <button class="sub-tab"        data-tab="treasury" onclick="switchTab('treasury')">Treasury / T-Bills</button>
   </div>
 
   <!-- Trade feed tab -->
@@ -127,6 +129,37 @@
       </div>
     </div>
   </div>
+
+  <!-- Treasury / T-Bills tab -->
+  <div id="tab-treasury" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">S&amp;P 500 — last 20 years</div>
+      <div style="position:relative;height:240px"><canvas id="sp500-chart"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Congressional Treasury / T-Bill ownership — cumulative purchase volume</div>
+      <div style="position:relative;height:240px"><canvas id="treasury-chart"></canvas></div>
+      <div class="muted" id="treasury-note" style="font-size:11px;margin-top:6px"></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Most Bought — by Politician</div>
+        <div id="tre-by-pol"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Most Bought — by Committee</div>
+        <div id="tre-by-com"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Treasury Purchases</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Politician</th><th>Party</th><th>Type</th>
+          <th style="text-align:right">Amount</th><th>Asset</th></tr></thead>
+        <tbody id="tre-table"><tr><td colspan="6"><div class="muted">—</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -136,9 +169,88 @@ const committeeSectors = {};   // committee_id -> [sectors]
 
 function switchTab(tab) {
   document.querySelectorAll(".sub-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  document.getElementById("tab-feed").style.display  = tab === "feed"  ? "block" : "none";
-  document.getElementById("tab-board").style.display = tab === "board" ? "block" : "none";
+  document.getElementById("tab-feed").style.display     = tab === "feed"     ? "block" : "none";
+  document.getElementById("tab-board").style.display    = tab === "board"    ? "block" : "none";
+  document.getElementById("tab-treasury").style.display = tab === "treasury" ? "block" : "none";
   if (tab === "board") loadBoard();
+  if (tab === "treasury") loadTreasury();
+}
+
+let _treasuryLoaded = false, _spChart = null, _treChart = null;
+function fmtBig(v) {
+  if (v == null) return "—";
+  if (v >= 1e9) return `$${(v/1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v/1e6).toFixed(2)}M`;
+  if (v >= 1e3) return `$${(v/1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+}
+
+async function loadTreasury() {
+  if (_treasuryLoaded) return;          // build once
+  _treasuryLoaded = true;
+  const [sp, tre] = await Promise.all([
+    fetch("/api/market/sp500?years=20").then(r => r.json()).catch(() => ({points:[]})),
+    fetch("/api/pol/treasury").then(r => r.json()).catch(() => null),
+  ]);
+
+  // S&P 500 chart
+  const spPts = sp.points || [];
+  _spChart = new Chart(document.getElementById("sp500-chart"), {
+    type: "line",
+    data: { labels: spPts.map(p => p.date),
+      datasets: [{ label: "S&P 500", data: spPts.map(p => p.close), borderColor: "#3b82f6",
+        borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: "rgba(59,130,246,.08)" }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { maxTicksLimit: 10 } } } },
+  });
+
+  if (!tre) return;
+  // Treasury cumulative-volume chart (shares the time span visually)
+  const ts = tre.series || [];
+  _treChart = new Chart(document.getElementById("treasury-chart"), {
+    type: "line",
+    data: { labels: ts.map(p => p.date),
+      datasets: [{ label: "Cumulative Treasury purchases", data: ts.map(p => p.cumulative_volume),
+        borderColor: "#22c55e", borderWidth: 1.5, pointRadius: 0, fill: true,
+        backgroundColor: "rgba(34,197,94,.10)" }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { maxTicksLimit: 10 } },
+        y: { ticks: { callback: v => fmtBig(v) } } } },
+  });
+  document.getElementById("treasury-note").textContent =
+    `${tre.trade_count} Treasury trades · ${fmtBig(tre.total_volume)} total purchases. ` +
+    `Congressional disclosures begin ~2012 (STOCK Act), so the Treasury series is shorter than the S&P axis.`;
+
+  // Highlights
+  document.getElementById("tre-by-pol").innerHTML = (tre.by_politician||[]).length
+    ? (tre.by_politician).map((p,i) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span><span class="muted">${i+1}.</span> ${p.name} ${p.party?`<span class="muted">(${p.party})</span>`:""}</span>
+          <span style="font-weight:600">${fmtBig(p.volume)} <span class="muted" style="font-weight:400">· ${p.count}</span></span>
+        </div>`).join("")
+    : `<div class="muted">No Treasury purchases on record.</div>`;
+  document.getElementById("tre-by-com").innerHTML = (tre.by_committee||[]).length
+    ? (tre.by_committee).map((c,i) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span><span class="muted">${i+1}.</span> ${c.committee}</span>
+          <span style="font-weight:600;white-space:nowrap">${fmtBig(c.volume)}</span>
+        </div>`).join("")
+    : `<div class="muted">No committee attribution.</div>`;
+
+  // Table
+  document.getElementById("tre-table").innerHTML = (tre.trades||[]).length
+    ? tre.trades.map(t => `
+        <tr>
+          <td class="muted" style="font-size:12px">${t.transaction_date||"—"}</td>
+          <td>${t.politician_name}</td>
+          <td class="muted">${t.party||"—"}</td>
+          <td>${typeBadge(t.transaction_type)}</td>
+          <td style="text-align:right">${fmtAmt(t.amount_min, t.amount_max)}</td>
+          <td class="muted" style="font-size:12px">${t.asset||"—"}</td>
+        </tr>`).join("")
+    : `<tr><td colspan="6"><div class="muted">No Treasury purchases on record.</div></td></tr>`;
 }
 
 function fmtAmt(min, max) {

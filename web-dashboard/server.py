@@ -1995,6 +1995,92 @@ def pol_leaderboard(
     return JSONResponse(status_code=400, content={"error": f"Unknown metric: {metric}"})
 
 
+def _mid(t):
+    if t.amount_min is None:
+        return 0.0
+    return (t.amount_min + (t.amount_max or t.amount_min)) / 2.0
+
+
+@app.get("/api/pol/treasury")
+def pol_treasury(db: Session = Depends(get_pol_db)):
+    """Congressional Treasury / T-Bill activity: a cumulative-purchase-volume time
+    series (ownership proxy), most-bought-by-politician and -by-committee
+    highlights, and the underlying purchase rows. Treasury = federal Treasury
+    bills/notes/bonds (asset_description matches 'treasury')."""
+    rows = db.query(CongressionalTrade, Politician).outerjoin(
+        Politician, CongressionalTrade.bioguide_id == Politician.bioguide_id
+    ).filter(
+        func.lower(CongressionalTrade.asset_description).like("%treasury%")
+    ).order_by(CongressionalTrade.transaction_date.asc()).all()
+
+    # member -> committees (for the by-committee attribution)
+    bio_committees = {}
+    for bio, cname in db.execute(text(
+        "SELECT m.bioguide_id, c.name FROM committee_memberships m "
+        "JOIN committees c ON c.committee_id = m.committee_id"
+    )).fetchall():
+        bio_committees.setdefault(bio, []).append(cname)
+
+    # cumulative purchase volume by month + highlights
+    by_month, pol_vol, com_vol, trades = {}, {}, {}, []
+    for t, p in rows:
+        amt = _mid(t)
+        is_buy = (t.transaction_type or "").startswith("purchase")
+        if t.transaction_date and is_buy:
+            mkey = t.transaction_date.isoformat()[:7]  # YYYY-MM
+            by_month[mkey] = by_month.get(mkey, 0.0) + amt
+            name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
+            pv = pol_vol.setdefault(t.bioguide_id, {"name": name,
+                 "party": p.party if p else None, "volume": 0.0, "count": 0})
+            pv["volume"] += amt; pv["count"] += 1
+            for cname in bio_committees.get(t.bioguide_id, []):
+                cv = com_vol.setdefault(cname, {"volume": 0.0, "count": 0})
+                cv["volume"] += amt; cv["count"] += 1
+        trades.append({
+            "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
+            "politician_name": f"{p.first_name} {p.last_name}" if p else t.bioguide_id,
+            "party": p.party if p else None,
+            "transaction_type": t.transaction_type,
+            "amount_min": t.amount_min, "amount_max": t.amount_max,
+            "asset": t.asset_description,
+        })
+
+    series, running = [], 0.0
+    for mkey in sorted(by_month):
+        running += by_month[mkey]
+        series.append({"date": mkey + "-01", "cumulative_volume": round(running, 2)})
+
+    top_pol = sorted(pol_vol.values(), key=lambda x: -x["volume"])[:10]
+    top_com = sorted(
+        ({"committee": k, **v} for k, v in com_vol.items()),
+        key=lambda x: -x["volume"])[:10]
+    trades.reverse()  # newest first for the table
+    return {
+        "series": series,
+        "by_politician": [{**p, "volume": round(p["volume"], 2)} for p in top_pol],
+        "by_committee": [{**c, "volume": round(c["volume"], 2)} for c in top_com],
+        "trades": trades[:200],
+        "total_volume": round(sum(by_month.values()), 2),
+        "trade_count": len(trades),
+    }
+
+
+@app.get("/api/market/sp500")
+def market_sp500(years: int = 20):
+    """S&P 500 monthly closes for the last `years` (live from yfinance ^GSPC)."""
+    from datetime import date as _d, timedelta as _td
+    try:
+        start = (_d.today() - _td(days=365 * max(1, years))).isoformat()
+        hist = yf.Ticker("^GSPC").history(start=start, interval="1mo")
+        closes = hist["Close"].dropna()
+        return {"points": [
+            {"date": idx.strftime("%Y-%m-%d"), "close": round(float(v), 2)}
+            for idx, v in closes.items()
+        ]}
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"S&P fetch failed: {e}"})
+
+
 @app.get("/api/pol/ticker/{ticker}")
 def pol_ticker(ticker: str, days: int = 99999, db: Session = Depends(get_pol_db)):
     from datetime import date as _d, timedelta as _td
