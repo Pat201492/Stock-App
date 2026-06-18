@@ -6,7 +6,7 @@
   <title>Relationship Web — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css?v=3" />
   <script src="/static/nav-mobile.js?v=1"></script>
-  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
 </head>
 <body>
 
@@ -122,10 +122,28 @@ function switchParty(p){
   reload();
 }
 
+function fatal(msg){
+  const el = document.getElementById("net");
+  el.innerHTML = `<div style="display:flex;height:100%;align-items:center;justify-content:center;
+    text-align:center;padding:24px;color:var(--muted)">${msg}</div>`;
+}
+
 async function reload(){
+  if (typeof vis === "undefined" || !vis.Network){
+    fatal("Graph library failed to load.<br>Check your network connection (the vis-network CDN is blocked or unreachable).");
+    return;
+  }
   const limit = document.getElementById("limit-sel").value;
-  const d = await fetch(`/api/pol/relationships?party=${curParty}&limit=${limit}`)
-    .then(r => r.json()).catch(() => ({nodes:[], edges:[]}));
+  let d;
+  try {
+    const r = await fetch(`/api/pol/relationships?party=${curParty}&limit=${limit}`);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    d = await r.json();
+  } catch (err) {
+    fatal(`Could not load relationship data (${err.message}).<br>
+      If the server was already running, restart it so the <code>/api/pol/relationships</code> route loads.`);
+    return;
+  }
   raw = d;
   layout(raw.nodes, raw.edges);
   rerender();
