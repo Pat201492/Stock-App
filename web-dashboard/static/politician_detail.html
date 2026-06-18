@@ -45,7 +45,7 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Recent Trades</div>
+    <div class="card-title" id="trades-title">Recent Trades</div>
     <div class="table-wrap" style="border:none">
       <table>
         <thead>
@@ -67,6 +67,7 @@
 
 <script>
 const bioguide = location.pathname.split("/").filter(Boolean).pop();
+const assetFilter = new URLSearchParams(location.search).get("asset") || "";
 
 function fmtAmt(min, max) {
   if (min == null) return "—";
@@ -89,7 +90,8 @@ function scoreBadge(s, label) {
 }
 
 async function init() {
-  const d = await fetch(`/api/pol/politician/${bioguide}`).then(r => r.json()).catch(() => null);
+  const qs = assetFilter ? `?asset=${encodeURIComponent(assetFilter)}` : "";
+  const d = await fetch(`/api/pol/politician/${bioguide}${qs}`).then(r => r.json()).catch(() => null);
   if (!d || d.error) {
     document.getElementById("pol-header").innerHTML =
       `<div class="empty">Politician not found.</div>`;
@@ -137,9 +139,11 @@ async function init() {
         </div>`).join("")
     : `<div class="empty">No trades</div>`;
 
-  // Recent trades — also fetch stock scores in parallel for the unique tickers
+  // Recent trades — fetch stock scores for real tickers (skip the TREAS sentinel)
+  if (assetFilter === "treasury")
+    document.getElementById("trades-title").textContent = "Treasury / Bond Purchases";
   const trades = d.recent_trades || [];
-  const tickers = [...new Set(trades.map(t => t.ticker))];
+  const tickers = [...new Set(trades.map(t => t.ticker))].filter(tk => tk !== "TREAS");
   const scoreMap = {};
   await Promise.all(tickers.map(async tk => {
     const s = await fetch(`/api/stocks/${tk}/score`).then(r => r.json()).catch(() => null);
@@ -148,17 +152,21 @@ async function init() {
 
   document.getElementById("trades-body").innerHTML = trades.length
     ? trades.map(t => {
+        const isTreas = t.ticker === "TREAS";
+        const nameCell = isTreas
+          ? `<span title="${t.asset || "Treasury"}">${t.asset || "U.S. Treasury"}</span>`
+          : `<a href="/stock/${t.ticker}" class="ticker-cell">${t.ticker}</a>`;
         const sc = scoreMap[t.ticker];
         return `
           <tr>
-            <td><a href="/stock/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
+            <td>${nameCell}</td>
             <td>${sc ? scoreBadge(sc.composite, sc.label) : `<span class="muted">—</span>`}</td>
             <td>${typeBadge(t.transaction_type)}</td>
             <td style="text-align:right;font-weight:600">${fmtAmt(t.amount_min, t.amount_max)}</td>
             <td class="muted" style="font-size:12px">${t.transaction_date || "—"}</td>
           </tr>`;
       }).join("")
-    : `<tr><td colspan="5"><div class="empty">No trades</div></td></tr>`;
+    : `<tr><td colspan="5"><div class="empty">No ${assetFilter === "treasury" ? "Treasury" : ""} trades</div></td></tr>`;
 }
 
 init();

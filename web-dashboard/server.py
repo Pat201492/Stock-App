@@ -1899,7 +1899,7 @@ def pol_trades(
 
 
 @app.get("/api/pol/politician/{bioguide_id}")
-def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
+def pol_politician(bioguide_id: str, asset: str = "", db: Session = Depends(get_pol_db)):
     pol = db.query(Politician).filter(Politician.bioguide_id == bioguide_id).first()
     if not pol:
         return JSONResponse(status_code=404, content={"error": "Not found"})
@@ -1908,19 +1908,27 @@ def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
         CommitteeMembership, Committee.committee_id == CommitteeMembership.committee_id
     ).filter(CommitteeMembership.bioguide_id == bioguide_id).all()
 
+    # optional asset filter — 'treasury' restricts to direct Treasury/T-Bill rows
+    treasury_only = asset == "treasury"
     trades_q = db.query(CongressionalTrade).filter(
-        CongressionalTrade.bioguide_id == bioguide_id
-    ).order_by(CongressionalTrade.transaction_date.desc())
+        CongressionalTrade.bioguide_id == bioguide_id)
+    if treasury_only:
+        _a = func.lower(CongressionalTrade.asset_description)
+        trades_q = trades_q.filter(
+            (CongressionalTrade.ticker == "TREAS") | _a.like("%treasury%"))
+    trades_q = trades_q.order_by(CongressionalTrade.transaction_date.desc())
     total_trades = trades_q.count()
     recent = trades_q.limit(50).all()
 
-    # Top tickers traded
+    # Top tickers traded (same asset filter)
+    tt_clause = ("AND (ticker = 'TREAS' OR LOWER(asset_description) LIKE '%treasury%')"
+                 if treasury_only else "")
     top_tickers = db.execute(
-        text("""
+        text(f"""
             SELECT ticker, COUNT(*) as cnt,
                    SUM((amount_min + amount_max) / 2) as total_vol
             FROM congressional_trades
-            WHERE bioguide_id = :bio
+            WHERE bioguide_id = :bio {tt_clause}
             GROUP BY ticker ORDER BY cnt DESC LIMIT 10
         """), {"bio": bioguide_id}
     ).fetchall()
@@ -1941,11 +1949,13 @@ def pol_politician(bioguide_id: str, db: Session = Depends(get_pol_db)):
             for c, m in committees
         ],
         "total_trades": total_trades,
+        "asset_filter": asset or None,
         "top_tickers":  [{"ticker": r[0], "count": r[1], "volume": r[2]} for r in top_tickers],
         "recent_trades": [
             {
                 "trade_id":         t.trade_id,
                 "ticker":           t.ticker,
+                "asset":            t.asset_description,
                 "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
                 "transaction_type": t.transaction_type,
                 "amount_min":       t.amount_min,
@@ -2027,7 +2037,7 @@ def _window(years, start, end):
 
 @app.get("/api/pol/treasury")
 def pol_treasury(years: int = 20, start: str = "", end: str = "",
-                 db: Session = Depends(get_pol_db)):
+                 bioguide: str = "", db: Session = Depends(get_pol_db)):
     """Congressional Treasury / T-Bill activity within a window: a per-period
     purchase-volume histogram (relative buying), most-bought-by-politician and
     -by-committee highlights, and the underlying rows. Window = explicit ISO
@@ -2059,26 +2069,39 @@ def pol_treasury(years: int = 20, start: str = "", end: str = "",
     def bucket(d):
         return d.isoformat()[:7]
 
+    # all distinct purchasers in the window (congressperson dropdown) — built before
+    # the bioguide filter so the option list stays stable when one is selected
+    all_pols = {}
+    for t, p in rows:
+        if (t.transaction_type or "").startswith("purchase"):
+            all_pols.setdefault(t.bioguide_id,
+                                f"{p.first_name} {p.last_name}" if p else t.bioguide_id)
+    politicians = sorted(({"bioguide_id": b, "name": n} for b, n in all_pols.items()),
+                         key=lambda x: x["name"])
+
     # per-period purchase volume (histogram) + highlights
     by_bucket, pol_vol, com_vol, trades = {}, {}, {}, []
     purchase_count = 0
     for t, p in rows:
+        if bioguide and t.bioguide_id != bioguide:   # optional single-member filter
+            continue
         amt = _mid(t)
         is_buy = (t.transaction_type or "").startswith("purchase")
+        name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
         if t.transaction_date and is_buy:
             purchase_count += 1
             bk = bucket(t.transaction_date)
             by_bucket[bk] = by_bucket.get(bk, 0.0) + amt
-            name = f"{p.first_name} {p.last_name}" if p else t.bioguide_id
-            pv = pol_vol.setdefault(t.bioguide_id, {"name": name,
+            pv = pol_vol.setdefault(t.bioguide_id, {"bioguide_id": t.bioguide_id, "name": name,
                  "party": p.party if p else None, "volume": 0.0, "count": 0})
             pv["volume"] += amt; pv["count"] += 1
             for cname in bio_committees.get(t.bioguide_id, []):
                 cv = com_vol.setdefault(cname, {"volume": 0.0, "count": 0})
                 cv["volume"] += amt; cv["count"] += 1
         trades.append({
+            "bioguide_id": t.bioguide_id,
             "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
-            "politician_name": f"{p.first_name} {p.last_name}" if p else t.bioguide_id,
+            "politician_name": name,
             "party": p.party if p else None,
             "transaction_type": t.transaction_type,
             "amount_min": t.amount_min, "amount_max": t.amount_max,
@@ -2108,6 +2131,8 @@ def pol_treasury(years: int = 20, start: str = "", end: str = "",
         "total_volume": round(sum(by_bucket.values()), 2),
         "purchase_count": purchase_count,   # buys driving volume/series
         "trade_count": len(trades),         # all rows incl. sales (table count)
+        "politicians": politicians,         # dropdown options (all purchasers in window)
+        "selected_bioguide": bioguide or None,
     }
 
 

@@ -153,6 +153,11 @@
       <span class="muted">→</span>
       <input type="date" id="tre-end" />
       <button class="btn btn-outline btn-sm" onclick="applyTreasuryCustom()">Apply</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+      <label class="muted" style="font-size:12px">Member:</label>
+      <select id="tre-pol" onchange="onTreasuryPol()" style="font-size:12px;max-width:240px">
+        <option value="">All congresspeople</option>
+      </select>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-title" id="sp-title">S&amp;P 500 — last 20 years</div>
@@ -200,6 +205,7 @@ function switchTab(tab) {
 
 let _treInit = false, _spChart = null, _treChart = null;
 let _treWindow = { years: 20 };          // {years} preset OR {start,end} custom
+let _treBioguide = "", _trePolsLoaded = false;   // single-member filter
 function fmtBig(v) {
   if (v == null) return "—";
   if (v >= 1e9) return `$${(v/1e9).toFixed(2)}B`;
@@ -230,7 +236,13 @@ const yearDividers = {
 
 function _treQuery() {
   const w = _treWindow;
-  return (w.start && w.end) ? `start=${w.start}&end=${w.end}` : `years=${w.years || 20}`;
+  const win = (w.start && w.end) ? `start=${w.start}&end=${w.end}` : `years=${w.years || 20}`;
+  return _treBioguide ? `${win}&bioguide=${encodeURIComponent(_treBioguide)}` : win;
+}
+
+function onTreasuryPol() {                    // congressperson filter
+  _treBioguide = document.getElementById("tre-pol").value;
+  loadTreasury();
 }
 
 function setTreasuryWindow(years) {           // preset button
@@ -276,6 +288,14 @@ async function loadTreasury() {
   document.getElementById("sp-title").textContent = spTitle;
 
   if (!tre) return;
+  // populate the congressperson dropdown once (stable option list)
+  if (!_trePolsLoaded && tre.politicians) {
+    const sel = document.getElementById("tre-pol");
+    sel.innerHTML = `<option value="">All congresspeople</option>` +
+      tre.politicians.map(p => `<option value="${p.bioguide_id}">${p.name}</option>`).join("");
+    sel.value = _treBioguide;
+    _trePolsLoaded = true;
+  }
   // Treasury per-period histogram (relative buying within the window)
   const ts = tre.series || [];
   if (_treChart) _treChart.destroy();
@@ -312,7 +332,9 @@ async function loadTreasury() {
   document.getElementById("tre-by-pol").innerHTML = (tre.by_politician||[]).length
     ? (tre.by_politician).map((p,i) => `
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <span><span class="muted">${i+1}.</span> ${p.name} ${p.party?`<span class="muted">(${p.party})</span>`:""}</span>
+          <span><span class="muted">${i+1}.</span>
+            <a href="/politician/${p.bioguide_id}?asset=treasury" style="color:var(--primary,#3b82f6);text-decoration:none">${p.name}</a>
+            ${p.party?`<span class="muted">(${p.party})</span>`:""}</span>
           <span style="font-weight:600">${fmtBig(p.volume)} <span class="muted" style="font-weight:400">· ${p.count}</span></span>
         </div>`).join("")
     : `<div class="muted">No Treasury purchases on record.</div>`;
@@ -329,7 +351,7 @@ async function loadTreasury() {
     ? tre.trades.map(t => `
         <tr>
           <td class="muted" style="font-size:12px">${t.transaction_date||"—"}</td>
-          <td>${t.politician_name}</td>
+          <td><a href="/politician/${t.bioguide_id}?asset=treasury" style="color:var(--primary,#3b82f6);text-decoration:none">${t.politician_name}</a></td>
           <td class="muted">${t.party||"—"}</td>
           <td>${typeBadge(t.transaction_type)}</td>
           <td style="text-align:right">${fmtAmt(t.amount_min, t.amount_max)}</td>
