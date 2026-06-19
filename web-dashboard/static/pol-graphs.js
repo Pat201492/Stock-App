@@ -149,12 +149,12 @@ function createPolNetwork(cfg) {
   function rerender() {
     const show = {
       curated:    el(C.checks.curated) ? el(C.checks.curated).checked : true,
-      stock:      el(C.checks.stock) ? el(C.checks.stock).checked : true,
+      stock:      el(C.checks.stock) ? el(C.checks.stock).checked : false,
       cotrade:    el(C.checks.cotrade) ? el(C.checks.cotrade).checked : true,
       sector:     el(C.checks.sector) ? el(C.checks.sector).checked : false,
       committee:  el(C.checks.committee) ? el(C.checks.committee).checked : true,
       leadership: el(C.checks.leadership) ? el(C.checks.leadership).checked : true,
-      state:      el(C.checks.state) ? el(C.checks.state).checked : true,
+      state:      el(C.checks.state) ? el(C.checks.state).checked : false,
       structure:  true,
     };
     const nodes = st.raw.nodes || [];
@@ -404,12 +404,12 @@ function polNetworkMarkup() {
     <label class="ek"><input type="checkbox" id="pg-animate" checked> Animate</label>
     <span style="width:1px;height:18px;background:var(--border)"></span>
     <label class="ek"><input type="checkbox" id="pg-ek-curated"    checked> Curated ties</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-stock"      checked> Shared stocks</label>
     <label class="ek"><input type="checkbox" id="pg-ek-cotrade"    checked> Co-timed trades</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-sector"            > Shared sectors</label>
     <label class="ek"><input type="checkbox" id="pg-ek-committee"  checked> Shared committees</label>
     <label class="ek"><input type="checkbox" id="pg-ek-leadership" checked> Committee leadership</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-state"      checked> Same state</label>
+    <label class="ek"><input type="checkbox" id="pg-ek-stock"            > Shared stocks</label>
+    <label class="ek"><input type="checkbox" id="pg-ek-sector"            > Shared sectors</label>
+    <label class="ek"><input type="checkbox" id="pg-ek-state"            > Same state</label>
     <span id="pg-net-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>
   <div id="pg-legend" class="card" style="margin:10px 0;padding:10px 14px;display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted)">
