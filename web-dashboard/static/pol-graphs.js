@@ -207,7 +207,7 @@ function createPolNetwork(cfg) {
 function createPolTiming(cfg) {
   const PRESETS = [{ l: "1Y", d: 365 }, { l: "3Y", d: 1095 }, { l: "5Y", d: 1825 }, { l: "All", d: 0 }];
   const st = { chart: null, rangeDays: cfg.rangeDays ?? 0, ticker: cfg.fixedTicker || null,
-               custom: false, customStart: "", customEnd: "" };
+               custom: false, customStart: "", customEnd: "", mode: cfg.mode0 || "dots" };
   const el = id => (id ? document.getElementById(id) : null);
   const QUICK = ["NVDA", "AAPL", "MSFT", "TSLA", "AMZN"];
 
@@ -275,64 +275,112 @@ function createPolTiming(cfg) {
       ? `${ticker}: ${trades.length} trades · ${members.size} members${avg != null ? ` · avg disclosure lag ${avg}d` : ""}`
       : `${ticker}: no congressional trades in range`;
 
-    const pts = trades.map(t => {
-      const buy = t.transaction_type === "purchase", a = amtMid(t);
-      return { x: Date.parse(t.transaction_date), y: Math.max(1, a), rot: buy ? 0 : 180,
-               r: radius(a), bg: PG_PARTY_COLORS[t.party] || "#94a3b8", _t: t, _buy: buy, _amt: a };
-    });
     const priceData = (Array.isArray(price) ? price : [])
       .filter(p => p.close != null && inWin(Date.parse(p.date)))
       .map(p => ({ x: Date.parse(p.date), y: p.close }));
 
-    const datasets = [{
-      type: "scatter", label: "Trades", data: pts,
-      pointStyle: "triangle", rotation: pts.map(p => p.rot),
-      pointRadius: pts.map(p => p.r), pointHoverRadius: pts.map(p => p.r + 2),
-      backgroundColor: pts.map(p => p.bg), borderColor: "#0f172a", borderWidth: 1,
-      yAxisID: "yAmount", order: 1,
-    }];
-    if (priceData.length) datasets.push({
-      type: "line", label: "Price", data: priceData, yAxisID: "yPrice",
-      borderColor: "#64748b", borderWidth: 1.4, pointRadius: 0, fill: false, tension: 0.1, order: 2,
-    });
+    let datasets, scales, tooltip, legend;
+    if (st.mode === "hist") {
+      // Monthly bins of trade COUNT, split purchases/sales — shows "piling in".
+      const bins = {};
+      trades.forEach(t => {
+        const d = new Date(t.transaction_date);
+        const key = d.getUTCFullYear() + "-" + d.getUTCMonth();
+        const b = bins[key] || (bins[key] = { ms: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 15), buy: 0, sell: 0, vol: 0 });
+        if (t.transaction_type === "purchase") b.buy++; else b.sell++;
+        b.vol += amtMid(t);
+      });
+      const arr = Object.values(bins).sort((a, b) => a.ms - b.ms);
+      const bw = Math.max(3, Math.min(18, Math.round(720 / Math.max(1, arr.length))));
+      datasets = [
+        { type: "bar", label: "Purchases", yAxisID: "yCount", stack: "v", order: 2, barThickness: bw,
+          data: arr.map(b => ({ x: b.ms, y: b.buy, _b: b })), backgroundColor: "rgba(34,197,94,.78)", borderWidth: 0 },
+        { type: "bar", label: "Sales", yAxisID: "yCount", stack: "v", order: 2, barThickness: bw,
+          data: arr.map(b => ({ x: b.ms, y: b.sell, _b: b })), backgroundColor: "rgba(239,68,68,.78)", borderWidth: 0 },
+      ];
+      if (priceData.length) datasets.push({ type: "line", label: "Price", data: priceData, yAxisID: "yPrice",
+        borderColor: "#64748b", borderWidth: 1.4, pointRadius: 0, fill: false, tension: 0.1, order: 1 });
+      scales = {
+        x: { type: "linear", stacked: true, grid: { color: "rgba(148,163,184,.08)" },
+             ticks: { maxTicksLimit: 9, callback: v => new Date(v).toISOString().slice(0, 7) } },
+        yCount: { type: "linear", position: "left", beginAtZero: true, stacked: true,
+             title: { display: true, text: "# trades / month", color: "#94a3b8" },
+             ticks: { color: "#94a3b8", precision: 0 }, grid: { color: "rgba(148,163,184,.06)" } },
+        yPrice: { type: "linear", position: "right", display: priceData.length > 0,
+             title: { display: true, text: "Price", color: "#64748b" },
+             ticks: { color: "#64748b" }, grid: { drawOnChartArea: false } },
+      };
+      legend = { display: true, labels: { color: "#94a3b8", boxWidth: 12 } };
+      tooltip = { callbacks: {
+        title: items => new Date(items[0].parsed.x).toISOString().slice(0, 7),
+        label: ctx => ctx.raw._b ? `${ctx.dataset.label}: ${ctx.parsed.y}` : `Price $${ctx.parsed.y?.toFixed?.(2) ?? ""}`,
+        afterBody: items => {
+          const b = items.find(i => i.raw && i.raw._b);
+          return b ? `month: ${b.raw._b.buy + b.raw._b.sell} trades · ${usd(b.raw._b.vol)}` : "";
+        },
+      } };
+    } else {
+      const pts = trades.map(t => {
+        const buy = t.transaction_type === "purchase", a = amtMid(t);
+        return { x: Date.parse(t.transaction_date), y: Math.max(1, a), rot: buy ? 0 : 180,
+                 r: radius(a), bg: PG_PARTY_COLORS[t.party] || "#94a3b8", _t: t, _buy: buy, _amt: a };
+      });
+      datasets = [{
+        type: "scatter", label: "Trades", data: pts,
+        pointStyle: "triangle", rotation: pts.map(p => p.rot),
+        pointRadius: pts.map(p => p.r), pointHoverRadius: pts.map(p => p.r + 2),
+        backgroundColor: pts.map(p => p.bg), borderColor: "#0f172a", borderWidth: 1,
+        yAxisID: "yAmount", order: 1,
+      }];
+      if (priceData.length) datasets.push({
+        type: "line", label: "Price", data: priceData, yAxisID: "yPrice",
+        borderColor: "#64748b", borderWidth: 1.4, pointRadius: 0, fill: false, tension: 0.1, order: 2,
+      });
+      scales = {
+        x: { type: "linear", grid: { color: "rgba(148,163,184,.08)" },
+             ticks: { maxTicksLimit: 9, callback: v => new Date(v).toISOString().slice(0, 7) } },
+        yAmount: { type: "logarithmic", position: "left",
+             title: { display: true, text: "Trade $ (log)", color: "#94a3b8" },
+             ticks: { color: "#94a3b8", callback: v => usd(v) }, grid: { color: "rgba(148,163,184,.06)" } },
+        yPrice: { type: "linear", position: "right", display: priceData.length > 0,
+             title: { display: true, text: "Price", color: "#64748b" },
+             ticks: { color: "#64748b" }, grid: { drawOnChartArea: false } },
+      };
+      legend = { display: false };
+      tooltip = { callbacks: {
+        title: items => new Date(items[0].parsed.x).toISOString().slice(0, 10),
+        label: ctx => {
+          const t = ctx.raw._t;
+          if (!t) return `Price $${ctx.parsed.y?.toFixed?.(2) ?? ""}`;
+          return `${t.politician_name} (${t.party || "?"}) · ${ctx.raw._buy ? "BUY" : "SELL"} · ${usd(ctx.raw._amt)}`;
+        },
+        afterLabel: ctx => {
+          const t = ctx.raw._t; if (!t) return "";
+          const l = lag(t.transaction_date, t.disclosure_date);
+          return l != null ? `disclosed ${l}d later` : "";
+        },
+      } };
+    }
 
     if (st.chart) st.chart.destroy();
     st.chart = new Chart(el(cfg.canvas), {
       data: { datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: {
-            title: items => new Date(items[0].parsed.x).toISOString().slice(0, 10),
-            label: ctx => {
-              const t = ctx.raw._t;
-              if (!t) return `Price $${ctx.parsed.y?.toFixed?.(2) ?? ""}`;
-              return `${t.politician_name} (${t.party || "?"}) · ${ctx.raw._buy ? "BUY" : "SELL"} · ${usd(ctx.raw._amt)}`;
-            },
-            afterLabel: ctx => {
-              const t = ctx.raw._t; if (!t) return "";
-              const l = lag(t.transaction_date, t.disclosure_date);
-              return l != null ? `disclosed ${l}d later` : "";
-            },
-          } },
-        },
-        scales: {
-          x: { type: "linear", grid: { color: "rgba(148,163,184,.08)" },
-               ticks: { maxTicksLimit: 9, callback: v => new Date(v).toISOString().slice(0, 7) } },
-          yAmount: { type: "logarithmic", position: "left",
-               title: { display: true, text: "Trade $ (log)", color: "#94a3b8" },
-               ticks: { color: "#94a3b8", callback: v => usd(v) }, grid: { color: "rgba(148,163,184,.06)" } },
-          yPrice: { type: "linear", position: "right", display: priceData.length > 0,
-               title: { display: true, text: "Price", color: "#64748b" },
-               ticks: { color: "#64748b" }, grid: { drawOnChartArea: false } },
-        },
-      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend, tooltip }, scales },
     });
   }
 
+  function renderMode() {
+    const c = el(cfg.mode);
+    if (!c) return;
+    c.innerHTML = [["dots", "● Dots"], ["hist", "▮ Histogram"]].map(([m, lab]) =>
+      `<button class="pg-range-btn${st.mode === m ? " active" : ""}" data-m="${m}">${lab}</button>`).join("");
+    c.querySelectorAll(".pg-range-btn").forEach(b =>
+      b.onclick = () => { st.mode = b.dataset.m; renderMode(); load(); });
+  }
+
   function init() {
-    renderRange(); renderQuick();
+    renderMode(); renderRange(); renderQuick();
     if (el(cfg.input)) el(cfg.input).addEventListener("keydown", e => { if (e.key === "Enter") load(); });
     if (st.ticker) load();
   }
@@ -403,6 +451,8 @@ function polTimingMarkup() {
     <button class="btn btn-outline btn-sm" id="pg-tk-load">Load</button>
     <span style="font-size:12px;color:var(--muted)">Quick:</span><span id="pg-tk-quick"></span>
     <span style="width:1px;height:18px;background:var(--border)"></span>
+    <span style="font-size:12px;color:var(--muted)">View:</span><span id="pg-tk-mode"></span>
+    <span style="width:1px;height:18px;background:var(--border)"></span>
     <span style="font-size:12px;color:var(--muted)">Range:</span><span id="pg-tk-range"></span>
     <span id="pg-tk-summary" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>
@@ -445,7 +495,7 @@ function mountPolNetwork() {
 function mountPolTiming(opts) {
   const t = createPolTiming({
     canvas: "pg-timing-chart", summary: "pg-tk-summary", empty: "pg-timing-empty",
-    range: "pg-tk-range", input: "pg-tk-input", quick: "pg-tk-quick",
+    range: "pg-tk-range", mode: "pg-tk-mode", input: "pg-tk-input", quick: "pg-tk-quick",
     fixedTicker: (opts && opts.ticker) || "NVDA",
   });
   const inp = document.getElementById("pg-tk-input"); if (inp) inp.value = (opts && opts.ticker) || "NVDA";

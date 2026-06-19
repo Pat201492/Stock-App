@@ -424,9 +424,9 @@ function buildPolTiming(data) {
   document.getElementById("pol-card").style.display = "block";
   document.getElementById("pol-timing-wrap").style.display = "block";
   const t = createPolTiming({
-    canvas: "pol-timing-chart", range: "pol-tk-range", fixedTicker: ticker,
+    canvas: "pol-timing-chart", range: "pol-tk-range", mode: "pol-tk-mode", fixedTicker: ticker,
   });
-  t.init();   // renders the time-scale buttons, then loads the fixed ticker
+  t.init();   // renders the view + time-scale buttons, then loads the fixed ticker
 }
 
 // ── Insider trades (Form 4) — last 2 years ───────────────────────────────────
