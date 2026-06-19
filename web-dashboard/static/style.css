@@ -389,3 +389,4 @@ tr:hover td { background: rgba(255,255,255,.03); cursor: pointer; }
 .pg-range-btn { padding: 4px 12px; border: 1px solid var(--border); border-radius: 6px;
   background: transparent; color: var(--text); cursor: pointer; font-size: 12px; margin-right: 4px; }
 .pg-range-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.btn.pg-range-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }

@@ -206,7 +206,8 @@ function createPolNetwork(cfg) {
 // cfg = { canvas, summary, empty, range, input, quick, fixedTicker, rangeDays }
 function createPolTiming(cfg) {
   const PRESETS = [{ l: "1Y", d: 365 }, { l: "3Y", d: 1095 }, { l: "5Y", d: 1825 }, { l: "All", d: 0 }];
-  const st = { chart: null, rangeDays: cfg.rangeDays ?? 0, ticker: cfg.fixedTicker || null };
+  const st = { chart: null, rangeDays: cfg.rangeDays ?? 0, ticker: cfg.fixedTicker || null,
+               custom: false, customStart: "", customEnd: "" };
   const el = id => (id ? document.getElementById(id) : null);
   const QUICK = ["NVDA", "AAPL", "MSFT", "TSLA", "AMZN"];
 
@@ -216,11 +217,24 @@ function createPolTiming(cfg) {
   function lag(txn, disc) { return (!txn || !disc) ? null : Math.round((Date.parse(disc) - Date.parse(txn)) / 86400000); }
 
   function renderRange() {
-    if (!el(cfg.range)) return;
-    el(cfg.range).innerHTML = PRESETS.map(p =>
-      `<button class="pg-range-btn${st.rangeDays === p.d ? " active" : ""}" data-d="${p.d}">${p.l}</button>`).join("");
-    el(cfg.range).querySelectorAll(".pg-range-btn").forEach(b =>
-      b.onclick = () => { st.rangeDays = Number(b.dataset.d); renderRange(); load(); });
+    const c = el(cfg.range);
+    if (!c) return;
+    c.innerHTML =
+      PRESETS.map(p => `<button class="pg-range-btn${!st.custom && st.rangeDays === p.d ? " active" : ""}" data-d="${p.d}">${p.l}</button>`).join("")
+      + `<span style="width:1px;height:18px;background:var(--border);display:inline-block;vertical-align:middle;margin:0 4px"></span>`
+      + `<input type="date" class="pg-d-start" style="padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg,#0b0f17);color:var(--text);font-size:12px" />`
+      + `<span style="color:var(--muted);margin:0 3px">→</span>`
+      + `<input type="date" class="pg-d-end" style="padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg,#0b0f17);color:var(--text);font-size:12px" />`
+      + `<button class="btn btn-outline btn-sm pg-d-apply${st.custom ? " pg-range-active" : ""}" style="margin-left:4px">Apply</button>`;
+    c.querySelectorAll(".pg-range-btn").forEach(b =>
+      b.onclick = () => { st.custom = false; st.rangeDays = Number(b.dataset.d); renderRange(); load(); });
+    const s = c.querySelector(".pg-d-start"), e = c.querySelector(".pg-d-end");
+    if (st.customStart) s.value = st.customStart;
+    if (st.customEnd)   e.value = st.customEnd;
+    c.querySelector(".pg-d-apply").onclick = () => {
+      if (!s.value || !e.value) { alert("Pick both a start and end date."); return; }
+      st.custom = true; st.customStart = s.value; st.customEnd = e.value; renderRange(); load();
+    };
   }
   function renderQuick() {
     if (!el(cfg.quick)) return;
@@ -241,8 +255,17 @@ function createPolTiming(cfg) {
       fetch(`/api/price/${encodeURIComponent(ticker)}?days=99999`).then(r => r.json()).catch(() => []),
     ]);
 
-    const cutoff = st.rangeDays ? Date.now() - st.rangeDays * 86400000 : -Infinity;
-    let trades = (pol.trades || []).filter(t => t.transaction_date && Date.parse(t.transaction_date) >= cutoff);
+    // Resolve the active window: custom [start,end] takes precedence over presets.
+    let lo = -Infinity, hi = Infinity;
+    if (st.custom && st.customStart && st.customEnd) {
+      lo = Date.parse(st.customStart);
+      hi = Date.parse(st.customEnd) + 86400000;   // inclusive of the end day
+      if (lo > hi) { const t = lo; lo = hi; hi = t; }
+    } else if (st.rangeDays) {
+      lo = Date.now() - st.rangeDays * 86400000;
+    }
+    const inWin = ms => ms >= lo && ms <= hi;
+    let trades = (pol.trades || []).filter(t => t.transaction_date && inWin(Date.parse(t.transaction_date)));
 
     if (el(cfg.empty)) el(cfg.empty).style.display = trades.length ? "none" : "block";
     const members = new Set(trades.map(t => t.bioguide_id));
@@ -258,7 +281,7 @@ function createPolTiming(cfg) {
                r: radius(a), bg: PG_PARTY_COLORS[t.party] || "#94a3b8", _t: t, _buy: buy, _amt: a };
     });
     const priceData = (Array.isArray(price) ? price : [])
-      .filter(p => p.close != null && Date.parse(p.date) >= cutoff)
+      .filter(p => p.close != null && inWin(Date.parse(p.date)))
       .map(p => ({ x: Date.parse(p.date), y: p.close }));
 
     const datasets = [{
