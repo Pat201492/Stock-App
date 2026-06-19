@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css?v=3" />
   <script src="/static/nav-mobile.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/static/pol-graphs.js?v=1"></script>
   <script src="/static/chart-crosshair.js?v=2"></script>
   <script src="/static/account-common.js?v=2"></script>
   <script src="/static/news-utils.js?v=1"></script>
@@ -126,10 +127,13 @@
       <a href="/politicians" style="font-size:11px;color:var(--accent)">View all →</a>
     </div>
     <div id="pol-timing-wrap" style="display:none">
-      <div style="font-size:12px;color:var(--muted);margin:0 0 8px">
-        Trade timing — ▲ purchase ▼ sale · color = party · dot size = $ amount · grey line = price
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px">
+        <span style="font-size:12px;color:var(--muted)">
+          Trade timing — ▲ purchase ▼ sale · color = party · dot size = $ · grey line = price</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:auto">Range:</span>
+        <span id="pol-tk-range"></span>
       </div>
-      <div style="position:relative;height:300px;margin-bottom:16px"><canvas id="pol-timing-chart"></canvas></div>
+      <div style="position:relative;height:320px;margin-bottom:16px"><canvas id="pol-timing-chart"></canvas></div>
     </div>
     <div id="pol-list"></div>
   </div>
@@ -144,6 +148,6 @@
   </div>
 </div>
 
-<script src="/static/stock.js?v=9"></script>
+<script src="/static/stock.js?v=10"></script>
 </body>
 </html>
