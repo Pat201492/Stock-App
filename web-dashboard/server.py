@@ -2471,6 +2471,7 @@ def pol_ticker(ticker: str, days: int = 99999, db: Session = Depends(get_pol_db)
             {
                 "trade_id":         t.trade_id,
                 "transaction_date": t.transaction_date.isoformat() if t.transaction_date else None,
+                "disclosure_date":  t.disclosure_date.isoformat()  if t.disclosure_date  else None,
                 "transaction_type": t.transaction_type,
                 "amount_min":       t.amount_min,
                 "amount_max":       t.amount_max,
