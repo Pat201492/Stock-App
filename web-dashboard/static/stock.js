@@ -57,6 +57,7 @@ async function init() {
   renderNews(news);
   renderPoliticalTrades(polData);
   renderInsiderTrades(insiderData);
+  buildPolTiming(polData);
   if (prices.length) renderChart(prices);
   loadProfile();
   renderAcctControls(detail?.stock?.price);
@@ -414,6 +415,93 @@ function renderPoliticalTrades(data) {
       </table>
     </div>
   `;
+}
+
+// ── Congressional trade-timing chart ─────────────────────────────────────────
+const POL_PARTY_COLORS = { Republican:"#ef4444", Democrat:"#3b82f6", Independent:"#94a3b8" };
+let _polTimingChart = null;
+
+function _polAmtMid(t){
+  if (t.amount_min == null) return 1000;
+  return (t.amount_min + (t.amount_max ?? t.amount_min)) / 2;
+}
+function _polRadius(a){
+  if (a >= 5e6) return 15; if (a >= 1e6) return 11; if (a >= 250e3) return 8;
+  if (a >= 50e3) return 6; return 4;
+}
+function _polUSD(a){
+  if (a >= 1e6) return `$${(a/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `$${(a/1e3).toFixed(0)}K`;
+  return `$${a.toFixed(0)}`;
+}
+
+async function buildPolTiming(data) {
+  const trades = (data && data.trades || []).filter(t => t.transaction_date);
+  if (!trades.length) return;                       // no card change; table handles empty
+  document.getElementById("pol-card").style.display = "block";
+  document.getElementById("pol-timing-wrap").style.display = "block";
+
+  // full price history for the overlay (PriceHistory is whatever the DB holds)
+  const price = await fetch(`/api/price/${ticker}?days=99999`).then(r => r.json()).catch(() => []);
+
+  const pts = trades.map(t => {
+    const buy = t.transaction_type === "purchase";
+    const a = _polAmtMid(t);
+    return {
+      x: Date.parse(t.transaction_date), y: Math.max(1, a),
+      rotation: buy ? 0 : 180, radius: _polRadius(a),
+      bg: POL_PARTY_COLORS[t.party] || "#94a3b8", _t: t, _buy: buy, _amt: a,
+    };
+  });
+  const priceData = (Array.isArray(price) ? price : [])
+    .filter(p => p.close != null).map(p => ({ x: Date.parse(p.date), y: p.close }));
+
+  const datasets = [{
+    type: "scatter", label: "Trades", data: pts,
+    pointStyle: "triangle", rotation: pts.map(p => p.rotation),
+    pointRadius: pts.map(p => p.radius), pointHoverRadius: pts.map(p => p.radius + 2),
+    backgroundColor: pts.map(p => p.bg), borderColor: "#0f172a", borderWidth: 1,
+    yAxisID: "yAmount", order: 1,
+  }];
+  if (priceData.length) datasets.push({
+    type: "line", label: "Price", data: priceData, yAxisID: "yPrice",
+    borderColor: "#64748b", borderWidth: 1.4, pointRadius: 0, fill: false, tension: 0.1, order: 2,
+  });
+
+  if (_polTimingChart) _polTimingChart.destroy();
+  _polTimingChart = new Chart(document.getElementById("pol-timing-chart"), {
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          title: items => new Date(items[0].parsed.x).toISOString().slice(0,10),
+          label: ctx => {
+            const t = ctx.raw._t;
+            if (!t) return `Price $${ctx.parsed.y?.toFixed?.(2) ?? ""}`;
+            return `${t.politician_name} (${t.party||"?"}) · ${ctx.raw._buy?"BUY":"SELL"} · ${_polUSD(ctx.raw._amt)}`;
+          },
+          afterLabel: ctx => {
+            const t = ctx.raw._t; if (!t || !t.disclosure_date) return "";
+            const l = Math.round((Date.parse(t.disclosure_date) - Date.parse(t.transaction_date)) / 86400000);
+            return `disclosed ${l}d later`;
+          },
+        } },
+      },
+      scales: {
+        x: { type: "linear", grid: { color: "rgba(148,163,184,.08)" },
+             ticks: { maxTicksLimit: 9, callback: v => new Date(v).toISOString().slice(0,7) } },
+        yAmount: { type: "logarithmic", position: "left",
+             title: { display: true, text: "Trade $ (log)", color: "#94a3b8" },
+             ticks: { color: "#94a3b8", callback: v => _polUSD(v) },
+             grid: { color: "rgba(148,163,184,.06)" } },
+        yPrice: { type: "linear", position: "right", display: priceData.length > 0,
+             title: { display: true, text: "Price", color: "#64748b" },
+             ticks: { color: "#64748b" }, grid: { drawOnChartArea: false } },
+      },
+    },
+  });
 }
 
 // ── Insider trades (Form 4) — last 2 years ───────────────────────────────────

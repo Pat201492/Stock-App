@@ -125,6 +125,12 @@
       <span>Congressional Trades</span>
       <a href="/politicians" style="font-size:11px;color:var(--accent)">View all →</a>
     </div>
+    <div id="pol-timing-wrap" style="display:none">
+      <div style="font-size:12px;color:var(--muted);margin:0 0 8px">
+        Trade timing — ▲ purchase ▼ sale · color = party · dot size = $ amount · grey line = price
+      </div>
+      <div style="position:relative;height:300px;margin-bottom:16px"><canvas id="pol-timing-chart"></canvas></div>
+    </div>
     <div id="pol-list"></div>
   </div>
 
@@ -138,6 +144,6 @@
   </div>
 </div>
 
-<script src="/static/stock.js?v=8"></script>
+<script src="/static/stock.js?v=9"></script>
 </body>
 </html>
