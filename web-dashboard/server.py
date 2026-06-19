@@ -2053,11 +2053,13 @@ def pol_relationships(
                  reachable from the main ring through the curated overlay.
     Edges       = curated overlay (business deals, appointments, exec-branch ties)
                  merged with DB-derived edges among the bounded node set:
-                   • shared_stock      — both ever traded the same tickers
-                   • co_trade          — both traded the SAME ticker within
-                                         `cotrade_days` of each other
-                   • shared_sector     — overlap in heavily-traded market sectors
-                   • shared_committee  — both sit on the same committees
+                   • shared_stock         — both ever traded the same tickers
+                   • co_trade             — both traded the SAME ticker within
+                                            `cotrade_days` of each other
+                   • shared_sector        — overlap in heavily-traded market sectors
+                   • shared_committee     — both sit on the same committees
+                   • committee_leadership — both hold Chair/Ranking on a committee
+                   • same_state           — same state delegation
     """
     from collections import defaultdict
     party_norm = "Democrat" if party.lower().startswith("d") else "Republican"
@@ -2155,10 +2157,17 @@ def pol_relationships(
                          for bio, secs in sector_trades.items()}
 
         comms_by_pol = defaultdict(set)
-        for bio, cm in (db.query(CommitteeMembership.bioguide_id, CommitteeMembership.committee_id)
-                          .filter(CommitteeMembership.bioguide_id.in_(congress_ids))
-                          .distinct().all()):
+        lead_by_pol  = defaultdict(set)   # committees where the member holds a leadership role
+        for bio, cm, role in (db.query(CommitteeMembership.bioguide_id,
+                                       CommitteeMembership.committee_id,
+                                       CommitteeMembership.role)
+                                .filter(CommitteeMembership.bioguide_id.in_(congress_ids))
+                                .distinct().all()):
             comms_by_pol[bio].add(cm)
+            if role and ("Chair" in role or "Ranking" in role):
+                lead_by_pol[bio].add(cm)
+        state_by_pol = dict(db.query(Politician.bioguide_id, Politician.state)
+                              .filter(Politician.bioguide_id.in_(congress_ids)).all())
 
         def _co_timed(da, dbb, win):
             """True if any date in `da` is within `win` days of any date in `dbb`."""
@@ -2217,6 +2226,24 @@ def pol_relationships(
                         "weight": len(shared_cm), "illustrative": False, "source_url": None,
                     })
 
+                # committee_leadership: both hold a Chair/Ranking role on the same committee
+                lead_cm = lead_by_pol.get(a, set()) & lead_by_pol.get(b, set())
+                if lead_cm:
+                    edges.append({
+                        "from": a, "to": b, "kind": "committee_leadership",
+                        "label": f"co-lead {len(lead_cm)} committee(s)",
+                        "weight": len(lead_cm) + 1, "illustrative": False, "source_url": None,
+                    })
+
+                # same_state: same state delegation
+                sa, sb = state_by_pol.get(a), state_by_pol.get(b)
+                if sa and sa == sb:
+                    edges.append({
+                        "from": a, "to": b, "kind": "same_state",
+                        "label": f"Same-state delegation: {sa}",
+                        "weight": 1, "illustrative": False, "source_url": None,
+                    })
+
     # 5) Assemble nodes (hub + every congress / external node in `included`).
     deg = defaultdict(int)
     for e in edges:
@@ -2272,6 +2299,8 @@ def pol_relationships(
             "co_trade":         kind_of("co_trade"),
             "shared_sector":    kind_of("shared_sector"),
             "shared_committee": kind_of("shared_committee"),
+            "committee_leadership": kind_of("committee_leadership"),
+            "same_state":       kind_of("same_state"),
             "curated":          sum(1 for e in edges if e["kind"] in
                                     ("business_deal", "appointment", "former_member",
                                      "donor", "family", "other")),

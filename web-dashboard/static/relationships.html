@@ -58,11 +58,13 @@
       </select>
     </label>
     <span style="width:1px;height:18px;background:var(--border)"></span>
-    <label class="ek"><input type="checkbox" id="ek-curated"   checked onchange="rerender()"> Curated ties</label>
-    <label class="ek"><input type="checkbox" id="ek-stock"     checked onchange="rerender()"> Shared stocks</label>
-    <label class="ek"><input type="checkbox" id="ek-cotrade"   checked onchange="rerender()"> Co-timed trades</label>
-    <label class="ek"><input type="checkbox" id="ek-sector"    checked onchange="rerender()"> Shared sectors</label>
-    <label class="ek"><input type="checkbox" id="ek-committee" checked onchange="rerender()"> Shared committees</label>
+    <label class="ek"><input type="checkbox" id="ek-curated"    checked onchange="rerender()"> Curated ties</label>
+    <label class="ek"><input type="checkbox" id="ek-stock"      checked onchange="rerender()"> Shared stocks</label>
+    <label class="ek"><input type="checkbox" id="ek-cotrade"    checked onchange="rerender()"> Co-timed trades</label>
+    <label class="ek"><input type="checkbox" id="ek-sector"            onchange="rerender()"> Shared sectors</label>
+    <label class="ek"><input type="checkbox" id="ek-committee"  checked onchange="rerender()"> Shared committees</label>
+    <label class="ek"><input type="checkbox" id="ek-leadership" checked onchange="rerender()"> Committee leadership</label>
+    <label class="ek"><input type="checkbox" id="ek-state"      checked onchange="rerender()"> Same state</label>
     <span id="rel-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>
 
@@ -84,6 +86,8 @@
     <span><span class="ln" style="background:#fb7185"></span>Co-timed trade</span>
     <span><span class="ln" style="background:#f97316"></span>Shared sector</span>
     <span><span class="ln" style="background:#60a5fa"></span>Shared committee</span>
+    <span><span class="ln" style="background:#a3e635"></span>Committee leadership</span>
+    <span><span class="ln" style="background:#06b6d4"></span>Same state</span>
   </div>
 
   <div class="card" style="padding:0;position:relative">
@@ -111,6 +115,8 @@ const EDGE_STYLE = {
   co_trade:         { color:"#fb7185", dashes:false  },
   shared_sector:    { color:"#f97316", dashes:[5,3]  },
   shared_committee: { color:"#60a5fa", dashes:false  },
+  committee_leadership: { color:"#a3e635", dashes:false },
+  same_state:       { color:"#06b6d4", dashes:[2,3]  },
   hub:              { color:"rgba(148,163,184,.16)", dashes:false },
   scaffold:         { color:"rgba(148,163,184,.09)", dashes:false },
 };
@@ -120,6 +126,8 @@ function edgeGroup(kind){
   if (kind === "co_trade") return "cotrade";
   if (kind === "shared_sector") return "sector";
   if (kind === "shared_committee") return "committee";
+  if (kind === "committee_leadership") return "leadership";
+  if (kind === "same_state") return "state";
   if (kind === "hub" || kind === "scaffold") return "structure";
   return "curated";
 }
@@ -244,12 +252,14 @@ function toVisEdge(e){
 
 function rerender(){
   const show = {
-    curated:   document.getElementById("ek-curated").checked,
-    stock:     document.getElementById("ek-stock").checked,
-    cotrade:   document.getElementById("ek-cotrade").checked,
-    sector:    document.getElementById("ek-sector").checked,
-    committee: document.getElementById("ek-committee").checked,
-    structure: true,
+    curated:    document.getElementById("ek-curated").checked,
+    stock:      document.getElementById("ek-stock").checked,
+    cotrade:    document.getElementById("ek-cotrade").checked,
+    sector:     document.getElementById("ek-sector").checked,
+    committee:  document.getElementById("ek-committee").checked,
+    leadership: document.getElementById("ek-leadership").checked,
+    state:      document.getElementById("ek-state").checked,
+    structure:  true,
   };
   const nodes = raw.nodes || [];
   nodeMeta = {}; nodes.forEach(n => nodeMeta[n.id] = n);
@@ -265,7 +275,8 @@ function rerender(){
   document.getElementById("rel-count").textContent = nodes.length
     ? `${counts.main||0} main · ${counts.connected||0} connected · edges: `
       + `${counts.curated||0} curated, ${counts.shared_stock||0} stock, `
-      + `${counts.co_trade||0} co-timed, ${counts.shared_sector||0} sector, ${counts.shared_committee||0} committee`
+      + `${counts.co_trade||0} co-timed, ${counts.shared_sector||0} sector, ${counts.shared_committee||0} committee, `
+      + `${counts.committee_leadership||0} leadership, ${counts.same_state||0} same-state`
     : "";
 
   const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
