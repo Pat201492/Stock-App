@@ -2062,6 +2062,7 @@ def pol_relationships(
                    • same_state           — same state delegation
     """
     from collections import defaultdict
+    limit = max(1, min(limit, 100))   # bound main-ring size (avoid oversized graphs)
     party_norm = "Democrat" if party.lower().startswith("d") else "Republican"
     hub_id = "HUB_DEM" if party_norm == "Democrat" else "HUB_REP"
 
