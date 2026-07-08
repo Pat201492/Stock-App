@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/static/style.css?v=3" />
   <script src="/static/nav-mobile.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="/static/pol-graphs.js?v=4"></script>
 </head>
 <body>
 
@@ -48,6 +50,8 @@
     <button class="sub-tab active" data-tab="feed"  onclick="switchTab('feed')">Trade Feed</button>
     <button class="sub-tab"        data-tab="board" onclick="switchTab('board')">Leaderboards</button>
     <button class="sub-tab"        data-tab="treasury" onclick="switchTab('treasury')">Treasury / T-Bills</button>
+    <button class="sub-tab"        data-tab="network"  onclick="switchTab('network')">Network</button>
+    <button class="sub-tab"        data-tab="timing"   onclick="switchTab('timing')">Trade Timing</button>
   </div>
 
   <!-- Trade feed tab -->
@@ -187,6 +191,12 @@
       </table></div>
     </div>
   </div>
+
+  <!-- Network tab (relationship web) -->
+  <div id="tab-network" style="display:none"></div>
+
+  <!-- Trade Timing tab -->
+  <div id="tab-timing" style="display:none"></div>
 </div>
 
 <script>
@@ -196,14 +206,23 @@ const committeeSectors = {};   // committee_id -> [sectors]
 
 function switchTab(tab) {
   document.querySelectorAll(".sub-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  document.getElementById("tab-feed").style.display     = tab === "feed"     ? "block" : "none";
-  document.getElementById("tab-board").style.display    = tab === "board"    ? "block" : "none";
-  document.getElementById("tab-treasury").style.display = tab === "treasury" ? "block" : "none";
+  ["feed", "board", "treasury", "network", "timing"].forEach(t =>
+    document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none");
   if (tab === "board") loadBoard();
   if (tab === "treasury" && !_treInit) { _treInit = true; loadTreasury(); }
+  if (tab === "network" && !_netInit) {
+    _netInit = true;
+    document.getElementById("tab-network").innerHTML = polNetworkMarkup();
+    mountPolNetwork();
+  }
+  if (tab === "timing" && !_tmInit) {
+    _tmInit = true;
+    document.getElementById("tab-timing").innerHTML = polTimingMarkup();
+    mountPolTiming({ ticker: "NVDA" });
+  }
 }
 
-let _treInit = false, _spChart = null, _treChart = null;
+let _treInit = false, _netInit = false, _tmInit = false, _spChart = null, _treChart = null;
 let _treWindow = { years: 20 };          // {years} preset OR {start,end} custom
 let _treBioguide = "", _trePolsLoaded = false;   // single-member filter
 function fmtBig(v) {
@@ -551,6 +570,16 @@ loadFeed();
 }
 .sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .sub-tab:hover  { color: var(--text); }
+.ek { font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:5px;cursor:pointer; }
+.ek input { cursor:pointer; }
+.pg-range-btn { padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;
+  color:var(--text);cursor:pointer;font-size:12px;margin-right:4px; }
+.pg-range-btn.active { background:#3b82f6;color:#fff;border-color:#3b82f6; }
+#pg-legend .dot { display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle; }
+#pg-legend .ln  { display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle; }
+.pg-party-btn { } /* uses .sub-tab */
+.dot { display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle; }
+.ln  { display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle; }
 </style>
 </body>
 </html>

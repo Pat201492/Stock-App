@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relationship Web — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Political Relationship Web</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;max-width:880px">
+    Radial spider-web of political relationships. The party hub sits at the centre, its
+    highest-volume members form the inner ring, and connected figures — other-party members,
+    <strong>executive branch</strong> and businesses — fan out on the outer rings. Edges merge a
+    <strong>curated overlay</strong> (business deals, appointments, exec-branch ties) with edges
+    <strong>derived from the live database</strong> (shared stocks, co-timed trades, shared
+    sectors, shared committees, leadership ties, same-state delegations).
+    <br>Also available on the <a href="/politicians">Congressional</a> page.
+  </p>
+
+  <!-- Mode tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+    <button class="mode-tab active" data-view="web"    onclick="switchView('web')">🕸 Relationship Web</button>
+    <button class="mode-tab"        data-view="timing" onclick="switchView('timing')">📈 Trade Timing</button>
+  </div>
+  <div id="view-web"></div>
+  <div id="view-timing" style="display:none"></div>
+</div>
+
+<script src="/static/pol-graphs.js?v=4"></script>
+<script>
+document.getElementById("view-web").innerHTML    = polNetworkMarkup();
+document.getElementById("view-timing").innerHTML = polTimingMarkup();
+const polNet = mountPolNetwork();
+let _timingMounted = false;
+function switchView(v){
+  document.querySelectorAll(".mode-tab").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+  document.getElementById("view-web").style.display    = v === "web"    ? "block" : "none";
+  document.getElementById("view-timing").style.display = v === "timing" ? "block" : "none";
+  if (v === "timing" && !_timingMounted){ _timingMounted = true; mountPolTiming({ ticker: "NVDA" }); }
+}
+</script>
+
+<style>
+.sub-tab { background:transparent;border:none;color:var(--muted);padding:10px 16px;
+  font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px; }
+.sub-tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.sub-tab:hover  { color:var(--text); }
+.mode-tab { background:transparent;border:none;color:var(--muted);padding:11px 18px;
+  font-size:14px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px; }
+.mode-tab.active { color:var(--text);border-bottom-color:var(--accent); }
+.mode-tab:hover  { color:var(--text); }
+.ek { font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:5px;cursor:pointer; }
+.ek input { cursor:pointer; }
+.pg-range-btn { padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;
+  color:var(--text);cursor:pointer;font-size:12px;margin-right:4px; }
+.pg-range-btn.active { background:#3b82f6;color:#fff;border-color:#3b82f6; }
+#pg-legend .dot { display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle; }
+#pg-legend .ln  { display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle; }
+#pg-legend span { display:inline-flex;align-items:center; }
+</style>
+</body>
+</html>
