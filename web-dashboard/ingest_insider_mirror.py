@@ -105,6 +105,7 @@ def ingest(full_refresh=False):
         inserted = 0
         skipped  = 0
         failed_days = 0
+        bad_dates = 0
         for d in days:
             try:
                 body = _get(f"{RAW_BASE}/{d}.json")
@@ -115,11 +116,19 @@ def ingest(full_refresh=False):
                 continue
 
             day_inserts = 0
+            filed_on = _parse_date(d)
             for t in txns:
                 ticker  = (t.get("ticker") or "").strip().upper()
                 if not ticker or ticker in ("--", "N/A"):
                     continue
                 txn_date = _parse_date(t.get("date"))
+                # A Form 4 reports a transaction that already happened, so one
+                # dated after its own filing is a filer typo (usually a year
+                # slip — 2023 keyed as 2033). They sort to the top of every
+                # desc-ordered listing, so a handful is disproportionately loud.
+                if txn_date and filed_on and txn_date > filed_on:
+                    bad_dates += 1
+                    continue
                 txn_type = (t.get("type") or "").strip()
                 shares   = t.get("shares")
                 url      = t.get("url") or ""
@@ -147,7 +156,7 @@ def ingest(full_refresh=False):
                     total_value        = t.get("value"),
                     shares_owned_after = t.get("shares_total"),
                     form_type          = "4",
-                    filed_date         = _parse_date(d),
+                    filed_date         = filed_on,
                     source_url         = f"mirror:{url}",
                     ingested_at        = datetime.utcnow(),
                 ))
@@ -169,7 +178,7 @@ def ingest(full_refresh=False):
                 print(f"  [mirror] {d}: +{day_inserts} trades")
 
         print(f"[mirror] Done — inserted={inserted} skipped={skipped} "
-              f"failed_days={failed_days}")
+              f"failed_days={failed_days} bad_dates={bad_dates}")
     finally:
         db.close()
 
