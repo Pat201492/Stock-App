@@ -7,6 +7,7 @@ Usage:
   python pol_refresh.py --senate-efd # Senate efdsearch official PTRs only
   python pol_refresh.py --edgar    # insider trades only
   python pol_refresh.py --committees # committee data only
+  python pol_refresh.py --positions  # Schedule E outside positions (annual FDs)
   python pol_refresh.py --congress # DEPRECATED legacy peez49 CSV (frozen 2026-02)
   python pol_refresh.py --senate   # DEPRECATED legacy senate mirror (dead 2020)
 """
@@ -21,7 +22,8 @@ CONGRESS = "--congress"  in sys.argv   # legacy peez49 (frozen) — explicit onl
 EDGAR    = "--edgar"     in sys.argv
 MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
-ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS])
+POSITIONS = "--positions" in sys.argv   # Schedule E outside positions (annual FDs)
+ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS, POSITIONS])
 
 DIV = "=" * 58
 
@@ -61,6 +63,10 @@ def main():
     if ALL or SENATE_EFD:
         from ingest_senate_efd import ingest as ingest_senate_efd
         results["senate_efd"] = run_step("senate_efd", ingest_senate_efd, full_refresh=FULL)
+
+    if ALL or POSITIONS:
+        from ingest_house_positions import ingest as ingest_positions
+        results["house_positions"] = run_step("house_positions", ingest_positions)
 
     if CONGRESS:   # explicit only — legacy peez49 CSV (frozen since 2026-02)
         from ingest_congress import ingest as ingest_congress

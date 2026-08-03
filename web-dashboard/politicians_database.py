@@ -108,6 +108,30 @@ class PolTickerMetadata(Base):
     industry     = Column(String)
 
 
+class MemberPosition(Base):
+    """Outside positions from Schedule E of the annual financial disclosure —
+    board seats, partnerships, trusteeships and the like.
+
+    Unlike the trade tables this is a *relationship* source: it ties a member to
+    a named organisation, which is what the relationship web needs and what the
+    hand-written curated overlay was standing in for.
+    """
+    __tablename__ = "member_positions"
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    bioguide_id  = Column(String, index=True)
+    position     = Column(String)        # "Board Member", "Partner", ...
+    organization = Column(String)        # "U.S. Holocaust Museum", ...
+    year         = Column(Integer)       # filing year the disclosure covers
+    doc_id       = Column(String)        # House Clerk DocID, for provenance
+    source_url   = Column(String)
+    ingested_at  = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("bioguide_id", "organization", "position", "year",
+                         name="uq_member_position"),
+        Index("ix_member_positions_org", "organization"),
+    )
+
+
 def _migrate():
     """Idempotent migrations for already-created DBs. A UNIQUE index on the
     insider logical key stops the EDGAR + mirror sources from double-inserting
