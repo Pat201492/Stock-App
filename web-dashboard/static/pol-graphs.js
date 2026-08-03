@@ -50,17 +50,18 @@ function pgEdgeGroup(kind) {
 }
 
 // ── Relationship network ─────────────────────────────────────────────────────
-// cfg.ids = { container, empty, count, limit, animate, checks:{curated,stock,
-//             cotrade,sector,committee,leadership,state} }
+// cfg.ids = { container, empty, count, limit, checks:{<PG_EDGE_TOGGLES key>: elementId} }
+// checks is optional; it defaults to the ids polNetworkMarkup() emits.
 function createPolNetwork(cfg) {
   const C = cfg.ids;
+  const CHECKS = C.checks || Object.fromEntries(PG_EDGE_TOGGLES.map(t => [t.k, "pg-ek-" + t.k]));
   // settled: physics runs once to unpack the radial seed into a readable web,
   // then switches off for good. After that the graph is purely manual — drag a
   // node and it stays put, because nothing is left to push it around.
   const st = { party: "republican", raw: { nodes: [], edges: [] },
-               network: null, nodeMeta: {}, settled: false };
+               network: null, ds: null, nodeMeta: {}, settled: false };
   const el = id => (id ? document.getElementById(id) : null);
-  const isOn = k => { const b = el("pg-ek-" + k); return b ? b.classList.contains("active") : false; };
+  const isOn = k => { const b = el(CHECKS[k]); return b ? b.classList.contains("active") : false; };
 
   function fatal(msg) {
     const c = el(C.container);
@@ -202,6 +203,7 @@ function createPolNetwork(cfg) {
       : "";
 
     const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
+    st.ds = data;                    // keep the handles; avoids reaching into network internals
     const options = {
       interaction: { hover: true, tooltipDelay: 120, dragNodes: true,
                      zoomView: true, dragView: true },
@@ -231,7 +233,7 @@ function createPolNetwork(cfg) {
         st.settled = true;
         st.network.setOptions({ physics: { enabled: false } });
         const hub = (st.raw.nodes || []).find(n => n.type === "hub");
-        if (hub) st.network.body.data.nodes.update({ id: hub.id, fixed: false });
+        if (hub && st.ds) st.ds.nodes.update({ id: hub.id, fixed: false });
         st.network.fit({ animation: false });
       });
     }
@@ -560,6 +562,7 @@ function polTimingMarkup() {
 function mountPolNetwork() {
   const net = createPolNetwork({ ids: {
     container: "pg-net", empty: "pg-net-empty", count: "pg-net-count", limit: "pg-limit",
+    checks: Object.fromEntries(PG_EDGE_TOGGLES.map(t => [t.k, "pg-ek-" + t.k])),
   } });
   document.querySelectorAll(".pg-party-btn").forEach(b => b.onclick = () => {
     document.querySelectorAll(".pg-party-btn").forEach(x => x.classList.toggle("active", x === b));
