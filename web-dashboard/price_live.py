@@ -34,9 +34,15 @@ TIMEOUT     = 15                    # seconds, upstream fetch
 MAX_ENTRIES = 512                   # cache bound; evicts oldest
 
 _cache = {}          # ticker -> (fetched_at, rows). rows == [] means known-miss
-_locks = {}          # ticker -> Lock, for single-flight
+# One lock per ticker, never pruned. The caller only reaches us for symbols on
+# its allow-list, so this is bounded by the known-ticker count (a few thousand
+# tiny objects). An earlier version pruned locks not yet in _cache, which could
+# drop a lock a thread was mid-fetch under and let a second thread fetch the
+# same ticker concurrently — the exact thing single-flight is here to prevent.
+_locks = {}
 _locks_guard = threading.Lock()
-_live = {}           # ticker -> [requests, rows_found] — feeds backfill scope
+_live = {}           # ticker -> [upstream_fetches, rows_found] — feeds backfill scope
+_refused = {}        # ticker -> count, callers we declined to fetch for
 
 
 def get_prices(ticker, since=None):
@@ -50,6 +56,12 @@ def get_prices(ticker, since=None):
     return rows
 
 
+def note_refused(ticker):
+    """Record a caller we declined to fetch for (unknown/oversized symbol)."""
+    t = (ticker or "")[:32]
+    _refused[t] = _refused.get(t, 0) + 1
+
+
 def stats():
     """Diagnostics: what took the cold path, and what's worth backfilling."""
     ok = [t for t, (_, rows) in _cache.items() if rows]
@@ -57,11 +69,17 @@ def stats():
         "cached_tickers": len(_cache),
         "cached_with_data": len(ok),
         "cached_empty": len(_cache) - len(ok),
-        "live_lookups": {t: {"requests": n, "rows": r} for t, (n, r) in
+        # upstream_fetches counts cache MISSES, not requests — a ticker served
+        # from cache never increments it.
+        "live_lookups": {t: {"upstream_fetches": n, "rows": r} for t, (n, r) in
                          sorted(_live.items(), key=lambda kv: -kv[1][0])},
         # Tickers upstream actually has data for — add these to the next
         # local backfill run so they stop needing the network.
         "backfill_candidates": sorted(t for t, (_, r) in _live.items() if r),
+        # Symbols the allow-list turned away. A big number here is either a
+        # stale allow-list or someone probing the endpoint.
+        "refused": dict(sorted(_refused.items(), key=lambda kv: -kv[1])[:50]),
+        "refused_total": sum(_refused.values()),
         "note": "in-memory; resets when the service restarts (every publish)",
     }
 
@@ -129,10 +147,6 @@ def _store(ticker, rows):
 
 def _lock_for(ticker):
     with _locks_guard:
-        # Locks are tiny but unbounded otherwise; drop ones no longer cached.
-        if len(_locks) > 4 * MAX_ENTRIES:
-            for k in [k for k in _locks if k not in _cache]:
-                _locks.pop(k, None)
         lk = _locks.get(ticker)
         if lk is None:
             lk = _locks[ticker] = threading.Lock()
