@@ -99,6 +99,13 @@ def fetch_and_store_prices(ticker, db, period="1y"):
 
     saved = 0
     for date, row in hist.iterrows():
+        # Skip bars with no close. yfinance hands back NaN on a bad day, and
+        # round(nan, 4) lands in SQLite as NULL — which is worse than having no
+        # row at all, because the date then counts as already fetched and the
+        # gap can never refill. One bad upstream day did this to 1,491 tickers.
+        close = row["Close"]
+        if close is None or close != close:      # NaN
+            continue
         date_str = date.strftime("%Y-%m-%d")
         existing = (
             db.query(PriceHistory)
@@ -107,11 +114,12 @@ def fetch_and_store_prices(ticker, db, period="1y"):
         )
         if existing:
             continue
+        vol = row.get("Volume")
         db.add(PriceHistory(
             ticker=ticker,
             date=date_str,
-            close=round(float(row["Close"]), 4),
-            volume=float(row.get("Volume", 0)),
+            close=round(float(close), 4),
+            volume=None if vol is None or vol != vol else float(vol),
         ))
         saved += 1
 
@@ -140,6 +148,23 @@ def _tickers_needing_news(tickers, db):
     return [t for t in tickers if t not in recent]
 
 
+def _purge_null_closes(db):
+    """Drop price rows that have no close.
+
+    They carry no information — every reader filters them out — but they still
+    occupy the (ticker, date) slot, so the dedupe in fetch_and_store_prices
+    treats that day as already done and the hole never fills. Clearing them lets
+    this run's 1y fetch put the real bars back.
+    """
+    n = (db.query(PriceHistory)
+           .filter(PriceHistory.close.is_(None))
+           .delete(synchronize_session=False))
+    if n:
+        db.commit()
+        print(f"Purged {n} price rows with no close — refilling below.")
+    return n
+
+
 def _tickers_needing_prices(tickers, db):
     """Return tickers with no price row today."""
     from datetime import datetime as _dt
@@ -161,6 +186,7 @@ def main(tickers=None, limit_per_ticker=10):
         rows = db.query(Stock.ticker).order_by(Stock.rank).limit(1500).all()
         tickers = [r.ticker for r in rows]
 
+    _purge_null_closes(db)
     need_news   = _tickers_needing_news(tickers, db)
     need_prices = _tickers_needing_prices(tickers, db)
     print(f"News:   {len(need_news)}/{len(tickers)} tickers need update")

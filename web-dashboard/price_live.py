@@ -18,6 +18,10 @@ Every guard here exists to keep that cold path cold:
 
 Results are NOT written back to stocks.db: publish.ps1 swaps the whole file on
 every data push, so anything written here dies at the next publish.
+
+All state here is per-process. The service runs a single uvicorn worker, so
+that's one cache; if it's ever scaled to N workers, expect N caches and up to
+N times the upstream traffic. A shared cache would need to move out of process.
 """
 import threading
 from datetime import datetime, timedelta
