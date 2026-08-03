@@ -1748,6 +1748,23 @@ def integrity():
 
 # ── Political API ─────────────────────────────────────────────────────────────
 
+def _sane_insider(q):
+    """Drop filer typos from an InsiderTrade query.
+
+    A Form 4 reports a transaction that already happened, so it can never
+    post-date its own filing. A handful of rows break that — mostly year slips
+    like 2023 keyed as 2033 — and because every listing sorts by
+    transaction_date desc, those land at the very top of the page. The
+    congressional side already guards its own dates in pol_stats; this is the
+    same idea, expressed against filed_date so it also catches typos that land
+    in the past (2023-12-31 filed 2023-01-03) rather than only future ones.
+
+    Rows with no filed_date are kept — there's nothing to check them against.
+    """
+    return q.filter(or_(InsiderTrade.filed_date.is_(None),
+                        InsiderTrade.transaction_date <= InsiderTrade.filed_date))
+
+
 @app.get("/api/pol/stats")
 def pol_stats(db: Session = Depends(get_pol_db)):
     from datetime import date as _date
@@ -1757,7 +1774,8 @@ def pol_stats(db: Session = Depends(get_pol_db)):
     return {
         "total_politicians":   db.query(func.count(Politician.bioguide_id)).scalar() or 0,
         "total_congressional": db.query(func.count(CongressionalTrade.trade_id)).scalar() or 0,
-        "total_insider":       db.query(func.count(InsiderTrade.filing_id)).scalar() or 0,
+        "total_insider":       _sane_insider(
+            db.query(func.count(InsiderTrade.filing_id))).scalar() or 0,
         "total_committees":    db.query(func.count(Committee.committee_id)).scalar() or 0,
         "latest_trade_date":   latest.isoformat() if latest else None,
     }
@@ -2575,7 +2593,7 @@ def insider_trades(
     offset:   int = 0,
     db: Session = Depends(get_pol_db),
 ):
-    q = db.query(InsiderTrade)
+    q = _sane_insider(db.query(InsiderTrade))
     if ticker:   q = q.filter(InsiderTrade.ticker == ticker.upper())
     if txn_type: q = q.filter(InsiderTrade.transaction_type == txn_type)
     if days:
@@ -2610,7 +2628,7 @@ def insider_ticker(ticker: str, days: int = 99999, db: Session = Depends(get_pol
     from datetime import date as _d, timedelta as _td
     ticker = ticker.upper()
     since  = _d.today() - _td(days=days)
-    rows = db.query(InsiderTrade).filter(
+    rows = _sane_insider(db.query(InsiderTrade)).filter(
         InsiderTrade.ticker == ticker,
         InsiderTrade.transaction_date >= since,
     ).order_by(InsiderTrade.transaction_date.desc()).all()
