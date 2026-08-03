@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-08T11:36:00.952223",
+  "generated": "2026-08-03T09:30:36.322850",
   "total": 2500,
   "stocks": [
     {
@@ -20259,6 +20259,18 @@
       "rank": 1688
     },
     {
+      "ticker": "BXBL",
+      "name": "Boxabl Inc.",
+      "sector": "Consumer Cyclical",
+      "industry": "Residential Construction",
+      "country": "United States",
+      "mkt_cap": 2860350720,
+      "cap_size": "Mid Cap",
+      "price": 8.1001,
+      "exchange": "NGM",
+      "rank": 1689
+    },
+    {
       "ticker": "PFS",
       "name": "Provident Financial Services, Inc.",
       "sector": "Financial Services",
@@ -20268,7 +20280,7 @@
       "cap_size": "Mid Cap",
       "price": 21.93,
       "exchange": "NYQ",
-      "rank": 1689
+      "rank": 1690
     },
     {
       "ticker": "AYA",
@@ -20280,7 +20292,7 @@
       "cap_size": "Mid Cap",
       "price": 19.9,
       "exchange": "NMS",
-      "rank": 1690
+      "rank": 1691
     },
     {
       "ticker": "DK",
@@ -20292,7 +20304,7 @@
       "cap_size": "Mid Cap",
       "price": 46.425,
       "exchange": "NYQ",
-      "rank": 1691
+      "rank": 1692
     },
     {
       "ticker": "QTWO",
@@ -20304,7 +20316,7 @@
       "cap_size": "Mid Cap",
       "price": 45.405,
       "exchange": "NYQ",
-      "rank": 1692
+      "rank": 1693
     },
     {
       "ticker": "HAWK",
@@ -20316,7 +20328,7 @@
       "cap_size": "Mid Cap",
       "price": 30.455,
       "exchange": "NYQ",
-      "rank": 1693
+      "rank": 1694
     },
     {
       "ticker": "CWK",
@@ -20328,7 +20340,7 @@
       "cap_size": "Mid Cap",
       "price": 12.07,
       "exchange": "NYQ",
-      "rank": 1694
+      "rank": 1695
     },
     {
       "ticker": "DBD",
@@ -20340,7 +20352,7 @@
       "cap_size": "Mid Cap",
       "price": 81.53,
       "exchange": "NYQ",
-      "rank": 1695
+      "rank": 1696
     },
     {
       "ticker": "FA",
@@ -20352,7 +20364,7 @@
       "cap_size": "Mid Cap",
       "price": 16.3699,
       "exchange": "NMS",
-      "rank": 1696
+      "rank": 1697
     },
     {
       "ticker": "DX",
@@ -20364,7 +20376,7 @@
       "cap_size": "Mid Cap",
       "price": 13.045,
       "exchange": "NYQ",
-      "rank": 1697
+      "rank": 1698
     },
     {
       "ticker": "WK",
@@ -20376,7 +20388,7 @@
       "cap_size": "Mid Cap",
       "price": 50.01,
       "exchange": "NYQ",
-      "rank": 1698
+      "rank": 1699
     },
     {
       "ticker": "IHS",
@@ -20388,7 +20400,7 @@
       "cap_size": "Mid Cap",
       "price": 8.315,
       "exchange": "NYQ",
-      "rank": 1699
+      "rank": 1700
     },
     {
       "ticker": "SVM",
@@ -20400,7 +20412,7 @@
       "cap_size": "Mid Cap",
       "price": 12.65,
       "exchange": "ASE",
-      "rank": 1700
+      "rank": 1701
     },
     {
       "ticker": "HLIO",
@@ -20412,7 +20424,7 @@
       "cap_size": "Mid Cap",
       "price": 84.35,
       "exchange": "NYQ",
-      "rank": 1701
+      "rank": 1702
     },
     {
       "ticker": "OUST",
@@ -20424,7 +20436,7 @@
       "cap_size": "Mid Cap",
       "price": 43.76,
       "exchange": "NMS",
-      "rank": 1702
+      "rank": 1703
     },
     {
       "ticker": "EEFT",
@@ -20436,7 +20448,7 @@
       "cap_size": "Mid Cap",
       "price": 73.16,
       "exchange": "NMS",
-      "rank": 1703
+      "rank": 1704
     },
     {
       "ticker": "KD",
@@ -20448,7 +20460,7 @@
       "cap_size": "Mid Cap",
       "price": 12.65,
       "exchange": "NYQ",
-      "rank": 1704
+      "rank": 1705
     },
     {
       "ticker": "MGEE",
@@ -20460,7 +20472,7 @@
       "cap_size": "Mid Cap",
       "price": 73.65,
       "exchange": "NMS",
-      "rank": 1705
+      "rank": 1706
     },
     {
       "ticker": "NAD",
@@ -20472,7 +20484,7 @@
       "cap_size": "Mid Cap",
       "price": 11.82,
       "exchange": "NYQ",
-      "rank": 1706
+      "rank": 1707
     },
     {
       "ticker": "VISN",
@@ -20484,7 +20496,7 @@
       "cap_size": "Mid Cap",
       "price": 12.2,
       "exchange": "NMS",
-      "rank": 1707
+      "rank": 1708
     },
     {
       "ticker": "FRSH",
@@ -20496,7 +20508,7 @@
       "cap_size": "Mid Cap",
       "price": 9.945,
       "exchange": "NMS",
-      "rank": 1708
+      "rank": 1709
     },
     {
       "ticker": "VRXA",
@@ -20508,7 +20520,7 @@
       "cap_size": "Mid Cap",
       "price": 20.0,
       "exchange": "NGM",
-      "rank": 1709
+      "rank": 1710
     },
     {
       "ticker": "UNIT",
@@ -20520,7 +20532,7 @@
       "cap_size": "Mid Cap",
       "price": 11.195,
       "exchange": "NMS",
-      "rank": 1710
+      "rank": 1711
     },
     {
       "ticker": "FBK",
@@ -20532,7 +20544,7 @@
       "cap_size": "Mid Cap",
       "price": 52.66,
       "exchange": "NYQ",
-      "rank": 1711
+      "rank": 1712
     },
     {
       "ticker": "VOYG",
@@ -20544,7 +20556,7 @@
       "cap_size": "Mid Cap",
       "price": 45.72,
       "exchange": "NYQ",
-      "rank": 1712
+      "rank": 1713
     },
     {
       "ticker": "DKL",
@@ -20556,7 +20568,7 @@
       "cap_size": "Mid Cap",
       "price": 50.95,
       "exchange": "NYQ",
-      "rank": 1713
+      "rank": 1714
     },
     {
       "ticker": "NMIH",
@@ -20568,7 +20580,7 @@
       "cap_size": "Mid Cap",
       "price": 35.59,
       "exchange": "NGM",
-      "rank": 1714
+      "rank": 1715
     },
     {
       "ticker": "CALY",
@@ -20580,7 +20592,7 @@
       "cap_size": "Mid Cap",
       "price": 15.01,
       "exchange": "NYQ",
-      "rank": 1715
+      "rank": 1716
     },
     {
       "ticker": "NVG",
@@ -20592,7 +20604,7 @@
       "cap_size": "Mid Cap",
       "price": 12.605,
       "exchange": "NYQ",
-      "rank": 1716
+      "rank": 1717
     },
     {
       "ticker": "HUN",
@@ -20604,7 +20616,7 @@
       "cap_size": "Mid Cap",
       "price": 15.35,
       "exchange": "NYQ",
-      "rank": 1717
+      "rank": 1718
     },
     {
       "ticker": "HUBG",
@@ -20616,7 +20628,7 @@
       "cap_size": "Mid Cap",
       "price": 43.9,
       "exchange": "NMS",
-      "rank": 1718
+      "rank": 1719
     },
     {
       "ticker": "CECO",
@@ -20628,7 +20640,7 @@
       "cap_size": "Mid Cap",
       "price": 74.7625,
       "exchange": "NMS",
-      "rank": 1719
+      "rank": 1720
     },
     {
       "ticker": "WDFC",
@@ -20640,7 +20652,7 @@
       "cap_size": "Mid Cap",
       "price": 198.885,
       "exchange": "NMS",
-      "rank": 1720
+      "rank": 1721
     },
     {
       "ticker": "DHT",
@@ -20652,7 +20664,7 @@
       "cap_size": "Mid Cap",
       "price": 16.61,
       "exchange": "NYQ",
-      "rank": 1721
+      "rank": 1722
     },
     {
       "ticker": "FCPT",
@@ -20664,7 +20676,7 @@
       "cap_size": "Mid Cap",
       "price": 24.245,
       "exchange": "NYQ",
-      "rank": 1722
+      "rank": 1723
     },
     {
       "ticker": "APAM",
@@ -20676,7 +20688,7 @@
       "cap_size": "Mid Cap",
       "price": 37.37,
       "exchange": "NYQ",
-      "rank": 1723
+      "rank": 1724
     },
     {
       "ticker": "PAY",
@@ -20688,7 +20700,7 @@
       "cap_size": "Mid Cap",
       "price": 21.09,
       "exchange": "NYQ",
-      "rank": 1724
+      "rank": 1725
     },
     {
       "ticker": "SAH",
@@ -20700,7 +20712,7 @@
       "cap_size": "Mid Cap",
       "price": 83.85,
       "exchange": "NYQ",
-      "rank": 1725
+      "rank": 1726
     },
     {
       "ticker": "HTFL",
@@ -20712,7 +20724,7 @@
       "cap_size": "Mid Cap",
       "price": 30.715,
       "exchange": "NMS",
-      "rank": 1726
+      "rank": 1727
     },
     {
       "ticker": "CARG",
@@ -20724,7 +20736,7 @@
       "cap_size": "Mid Cap",
       "price": 29.345,
       "exchange": "NMS",
-      "rank": 1727
+      "rank": 1728
     },
     {
       "ticker": "AEO",
@@ -20736,7 +20748,7 @@
       "cap_size": "Mid Cap",
       "price": 15.785,
       "exchange": "NYQ",
-      "rank": 1728
+      "rank": 1729
     },
     {
       "ticker": "STNE",
@@ -20748,7 +20760,7 @@
       "cap_size": "Mid Cap",
       "price": 10.86,
       "exchange": "NMS",
-      "rank": 1729
+      "rank": 1730
     },
     {
       "ticker": "ARQT",
@@ -20760,7 +20772,7 @@
       "cap_size": "Mid Cap",
       "price": 21.09,
       "exchange": "NMS",
-      "rank": 1730
+      "rank": 1731
     },
     {
       "ticker": "QUBT",
@@ -20772,7 +20784,7 @@
       "cap_size": "Mid Cap",
       "price": 11.68,
       "exchange": "NCM",
-      "rank": 1731
+      "rank": 1732
     },
     {
       "ticker": "MGRC",
@@ -20784,7 +20796,7 @@
       "cap_size": "Mid Cap",
       "price": 107.17,
       "exchange": "NMS",
-      "rank": 1732
+      "rank": 1733
     },
     {
       "ticker": "WRD",
@@ -20796,7 +20808,7 @@
       "cap_size": "Mid Cap",
       "price": 7.945,
       "exchange": "NGM",
-      "rank": 1733
+      "rank": 1734
     },
     {
       "ticker": "IRON",
@@ -20808,7 +20820,7 @@
       "cap_size": "Mid Cap",
       "price": 68.57,
       "exchange": "NGM",
-      "rank": 1734
+      "rank": 1735
     },
     {
       "ticker": "PRVA",
@@ -20820,7 +20832,7 @@
       "cap_size": "Mid Cap",
       "price": 20.7105,
       "exchange": "NMS",
-      "rank": 1735
+      "rank": 1736
     },
     {
       "ticker": "PTON",
@@ -20832,7 +20844,7 @@
       "cap_size": "Mid Cap",
       "price": 6.025,
       "exchange": "NMS",
-      "rank": 1736
+      "rank": 1737
     },
     {
       "ticker": "DFTX",
@@ -20844,7 +20856,7 @@
       "cap_size": "Mid Cap",
       "price": 23.85,
       "exchange": "NMS",
-      "rank": 1737
+      "rank": 1738
     },
     {
       "ticker": "VVX",
@@ -20856,7 +20868,7 @@
       "cap_size": "Mid Cap",
       "price": 82.92,
       "exchange": "NYQ",
-      "rank": 1738
+      "rank": 1739
     },
     {
       "ticker": "LCID",
@@ -20868,7 +20880,7 @@
       "cap_size": "Mid Cap",
       "price": 6.65,
       "exchange": "NMS",
-      "rank": 1739
+      "rank": 1740
     },
     {
       "ticker": "AGYS",
@@ -20880,7 +20892,7 @@
       "cap_size": "Mid Cap",
       "price": 92.05,
       "exchange": "NMS",
-      "rank": 1740
+      "rank": 1741
     },
     {
       "ticker": "HOG",
@@ -20892,7 +20904,7 @@
       "cap_size": "Mid Cap",
       "price": 24.6,
       "exchange": "NYQ",
-      "rank": 1741
+      "rank": 1742
     },
     {
       "ticker": "ASH",
@@ -20904,7 +20916,7 @@
       "cap_size": "Mid Cap",
       "price": 56.51,
       "exchange": "NYQ",
-      "rank": 1742
+      "rank": 1743
     },
     {
       "ticker": "LCII",
@@ -20916,7 +20928,7 @@
       "cap_size": "Mid Cap",
       "price": 106.43,
       "exchange": "NYQ",
-      "rank": 1743
+      "rank": 1744
     },
     {
       "ticker": "DJT",
@@ -20928,7 +20940,7 @@
       "cap_size": "Mid Cap",
       "price": 9.33,
       "exchange": "NGM",
-      "rank": 1744
+      "rank": 1745
     },
     {
       "ticker": "SUPN",
@@ -20940,7 +20952,7 @@
       "cap_size": "Mid Cap",
       "price": 44.26,
       "exchange": "NGM",
-      "rank": 1745
+      "rank": 1746
     },
     {
       "ticker": "WERN",
@@ -20952,7 +20964,7 @@
       "cap_size": "Mid Cap",
       "price": 42.82,
       "exchange": "NMS",
-      "rank": 1746
+      "rank": 1747
     },
     {
       "ticker": "NYAX",
@@ -20964,7 +20976,7 @@
       "cap_size": "Mid Cap",
       "price": 68.6,
       "exchange": "NMS",
-      "rank": 1747
+      "rank": 1748
     },
     {
       "ticker": "WAFD",
@@ -20976,7 +20988,7 @@
       "cap_size": "Mid Cap",
       "price": 34.67,
       "exchange": "NMS",
-      "rank": 1748
+      "rank": 1749
     },
     {
       "ticker": "GRAL",
@@ -20988,7 +21000,7 @@
       "cap_size": "Mid Cap",
       "price": 59.505,
       "exchange": "NMS",
-      "rank": 1749
+      "rank": 1750
     },
     {
       "ticker": "BBAI",
@@ -21000,7 +21012,7 @@
       "cap_size": "Mid Cap",
       "price": 5.325,
       "exchange": "NYQ",
-      "rank": 1750
+      "rank": 1751
     },
     {
       "ticker": "GDV",
@@ -21012,7 +21024,7 @@
       "cap_size": "Mid Cap",
       "price": 29.16,
       "exchange": "NYQ",
-      "rank": 1751
+      "rank": 1752
     },
     {
       "ticker": "TRMK",
@@ -21024,7 +21036,7 @@
       "cap_size": "Mid Cap",
       "price": 43.51,
       "exchange": "NMS",
-      "rank": 1752
+      "rank": 1753
     },
     {
       "ticker": "CALX",
@@ -21036,7 +21048,7 @@
       "cap_size": "Mid Cap",
       "price": 39.945,
       "exchange": "NYQ",
-      "rank": 1753
+      "rank": 1754
     },
     {
       "ticker": "AAMI",
@@ -21048,7 +21060,7 @@
       "cap_size": "Mid Cap",
       "price": 71.3701,
       "exchange": "NYQ",
-      "rank": 1754
+      "rank": 1755
     },
     {
       "ticker": "ALMS",
@@ -21060,7 +21072,7 @@
       "cap_size": "Mid Cap",
       "price": 19.93,
       "exchange": "NMS",
-      "rank": 1755
+      "rank": 1756
     },
     {
       "ticker": "IVT",
@@ -21072,7 +21084,7 @@
       "cap_size": "Mid Cap",
       "price": 32.505,
       "exchange": "NYQ",
-      "rank": 1756
+      "rank": 1757
     },
     {
       "ticker": "ROG",
@@ -21084,7 +21096,7 @@
       "cap_size": "Mid Cap",
       "price": 141.52,
       "exchange": "NYQ",
-      "rank": 1757
+      "rank": 1758
     },
     {
       "ticker": "KMT",
@@ -21096,7 +21108,7 @@
       "cap_size": "Mid Cap",
       "price": 33.14,
       "exchange": "NYQ",
-      "rank": 1758
+      "rank": 1759
     },
     {
       "ticker": "PTY",
@@ -21108,7 +21120,7 @@
       "cap_size": "Mid Cap",
       "price": 11.905,
       "exchange": "NYQ",
-      "rank": 1759
+      "rank": 1760
     },
     {
       "ticker": "TRN",
@@ -21120,7 +21132,7 @@
       "cap_size": "Mid Cap",
       "price": 31.725,
       "exchange": "NYQ",
-      "rank": 1760
+      "rank": 1761
     },
     {
       "ticker": "WTTR",
@@ -21132,7 +21144,7 @@
       "cap_size": "Mid Cap",
       "price": 17.93,
       "exchange": "NYQ",
-      "rank": 1761
+      "rank": 1762
     },
     {
       "ticker": "PENN",
@@ -21144,7 +21156,7 @@
       "cap_size": "Mid Cap",
       "price": 18.83,
       "exchange": "NMS",
-      "rank": 1762
+      "rank": 1763
     },
     {
       "ticker": "FRME",
@@ -21156,7 +21168,7 @@
       "cap_size": "Mid Cap",
       "price": 39.92,
       "exchange": "NMS",
-      "rank": 1763
+      "rank": 1764
     },
     {
       "ticker": "DGII",
@@ -21168,7 +21180,7 @@
       "cap_size": "Mid Cap",
       "price": 66.72,
       "exchange": "NMS",
-      "rank": 1764
+      "rank": 1765
     },
     {
       "ticker": "RLX",
@@ -21180,7 +21192,7 @@
       "cap_size": "Mid Cap",
       "price": 2.055,
       "exchange": "NYQ",
-      "rank": 1765
+      "rank": 1766
     },
     {
       "ticker": "TALO",
@@ -21192,7 +21204,7 @@
       "cap_size": "Mid Cap",
       "price": 15.04,
       "exchange": "NYQ",
-      "rank": 1766
+      "rank": 1767
     },
     {
       "ticker": "UAA",
@@ -21204,7 +21216,7 @@
       "cap_size": "Mid Cap",
       "price": 5.87,
       "exchange": "NYQ",
-      "rank": 1767
+      "rank": 1768
     },
     {
       "ticker": "GRDN",
@@ -21216,7 +21228,7 @@
       "cap_size": "Mid Cap",
       "price": 39.5111,
       "exchange": "NYQ",
-      "rank": 1768
+      "rank": 1769
     },
     {
       "ticker": "BRAI",
@@ -21228,7 +21240,7 @@
       "cap_size": "Mid Cap",
       "price": 12.1329,
       "exchange": "NGM",
-      "rank": 1769
+      "rank": 1770
     },
     {
       "ticker": "PAGS",
@@ -21240,7 +21252,7 @@
       "cap_size": "Mid Cap",
       "price": 8.9106,
       "exchange": "NYQ",
-      "rank": 1770
+      "rank": 1771
     },
     {
       "ticker": "COHU",
@@ -21252,7 +21264,7 @@
       "cap_size": "Mid Cap",
       "price": 52.75,
       "exchange": "NMS",
-      "rank": 1771
+      "rank": 1772
     },
     {
       "ticker": "FLOC",
@@ -21264,7 +21276,7 @@
       "cap_size": "Mid Cap",
       "price": 23.215,
       "exchange": "NYQ",
-      "rank": 1772
+      "rank": 1773
     },
     {
       "ticker": "IDYA",
@@ -21276,7 +21288,7 @@
       "cap_size": "Mid Cap",
       "price": 28.09,
       "exchange": "NMS",
-      "rank": 1773
+      "rank": 1774
     },
     {
       "ticker": "CUBI",
@@ -21288,7 +21300,7 @@
       "cap_size": "Mid Cap",
       "price": 72.95,
       "exchange": "NYQ",
-      "rank": 1774
+      "rank": 1775
     },
     {
       "ticker": "MLYS",
@@ -21300,7 +21312,7 @@
       "cap_size": "Mid Cap",
       "price": 29.885,
       "exchange": "NMS",
-      "rank": 1775
+      "rank": 1776
     },
     {
       "ticker": "CHA",
@@ -21312,7 +21324,7 @@
       "cap_size": "Mid Cap",
       "price": 12.91,
       "exchange": "NMS",
-      "rank": 1776
+      "rank": 1777
     },
     {
       "ticker": "TARS",
@@ -21324,7 +21336,7 @@
       "cap_size": "Mid Cap",
       "price": 57.215,
       "exchange": "NMS",
-      "rank": 1777
+      "rank": 1778
     },
     {
       "ticker": "TNK",
@@ -21336,7 +21348,7 @@
       "cap_size": "Mid Cap",
       "price": 70.875,
       "exchange": "NYQ",
-      "rank": 1778
+      "rank": 1779
     },
     {
       "ticker": "TSAT",
@@ -21348,7 +21360,7 @@
       "cap_size": "Mid Cap",
       "price": 47.71,
       "exchange": "NMS",
-      "rank": 1779
+      "rank": 1780
     },
     {
       "ticker": "ANDE",
@@ -21360,7 +21372,7 @@
       "cap_size": "Mid Cap",
       "price": 71.91,
       "exchange": "NMS",
-      "rank": 1780
+      "rank": 1781
     },
     {
       "ticker": "IQMX",
@@ -21372,7 +21384,7 @@
       "cap_size": "Mid Cap",
       "price": 11.605,
       "exchange": "NMS",
-      "rank": 1781
+      "rank": 1782
     },
     {
       "ticker": "FRPT",
@@ -21384,7 +21396,7 @@
       "cap_size": "Mid Cap",
       "price": 49.817,
       "exchange": "NGM",
-      "rank": 1782
+      "rank": 1783
     },
     {
       "ticker": "UA",
@@ -21396,7 +21408,7 @@
       "cap_size": "Mid Cap",
       "price": 5.73,
       "exchange": "NYQ",
-      "rank": 1783
+      "rank": 1784
     },
     {
       "ticker": "PK",
@@ -21408,7 +21420,7 @@
       "cap_size": "Mid Cap",
       "price": 12.13,
       "exchange": "NYQ",
-      "rank": 1784
+      "rank": 1785
     },
     {
       "ticker": "PIII",
@@ -21420,7 +21432,7 @@
       "cap_size": "Mid Cap",
       "price": 12.02,
       "exchange": "NCM",
-      "rank": 1785
+      "rank": 1786
     },
     {
       "ticker": "UTI",
@@ -21432,7 +21444,7 @@
       "cap_size": "Mid Cap",
       "price": 44.305,
       "exchange": "NYQ",
-      "rank": 1786
+      "rank": 1787
     },
     {
       "ticker": "SPNT",
@@ -21444,7 +21456,7 @@
       "cap_size": "Mid Cap",
       "price": 20.735,
       "exchange": "NYQ",
-      "rank": 1787
+      "rank": 1788
     },
     {
       "ticker": "FBNC",
@@ -21456,7 +21468,7 @@
       "cap_size": "Mid Cap",
       "price": 58.865,
       "exchange": "NMS",
-      "rank": 1788
+      "rank": 1789
     },
     {
       "ticker": "NZF",
@@ -21468,7 +21480,7 @@
       "cap_size": "Mid Cap",
       "price": 12.555,
       "exchange": "NYQ",
-      "rank": 1789
+      "rank": 1790
     },
     {
       "ticker": "CHRN",
@@ -21480,7 +21492,7 @@
       "cap_size": "Mid Cap",
       "price": 16.9172,
       "exchange": "NCM",
-      "rank": 1790
+      "rank": 1791
     },
     {
       "ticker": "AVPT",
@@ -21492,7 +21504,7 @@
       "cap_size": "Mid Cap",
       "price": 11.415,
       "exchange": "NMS",
-      "rank": 1791
+      "rank": 1792
     },
     {
       "ticker": "NIQ",
@@ -21504,7 +21516,7 @@
       "cap_size": "Mid Cap",
       "price": 8.19,
       "exchange": "NYQ",
-      "rank": 1792
+      "rank": 1793
     },
     {
       "ticker": "CENT",
@@ -21516,7 +21528,7 @@
       "cap_size": "Mid Cap",
       "price": 38.54,
       "exchange": "NMS",
-      "rank": 1793
+      "rank": 1794
     },
     {
       "ticker": "NOG",
@@ -21528,7 +21540,7 @@
       "cap_size": "Mid Cap",
       "price": 22.04,
       "exchange": "NYQ",
-      "rank": 1794
+      "rank": 1795
     },
     {
       "ticker": "ADPT",
@@ -21540,7 +21552,7 @@
       "cap_size": "Mid Cap",
       "price": 14.97,
       "exchange": "NMS",
-      "rank": 1795
+      "rank": 1796
     },
     {
       "ticker": "AMSC",
@@ -21552,7 +21564,7 @@
       "cap_size": "Mid Cap",
       "price": 50.23,
       "exchange": "NMS",
-      "rank": 1796
+      "rank": 1797
     },
     {
       "ticker": "NBTB",
@@ -21564,7 +21576,7 @@
       "cap_size": "Mid Cap",
       "price": 45.975,
       "exchange": "NMS",
-      "rank": 1797
+      "rank": 1798
     },
     {
       "ticker": "AMBP",
@@ -21576,7 +21588,7 @@
       "cap_size": "Mid Cap",
       "price": 4.0,
       "exchange": "NYQ",
-      "rank": 1798
+      "rank": 1799
     },
     {
       "ticker": "BBT",
@@ -21588,7 +21600,7 @@
       "cap_size": "Mid Cap",
       "price": 28.495,
       "exchange": "NYQ",
-      "rank": 1799
+      "rank": 1800
     },
     {
       "ticker": "HTO",
@@ -21600,7 +21612,7 @@
       "cap_size": "Mid Cap",
       "price": 57.05,
       "exchange": "NMS",
-      "rank": 1800
+      "rank": 1801
     },
     {
       "ticker": "MTX",
@@ -21612,7 +21624,7 @@
       "cap_size": "Mid Cap",
       "price": 76.865,
       "exchange": "NYQ",
-      "rank": 1801
+      "rank": 1802
     },
     {
       "ticker": "AERO",
@@ -21624,7 +21636,7 @@
       "cap_size": "Mid Cap",
       "price": 16.32,
       "exchange": "NYQ",
-      "rank": 1802
+      "rank": 1803
     },
     {
       "ticker": "BCC",
@@ -21636,7 +21648,7 @@
       "cap_size": "Mid Cap",
       "price": 67.29,
       "exchange": "NYQ",
-      "rank": 1803
+      "rank": 1804
     },
     {
       "ticker": "ETY",
@@ -21648,7 +21660,7 @@
       "cap_size": "Mid Cap",
       "price": 14.835,
       "exchange": "NYQ",
-      "rank": 1804
+      "rank": 1805
     },
     {
       "ticker": "PCT",
@@ -21660,7 +21672,7 @@
       "cap_size": "Mid Cap",
       "price": 13.055,
       "exchange": "NCM",
-      "rank": 1805
+      "rank": 1806
     },
     {
       "ticker": "RARE",
@@ -21672,7 +21684,7 @@
       "cap_size": "Mid Cap",
       "price": 23.94,
       "exchange": "NMS",
-      "rank": 1806
+      "rank": 1807
     },
     {
       "ticker": "GOF",
@@ -21684,7 +21696,7 @@
       "cap_size": "Mid Cap",
       "price": 11.1182,
       "exchange": "NYQ",
-      "rank": 1807
+      "rank": 1808
     },
     {
       "ticker": "DEI",
@@ -21696,7 +21708,7 @@
       "cap_size": "Mid Cap",
       "price": 11.665,
       "exchange": "NYQ",
-      "rank": 1808
+      "rank": 1809
     },
     {
       "ticker": "KYN",
@@ -21708,7 +21720,7 @@
       "cap_size": "Mid Cap",
       "price": 13.855,
       "exchange": "NYQ",
-      "rank": 1809
+      "rank": 1810
     },
     {
       "ticker": "TMDX",
@@ -21720,7 +21732,7 @@
       "cap_size": "Mid Cap",
       "price": 67.76,
       "exchange": "NGM",
-      "rank": 1810
+      "rank": 1811
     },
     {
       "ticker": "CLDX",
@@ -21732,7 +21744,7 @@
       "cap_size": "Mid Cap",
       "price": 29.825,
       "exchange": "NCM",
-      "rank": 1811
+      "rank": 1812
     },
     {
       "ticker": "NGVT",
@@ -21744,7 +21756,7 @@
       "cap_size": "Mid Cap",
       "price": 67.17,
       "exchange": "NYQ",
-      "rank": 1812
+      "rank": 1813
     },
     {
       "ticker": "DAC",
@@ -21756,7 +21768,7 @@
       "cap_size": "Mid Cap",
       "price": 128.235,
       "exchange": "NYQ",
-      "rank": 1813
+      "rank": 1814
     },
     {
       "ticker": "POET",
@@ -21768,7 +21780,7 @@
       "cap_size": "Mid Cap",
       "price": 13.5,
       "exchange": "NCM",
-      "rank": 1814
+      "rank": 1815
     },
     {
       "ticker": "SHAK",
@@ -21780,7 +21792,7 @@
       "cap_size": "Mid Cap",
       "price": 54.39,
       "exchange": "NYQ",
-      "rank": 1815
+      "rank": 1816
     },
     {
       "ticker": "HE",
@@ -21792,7 +21804,7 @@
       "cap_size": "Mid Cap",
       "price": 13.4729,
       "exchange": "NYQ",
-      "rank": 1816
+      "rank": 1817
     },
     {
       "ticker": "WIX",
@@ -21804,7 +21816,7 @@
       "cap_size": "Mid Cap",
       "price": 55.45,
       "exchange": "NMS",
-      "rank": 1817
+      "rank": 1818
     },
     {
       "ticker": "ALGT",
@@ -21816,7 +21828,7 @@
       "cap_size": "Mid Cap",
       "price": 85.6,
       "exchange": "NMS",
-      "rank": 1818
+      "rank": 1819
     },
     {
       "ticker": "MH",
@@ -21828,7 +21840,7 @@
       "cap_size": "Mid Cap",
       "price": 12.005,
       "exchange": "NYQ",
-      "rank": 1819
+      "rank": 1820
     },
     {
       "ticker": "BUSE",
@@ -21840,7 +21852,7 @@
       "cap_size": "Mid Cap",
       "price": 27.06,
       "exchange": "NMS",
-      "rank": 1820
+      "rank": 1821
     },
     {
       "ticker": "XXI",
@@ -21852,7 +21864,7 @@
       "cap_size": "Mid Cap",
       "price": 6.58,
       "exchange": "NYQ",
-      "rank": 1821
+      "rank": 1822
     },
     {
       "ticker": "PDFS",
@@ -21864,7 +21876,7 @@
       "cap_size": "Mid Cap",
       "price": 54.5,
       "exchange": "NMS",
-      "rank": 1822
+      "rank": 1823
     },
     {
       "ticker": "CLM",
@@ -21876,7 +21888,7 @@
       "cap_size": "Mid Cap",
       "price": 7.635,
       "exchange": "ASE",
-      "rank": 1823
+      "rank": 1824
     },
     {
       "ticker": "WLYB",
@@ -21888,7 +21900,7 @@
       "cap_size": "Mid Cap",
       "price": 44.23,
       "exchange": "NYQ",
-      "rank": 1824
+      "rank": 1825
     },
     {
       "ticker": "ABM",
@@ -21900,7 +21912,7 @@
       "cap_size": "Mid Cap",
       "price": 38.68,
       "exchange": "NYQ",
-      "rank": 1825
+      "rank": 1826
     },
     {
       "ticker": "IE",
@@ -21912,7 +21924,7 @@
       "cap_size": "Mid Cap",
       "price": 14.29,
       "exchange": "ASE",
-      "rank": 1826
+      "rank": 1827
     },
     {
       "ticker": "ELVN",
@@ -21924,7 +21936,7 @@
       "cap_size": "Mid Cap",
       "price": 37.13,
       "exchange": "NMS",
-      "rank": 1827
+      "rank": 1828
     },
     {
       "ticker": "DRVN",
@@ -21936,7 +21948,7 @@
       "cap_size": "Mid Cap",
       "price": 13.705,
       "exchange": "NMS",
-      "rank": 1828
+      "rank": 1829
     },
     {
       "ticker": "RAMP",
@@ -21948,7 +21960,7 @@
       "cap_size": "Mid Cap",
       "price": 37.52,
       "exchange": "NYQ",
-      "rank": 1829
+      "rank": 1830
     },
     {
       "ticker": "IMOS",
@@ -21960,7 +21972,7 @@
       "cap_size": "Mid Cap",
       "price": 64.54,
       "exchange": "NMS",
-      "rank": 1830
+      "rank": 1831
     },
     {
       "ticker": "NTB",
@@ -21972,7 +21984,7 @@
       "cap_size": "Mid Cap",
       "price": 56.625,
       "exchange": "NYQ",
-      "rank": 1831
+      "rank": 1832
     },
     {
       "ticker": "ATEN",
@@ -21984,7 +21996,7 @@
       "cap_size": "Mid Cap",
       "price": 31.07,
       "exchange": "NYQ",
-      "rank": 1832
+      "rank": 1833
     },
     {
       "ticker": "MLCO",
@@ -21996,7 +22008,7 @@
       "cap_size": "Mid Cap",
       "price": 5.75,
       "exchange": "NMS",
-      "rank": 1833
+      "rank": 1834
     },
     {
       "ticker": "VERA",
@@ -22008,7 +22020,7 @@
       "cap_size": "Mid Cap",
       "price": 31.1,
       "exchange": "NGM",
-      "rank": 1834
+      "rank": 1835
     },
     {
       "ticker": "DRH",
@@ -22020,7 +22032,7 @@
       "cap_size": "Mid Cap",
       "price": 10.8697,
       "exchange": "NMS",
-      "rank": 1835
+      "rank": 1836
     },
     {
       "ticker": "RVT",
@@ -22032,7 +22044,7 @@
       "cap_size": "Mid Cap",
       "price": 18.22,
       "exchange": "NYQ",
-      "rank": 1836
+      "rank": 1837
     },
     {
       "ticker": "TBBK",
@@ -22044,7 +22056,7 @@
       "cap_size": "Mid Cap",
       "price": 53.425,
       "exchange": "NMS",
-      "rank": 1837
+      "rank": 1838
     },
     {
       "ticker": "ALRM",
@@ -22056,7 +22068,7 @@
       "cap_size": "Mid Cap",
       "price": 44.92,
       "exchange": "NMS",
-      "rank": 1838
+      "rank": 1839
     },
     {
       "ticker": "BKE",
@@ -22068,7 +22080,7 @@
       "cap_size": "Mid Cap",
       "price": 43.1234,
       "exchange": "NYQ",
-      "rank": 1839
+      "rank": 1840
     },
     {
       "ticker": "IMNM",
@@ -22080,7 +22092,7 @@
       "cap_size": "Mid Cap",
       "price": 19.6,
       "exchange": "NCM",
-      "rank": 1840
+      "rank": 1841
     },
     {
       "ticker": "DXPE",
@@ -22092,7 +22104,7 @@
       "cap_size": "Mid Cap",
       "price": 143.0751,
       "exchange": "NMS",
-      "rank": 1841
+      "rank": 1842
     },
     {
       "ticker": "DRD",
@@ -22104,7 +22116,7 @@
       "cap_size": "Mid Cap",
       "price": 25.57,
       "exchange": "NYQ",
-      "rank": 1842
+      "rank": 1843
     },
     {
       "ticker": "BRUN",
@@ -22116,7 +22128,7 @@
       "cap_size": "Mid Cap",
       "price": 36.105,
       "exchange": "NGM",
-      "rank": 1843
+      "rank": 1844
     },
     {
       "ticker": "HTH",
@@ -22128,7 +22140,7 @@
       "cap_size": "Mid Cap",
       "price": 37.85,
       "exchange": "NYQ",
-      "rank": 1844
+      "rank": 1845
     },
     {
       "ticker": "BCRX",
@@ -22140,7 +22152,7 @@
       "cap_size": "Mid Cap",
       "price": 8.705,
       "exchange": "NMS",
-      "rank": 1845
+      "rank": 1846
     },
     {
       "ticker": "HNI",
@@ -22152,7 +22164,7 @@
       "cap_size": "Mid Cap",
       "price": 30.72,
       "exchange": "NYQ",
-      "rank": 1846
+      "rank": 1847
     },
     {
       "ticker": "WLY",
@@ -22164,7 +22176,7 @@
       "cap_size": "Mid Cap",
       "price": 43.085,
       "exchange": "NYQ",
-      "rank": 1847
+      "rank": 1848
     },
     {
       "ticker": "DCO",
@@ -22176,7 +22188,7 @@
       "cap_size": "Mid Cap",
       "price": 146.52,
       "exchange": "NYQ",
-      "rank": 1848
+      "rank": 1849
     },
     {
       "ticker": "PBI",
@@ -22188,7 +22200,7 @@
       "cap_size": "Mid Cap",
       "price": 16.3,
       "exchange": "NYQ",
-      "rank": 1849
+      "rank": 1850
     },
     {
       "ticker": "NEXT",
@@ -22200,7 +22212,7 @@
       "cap_size": "Mid Cap",
       "price": 8.285,
       "exchange": "NCM",
-      "rank": 1850
+      "rank": 1851
     },
     {
       "ticker": "IMAX",
@@ -22212,7 +22224,7 @@
       "cap_size": "Mid Cap",
       "price": 39.905,
       "exchange": "NYQ",
-      "rank": 1851
+      "rank": 1852
     },
     {
       "ticker": "EFSC",
@@ -22224,7 +22236,7 @@
       "cap_size": "Mid Cap",
       "price": 59.84,
       "exchange": "NMS",
-      "rank": 1852
+      "rank": 1853
     },
     {
       "ticker": "PLBL",
@@ -22236,7 +22248,7 @@
       "cap_size": "Mid Cap",
       "price": 5.97,
       "exchange": "NGM",
-      "rank": 1853
+      "rank": 1854
     },
     {
       "ticker": "BXDC",
@@ -22248,7 +22260,7 @@
       "cap_size": "Mid Cap",
       "price": 21.6,
       "exchange": "NYQ",
-      "rank": 1854
+      "rank": 1855
     },
     {
       "ticker": "BLBD",
@@ -22260,7 +22272,7 @@
       "cap_size": "Mid Cap",
       "price": 68.66,
       "exchange": "NGM",
-      "rank": 1855
+      "rank": 1856
     },
     {
       "ticker": "MGNI",
@@ -22272,7 +22284,7 @@
       "cap_size": "Mid Cap",
       "price": 15.11,
       "exchange": "NMS",
-      "rank": 1856
+      "rank": 1857
     },
     {
       "ticker": "PLUS",
@@ -22284,7 +22296,7 @@
       "cap_size": "Mid Cap",
       "price": 82.64,
       "exchange": "NMS",
-      "rank": 1857
+      "rank": 1858
     },
     {
       "ticker": "AESI",
@@ -22296,7 +22308,7 @@
       "cap_size": "Mid Cap",
       "price": 17.3,
       "exchange": "NYQ",
-      "rank": 1858
+      "rank": 1859
     },
     {
       "ticker": "RCAT",
@@ -22308,7 +22320,7 @@
       "cap_size": "Mid Cap",
       "price": 14.1799,
       "exchange": "NCM",
-      "rank": 1859
+      "rank": 1860
     },
     {
       "ticker": "HAPN",
@@ -22320,7 +22332,7 @@
       "cap_size": "Mid Cap",
       "price": 18.67,
       "exchange": "NMS",
-      "rank": 1860
+      "rank": 1861
     },
     {
       "ticker": "ACHC",
@@ -22332,7 +22344,7 @@
       "cap_size": "Mid Cap",
       "price": 23.41,
       "exchange": "NMS",
-      "rank": 1861
+      "rank": 1862
     },
     {
       "ticker": "PBH",
@@ -22344,7 +22356,7 @@
       "cap_size": "Mid Cap",
       "price": 45.415,
       "exchange": "NYQ",
-      "rank": 1862
+      "rank": 1863
     },
     {
       "ticker": "CXT",
@@ -22356,7 +22368,7 @@
       "cap_size": "Mid Cap",
       "price": 37.36,
       "exchange": "NYQ",
-      "rank": 1863
+      "rank": 1864
     },
     {
       "ticker": "GRND",
@@ -22368,7 +22380,7 @@
       "cap_size": "Mid Cap",
       "price": 12.08,
       "exchange": "NYQ",
-      "rank": 1864
+      "rank": 1865
     },
     {
       "ticker": "TNET",
@@ -22380,7 +22392,7 @@
       "cap_size": "Mid Cap",
       "price": 46.66,
       "exchange": "NYQ",
-      "rank": 1865
+      "rank": 1866
     },
     {
       "ticker": "CYD",
@@ -22392,7 +22404,7 @@
       "cap_size": "Mid Cap",
       "price": 57.01,
       "exchange": "NYQ",
-      "rank": 1866
+      "rank": 1867
     },
     {
       "ticker": "MBIN",
@@ -22404,7 +22416,7 @@
       "cap_size": "Mid Cap",
       "price": 46.44,
       "exchange": "NCM",
-      "rank": 1867
+      "rank": 1868
     },
     {
       "ticker": "CPRI",
@@ -22416,7 +22428,7 @@
       "cap_size": "Mid Cap",
       "price": 18.51,
       "exchange": "NYQ",
-      "rank": 1868
+      "rank": 1869
     },
     {
       "ticker": "KOD",
@@ -22428,7 +22440,7 @@
       "cap_size": "Mid Cap",
       "price": 34.07,
       "exchange": "NGM",
-      "rank": 1869
+      "rank": 1870
     },
     {
       "ticker": "FUN",
@@ -22440,7 +22452,7 @@
       "cap_size": "Mid Cap",
       "price": 20.86,
       "exchange": "NYQ",
-      "rank": 1870
+      "rank": 1871
     },
     {
       "ticker": "CLOV",
@@ -22452,7 +22464,7 @@
       "cap_size": "Mid Cap",
       "price": 4.045,
       "exchange": "NMS",
-      "rank": 1871
+      "rank": 1872
     },
     {
       "ticker": "MCRI",
@@ -22464,7 +22476,7 @@
       "cap_size": "Mid Cap",
       "price": 119.92,
       "exchange": "NMS",
-      "rank": 1872
+      "rank": 1873
     },
     {
       "ticker": "BRSL",
@@ -22476,7 +22488,7 @@
       "cap_size": "Mid Cap",
       "price": 11.51,
       "exchange": "NYQ",
-      "rank": 1873
+      "rank": 1874
     },
     {
       "ticker": "CTOS",
@@ -22488,7 +22500,7 @@
       "cap_size": "Mid Cap",
       "price": 9.335,
       "exchange": "NYQ",
-      "rank": 1874
+      "rank": 1875
     },
     {
       "ticker": "CENTA",
@@ -22500,7 +22512,7 @@
       "cap_size": "Mid Cap",
       "price": 33.84,
       "exchange": "NMS",
-      "rank": 1875
+      "rank": 1876
     },
     {
       "ticker": "ESTA",
@@ -22512,7 +22524,7 @@
       "cap_size": "Mid Cap",
       "price": 71.81,
       "exchange": "NCM",
-      "rank": 1876
+      "rank": 1877
     },
     {
       "ticker": "SYBT",
@@ -22524,7 +22536,7 @@
       "cap_size": "Mid Cap",
       "price": 71.075,
       "exchange": "NMS",
-      "rank": 1877
+      "rank": 1878
     },
     {
       "ticker": "BAND",
@@ -22536,7 +22548,7 @@
       "cap_size": "Mid Cap",
       "price": 65.18,
       "exchange": "NMS",
-      "rank": 1878
+      "rank": 1879
     },
     {
       "ticker": "NEXA",
@@ -22548,7 +22560,7 @@
       "cap_size": "Mid Cap",
       "price": 15.72,
       "exchange": "NYQ",
-      "rank": 1879
+      "rank": 1880
     },
     {
       "ticker": "ASAN",
@@ -22560,7 +22572,7 @@
       "cap_size": "Mid Cap",
       "price": 9.03,
       "exchange": "NYQ",
-      "rank": 1880
+      "rank": 1881
     },
     {
       "ticker": "LMAT",
@@ -22572,7 +22584,7 @@
       "cap_size": "Mid Cap",
       "price": 91.06,
       "exchange": "NGM",
-      "rank": 1881
+      "rank": 1882
     },
     {
       "ticker": "VERX",
@@ -22584,7 +22596,7 @@
       "cap_size": "Mid Cap",
       "price": 12.845,
       "exchange": "NGM",
-      "rank": 1882
+      "rank": 1883
     },
     {
       "ticker": "NWN",
@@ -22596,7 +22608,7 @@
       "cap_size": "Mid Cap",
       "price": 49.175,
       "exchange": "NYQ",
-      "rank": 1883
+      "rank": 1884
     },
     {
       "ticker": "BLX",
@@ -22608,7 +22620,7 @@
       "cap_size": "Mid Cap",
       "price": 55.42,
       "exchange": "NYQ",
-      "rank": 1884
+      "rank": 1885
     },
     {
       "ticker": "CLBK",
@@ -22620,7 +22632,7 @@
       "cap_size": "Mid Cap",
       "price": 19.82,
       "exchange": "NMS",
-      "rank": 1885
+      "rank": 1886
     },
     {
       "ticker": "SHO",
@@ -22632,7 +22644,7 @@
       "cap_size": "Mid Cap",
       "price": 11.06,
       "exchange": "NYQ",
-      "rank": 1886
+      "rank": 1887
     },
     {
       "ticker": "LAC",
@@ -22644,7 +22656,7 @@
       "cap_size": "Mid Cap",
       "price": 5.865,
       "exchange": "NYQ",
-      "rank": 1887
+      "rank": 1888
     },
     {
       "ticker": "NGL",
@@ -22656,7 +22668,7 @@
       "cap_size": "Mid Cap",
       "price": 16.49,
       "exchange": "NYQ",
-      "rank": 1888
+      "rank": 1889
     },
     {
       "ticker": "PHVS",
@@ -22668,7 +22680,7 @@
       "cap_size": "Mid Cap",
       "price": 29.45,
       "exchange": "NMS",
-      "rank": 1889
+      "rank": 1890
     },
     {
       "ticker": "NWBI",
@@ -22680,7 +22692,7 @@
       "cap_size": "Mid Cap",
       "price": 14.05,
       "exchange": "NMS",
-      "rank": 1890
+      "rank": 1891
     },
     {
       "ticker": "LWLG",
@@ -22692,7 +22704,7 @@
       "cap_size": "Mid Cap",
       "price": 13.34,
       "exchange": "NCM",
-      "rank": 1891
+      "rank": 1892
     },
     {
       "ticker": "NMM",
@@ -22704,7 +22716,7 @@
       "cap_size": "Mid Cap",
       "price": 72.1,
       "exchange": "NYQ",
-      "rank": 1892
+      "rank": 1893
     },
     {
       "ticker": "BSTZ",
@@ -22716,7 +22728,7 @@
       "cap_size": "Mid Cap",
       "price": 29.845,
       "exchange": "NYQ",
-      "rank": 1893
+      "rank": 1894
     },
     {
       "ticker": "PRDO",
@@ -22728,7 +22740,7 @@
       "cap_size": "Mid Cap",
       "price": 32.68,
       "exchange": "NMS",
-      "rank": 1894
+      "rank": 1895
     },
     {
       "ticker": "AXGN",
@@ -22740,7 +22752,7 @@
       "cap_size": "Mid Cap",
       "price": 38.53,
       "exchange": "NCM",
-      "rank": 1895
+      "rank": 1896
     },
     {
       "ticker": "SEM",
@@ -22752,7 +22764,7 @@
       "cap_size": "Mid Cap",
       "price": 16.495,
       "exchange": "NYQ",
-      "rank": 1896
+      "rank": 1897
     },
     {
       "ticker": "SHLS",
@@ -22764,7 +22776,7 @@
       "cap_size": "Mid Cap",
       "price": 12.19,
       "exchange": "NGM",
-      "rank": 1897
+      "rank": 1898
     },
     {
       "ticker": "FORTY",
@@ -22776,7 +22788,7 @@
       "cap_size": "Mid Cap",
       "price": 133.0,
       "exchange": "NMS",
-      "rank": 1898
+      "rank": 1899
     },
     {
       "ticker": "JBLU",
@@ -22788,7 +22800,7 @@
       "cap_size": "Mid Cap",
       "price": 5.47,
       "exchange": "NMS",
-      "rank": 1899
+      "rank": 1900
     },
     {
       "ticker": "DHC",
@@ -22800,7 +22812,7 @@
       "cap_size": "Mid Cap",
       "price": 8.4,
       "exchange": "NMS",
-      "rank": 1900
+      "rank": 1901
     },
     {
       "ticker": "IOSP",
@@ -22812,7 +22824,7 @@
       "cap_size": "Mid Cap",
       "price": 82.44,
       "exchange": "NMS",
-      "rank": 1901
+      "rank": 1902
     },
     {
       "ticker": "LC",
@@ -22824,7 +22836,7 @@
       "cap_size": "Mid Cap",
       "price": 17.59,
       "exchange": "NYQ",
-      "rank": 1902
+      "rank": 1903
     },
     {
       "ticker": "SPSC",
@@ -22836,7 +22848,7 @@
       "cap_size": "Mid Cap",
       "price": 54.995,
       "exchange": "NMS",
-      "rank": 1903
+      "rank": 1904
     },
     {
       "ticker": "PUMP",
@@ -22848,7 +22860,7 @@
       "cap_size": "Mid Cap",
       "price": 16.445,
       "exchange": "NYQ",
-      "rank": 1904
+      "rank": 1905
     },
     {
       "ticker": "ATHM",
@@ -22860,7 +22872,7 @@
       "cap_size": "Mid Cap",
       "price": 17.4801,
       "exchange": "NYQ",
-      "rank": 1905
+      "rank": 1906
     },
     {
       "ticker": "SOC",
@@ -22872,7 +22884,7 @@
       "cap_size": "Mid Cap",
       "price": 13.03,
       "exchange": "NYQ",
-      "rank": 1906
+      "rank": 1907
     },
     {
       "ticker": "EVT",
@@ -22884,7 +22896,7 @@
       "cap_size": "Mid Cap",
       "price": 26.965,
       "exchange": "NYQ",
-      "rank": 1907
+      "rank": 1908
     },
     {
       "ticker": "ALKT",
@@ -22896,7 +22908,7 @@
       "cap_size": "Mid Cap",
       "price": 18.78,
       "exchange": "NMS",
-      "rank": 1908
+      "rank": 1909
     },
     {
       "ticker": "GRC",
@@ -22908,7 +22920,7 @@
       "cap_size": "Mid Cap",
       "price": 75.89,
       "exchange": "NYQ",
-      "rank": 1909
+      "rank": 1910
     },
     {
       "ticker": "HCM",
@@ -22920,7 +22932,7 @@
       "cap_size": "Small Cap",
       "price": 11.6,
       "exchange": "NMS",
-      "rank": 1910
+      "rank": 1911
     },
     {
       "ticker": "TRLV",
@@ -22932,7 +22944,7 @@
       "cap_size": "Small Cap",
       "price": 10.35,
       "exchange": "NYQ",
-      "rank": 1911
+      "rank": 1912
     },
     {
       "ticker": "GNL",
@@ -22944,7 +22956,7 @@
       "cap_size": "Small Cap",
       "price": 9.34,
       "exchange": "NYQ",
-      "rank": 1912
+      "rank": 1913
     },
     {
       "ticker": "BHC",
@@ -22956,7 +22968,7 @@
       "cap_size": "Small Cap",
       "price": 5.275,
       "exchange": "NYQ",
-      "rank": 1913
+      "rank": 1914
     },
     {
       "ticker": "ENVX",
@@ -22968,7 +22980,7 @@
       "cap_size": "Small Cap",
       "price": 9.02,
       "exchange": "NMS",
-      "rank": 1914
+      "rank": 1915
     },
     {
       "ticker": "NTLA",
@@ -22980,7 +22992,7 @@
       "cap_size": "Small Cap",
       "price": 14.07,
       "exchange": "NGM",
-      "rank": 1915
+      "rank": 1916
     },
     {
       "ticker": "GTY",
@@ -22992,7 +23004,7 @@
       "cap_size": "Small Cap",
       "price": 32.31,
       "exchange": "NYQ",
-      "rank": 1916
+      "rank": 1917
     },
     {
       "ticker": "NEOG",
@@ -23004,7 +23016,7 @@
       "cap_size": "Small Cap",
       "price": 8.97,
       "exchange": "NMS",
-      "rank": 1917
+      "rank": 1918
     },
     {
       "ticker": "ABCL",
@@ -23016,7 +23028,7 @@
       "cap_size": "Small Cap",
       "price": 6.39,
       "exchange": "NMS",
-      "rank": 1918
+      "rank": 1919
     },
     {
       "ticker": "PGNY",
@@ -23028,7 +23040,7 @@
       "cap_size": "Small Cap",
       "price": 24.88,
       "exchange": "NMS",
-      "rank": 1919
+      "rank": 1920
     },
     {
       "ticker": "USAS",
@@ -23040,7 +23052,7 @@
       "cap_size": "Small Cap",
       "price": 5.955,
       "exchange": "ASE",
-      "rank": 1920
+      "rank": 1921
     },
     {
       "ticker": "WB",
@@ -23052,7 +23064,7 @@
       "cap_size": "Small Cap",
       "price": 7.92,
       "exchange": "NMS",
-      "rank": 1921
+      "rank": 1922
     },
     {
       "ticker": "APPN",
@@ -23064,7 +23076,7 @@
       "cap_size": "Small Cap",
       "price": 26.5011,
       "exchange": "NGM",
-      "rank": 1922
+      "rank": 1923
     },
     {
       "ticker": "VRE",
@@ -23076,7 +23088,7 @@
       "cap_size": "Small Cap",
       "price": 18.99,
       "exchange": "NYQ",
-      "rank": 1923
+      "rank": 1924
     },
     {
       "ticker": "AGM",
@@ -23088,7 +23100,7 @@
       "cap_size": "Small Cap",
       "price": 178.45,
       "exchange": "NYQ",
-      "rank": 1924
+      "rank": 1925
     },
     {
       "ticker": "NTST",
@@ -23100,7 +23112,7 @@
       "cap_size": "Small Cap",
       "price": 19.815,
       "exchange": "NYQ",
-      "rank": 1925
+      "rank": 1926
     },
     {
       "ticker": "TGLS",
@@ -23112,7 +23124,7 @@
       "cap_size": "Small Cap",
       "price": 43.6,
       "exchange": "NYQ",
-      "rank": 1926
+      "rank": 1927
     },
     {
       "ticker": "XRAY",
@@ -23124,7 +23136,7 @@
       "cap_size": "Small Cap",
       "price": 9.655,
       "exchange": "NMS",
-      "rank": 1927
+      "rank": 1928
     },
     {
       "ticker": "HCI",
@@ -23136,7 +23148,7 @@
       "cap_size": "Small Cap",
       "price": 151.335,
       "exchange": "NYQ",
-      "rank": 1928
+      "rank": 1929
     },
     {
       "ticker": "ABTC",
@@ -23148,7 +23160,7 @@
       "cap_size": "Small Cap",
       "price": 1.075,
       "exchange": "NCM",
-      "rank": 1929
+      "rank": 1930
     },
     {
       "ticker": "AUPH",
@@ -23160,7 +23172,7 @@
       "cap_size": "Small Cap",
       "price": 14.9885,
       "exchange": "NGM",
-      "rank": 1930
+      "rank": 1931
     },
     {
       "ticker": "SKYT",
@@ -23172,7 +23184,7 @@
       "cap_size": "Small Cap",
       "price": 39.1351,
       "exchange": "NCM",
-      "rank": 1931
+      "rank": 1932
     },
     {
       "ticker": "PLAB",
@@ -23184,7 +23196,7 @@
       "cap_size": "Small Cap",
       "price": 32.65,
       "exchange": "NMS",
-      "rank": 1932
+      "rank": 1933
     },
     {
       "ticker": "FIGS",
@@ -23196,7 +23208,7 @@
       "cap_size": "Small Cap",
       "price": 11.52,
       "exchange": "NYQ",
-      "rank": 1933
+      "rank": 1934
     },
     {
       "ticker": "ZLAB",
@@ -23208,7 +23220,7 @@
       "cap_size": "Small Cap",
       "price": 17.12,
       "exchange": "NGM",
-      "rank": 1934
+      "rank": 1935
     },
     {
       "ticker": "STC",
@@ -23220,7 +23232,7 @@
       "cap_size": "Small Cap",
       "price": 63.16,
       "exchange": "NYQ",
-      "rank": 1935
+      "rank": 1936
     },
     {
       "ticker": "FIVN",
@@ -23232,7 +23244,7 @@
       "cap_size": "Small Cap",
       "price": 25.075,
       "exchange": "NGM",
-      "rank": 1936
+      "rank": 1937
     },
     {
       "ticker": "FCF",
@@ -23244,7 +23256,7 @@
       "cap_size": "Small Cap",
       "price": 18.88,
       "exchange": "NYQ",
-      "rank": 1937
+      "rank": 1938
     },
     {
       "ticker": "CMPS",
@@ -23256,7 +23268,7 @@
       "cap_size": "Small Cap",
       "price": 14.1801,
       "exchange": "NMS",
-      "rank": 1938
+      "rank": 1939
     },
     {
       "ticker": "ASTH",
@@ -23268,7 +23280,7 @@
       "cap_size": "Small Cap",
       "price": 38.55,
       "exchange": "NCM",
-      "rank": 1939
+      "rank": 1940
     },
     {
       "ticker": "SLDE",
@@ -23280,7 +23292,7 @@
       "cap_size": "Small Cap",
       "price": 16.67,
       "exchange": "NMS",
-      "rank": 1940
+      "rank": 1941
     },
     {
       "ticker": "TRVI",
@@ -23292,7 +23304,7 @@
       "cap_size": "Small Cap",
       "price": 13.45,
       "exchange": "NGM",
-      "rank": 1941
+      "rank": 1942
     },
     {
       "ticker": "OFG",
@@ -23304,7 +23316,7 @@
       "cap_size": "Small Cap",
       "price": 45.17,
       "exchange": "NYQ",
-      "rank": 1942
+      "rank": 1943
     },
     {
       "ticker": "INVX",
@@ -23316,7 +23328,7 @@
       "cap_size": "Small Cap",
       "price": 27.76,
       "exchange": "NYQ",
-      "rank": 1943
+      "rank": 1944
     },
     {
       "ticker": "QFIN",
@@ -23328,7 +23340,7 @@
       "cap_size": "Small Cap",
       "price": 15.67,
       "exchange": "NMS",
-      "rank": 1944
+      "rank": 1945
     },
     {
       "ticker": "BWIN",
@@ -23340,7 +23352,7 @@
       "cap_size": "Small Cap",
       "price": 19.51,
       "exchange": "NMS",
-      "rank": 1945
+      "rank": 1946
     },
     {
       "ticker": "INTA",
@@ -23352,7 +23364,7 @@
       "cap_size": "Small Cap",
       "price": 24.625,
       "exchange": "NMS",
-      "rank": 1946
+      "rank": 1947
     },
     {
       "ticker": "QNT",
@@ -23364,7 +23376,7 @@
       "cap_size": "Small Cap",
       "price": 60.38,
       "exchange": "NGM",
-      "rank": 1947
+      "rank": 1948
     },
     {
       "ticker": "BLDP",
@@ -23376,7 +23388,7 @@
       "cap_size": "Small Cap",
       "price": 6.275,
       "exchange": "NGM",
-      "rank": 1948
+      "rank": 1949
     },
     {
       "ticker": "NAC",
@@ -23388,7 +23400,7 @@
       "cap_size": "Small Cap",
       "price": 12.09,
       "exchange": "NYQ",
-      "rank": 1949
+      "rank": 1950
     },
     {
       "ticker": "PLPC",
@@ -23400,7 +23412,7 @@
       "cap_size": "Small Cap",
       "price": 386.635,
       "exchange": "NMS",
-      "rank": 1950
+      "rank": 1951
     },
     {
       "ticker": "STEL",
@@ -23412,7 +23424,7 @@
       "cap_size": "Small Cap",
       "price": 37.05,
       "exchange": "NYQ",
-      "rank": 1951
+      "rank": 1952
     },
     {
       "ticker": "OMCL",
@@ -23424,7 +23436,7 @@
       "cap_size": "Small Cap",
       "price": 41.46,
       "exchange": "NMS",
-      "rank": 1952
+      "rank": 1953
     },
     {
       "ticker": "NUV",
@@ -23436,7 +23448,7 @@
       "cap_size": "Small Cap",
       "price": 9.085,
       "exchange": "NYQ",
-      "rank": 1953
+      "rank": 1954
     },
     {
       "ticker": "GEL",
@@ -23448,7 +23460,7 @@
       "cap_size": "Small Cap",
       "price": 15.37,
       "exchange": "NYQ",
-      "rank": 1954
+      "rank": 1955
     },
     {
       "ticker": "CMRE",
@@ -23460,7 +23472,7 @@
       "cap_size": "Small Cap",
       "price": 15.565,
       "exchange": "NYQ",
-      "rank": 1955
+      "rank": 1956
     },
     {
       "ticker": "TY",
@@ -23472,7 +23484,7 @@
       "cap_size": "Small Cap",
       "price": 35.27,
       "exchange": "NYQ",
-      "rank": 1956
+      "rank": 1957
     },
     {
       "ticker": "ECO",
@@ -23484,7 +23496,7 @@
       "cap_size": "Small Cap",
       "price": 48.08,
       "exchange": "NYQ",
-      "rank": 1957
+      "rank": 1958
     },
     {
       "ticker": "AVEX",
@@ -23496,7 +23508,7 @@
       "cap_size": "Small Cap",
       "price": 36.96,
       "exchange": "NYQ",
-      "rank": 1958
+      "rank": 1959
     },
     {
       "ticker": "SONO",
@@ -23508,7 +23520,7 @@
       "cap_size": "Small Cap",
       "price": 15.73,
       "exchange": "NMS",
-      "rank": 1959
+      "rank": 1960
     },
     {
       "ticker": "EVCM",
@@ -23520,7 +23532,7 @@
       "cap_size": "Small Cap",
       "price": 10.5704,
       "exchange": "NMS",
-      "rank": 1960
+      "rank": 1961
     },
     {
       "ticker": "NBHC",
@@ -23532,7 +23544,7 @@
       "cap_size": "Small Cap",
       "price": 41.745,
       "exchange": "NYQ",
-      "rank": 1961
+      "rank": 1962
     },
     {
       "ticker": "MESO",
@@ -23544,7 +23556,7 @@
       "cap_size": "Small Cap",
       "price": 14.45,
       "exchange": "NMS",
-      "rank": 1962
+      "rank": 1963
     },
     {
       "ticker": "SPB",
@@ -23556,7 +23568,7 @@
       "cap_size": "Small Cap",
       "price": 80.335,
       "exchange": "NYQ",
-      "rank": 1963
+      "rank": 1964
     },
     {
       "ticker": "HMN",
@@ -23568,7 +23580,7 @@
       "cap_size": "Small Cap",
       "price": 45.97,
       "exchange": "NYQ",
-      "rank": 1964
+      "rank": 1965
     },
     {
       "ticker": "PDO",
@@ -23580,7 +23592,7 @@
       "cap_size": "Small Cap",
       "price": 13.0207,
       "exchange": "NYQ",
-      "rank": 1965
+      "rank": 1966
     },
     {
       "ticker": "WMK",
@@ -23592,7 +23604,7 @@
       "cap_size": "Small Cap",
       "price": 74.76,
       "exchange": "NYQ",
-      "rank": 1966
+      "rank": 1967
     },
     {
       "ticker": "LTC",
@@ -23604,7 +23616,7 @@
       "cap_size": "Small Cap",
       "price": 36.11,
       "exchange": "NYQ",
-      "rank": 1967
+      "rank": 1968
     },
     {
       "ticker": "PRKS",
@@ -23616,7 +23628,7 @@
       "cap_size": "Small Cap",
       "price": 39.205,
       "exchange": "NYQ",
-      "rank": 1968
+      "rank": 1969
     },
     {
       "ticker": "PRLB",
@@ -23628,7 +23640,7 @@
       "cap_size": "Small Cap",
       "price": 77.625,
       "exchange": "NYQ",
-      "rank": 1969
+      "rank": 1970
     },
     {
       "ticker": "RUM",
@@ -23640,7 +23652,7 @@
       "cap_size": "Small Cap",
       "price": 8.533,
       "exchange": "NGM",
-      "rank": 1970
+      "rank": 1971
     },
     {
       "ticker": "VET",
@@ -23652,7 +23664,7 @@
       "cap_size": "Small Cap",
       "price": 12.005,
       "exchange": "NYQ",
-      "rank": 1971
+      "rank": 1972
     },
     {
       "ticker": "AAPG",
@@ -23664,7 +23676,7 @@
       "cap_size": "Small Cap",
       "price": 19.632,
       "exchange": "NGM",
-      "rank": 1972
+      "rank": 1973
     },
     {
       "ticker": "AGRO",
@@ -23676,7 +23688,7 @@
       "cap_size": "Small Cap",
       "price": 12.675,
       "exchange": "NYQ",
-      "rank": 1973
+      "rank": 1974
     },
     {
       "ticker": "GLOB",
@@ -23688,7 +23700,7 @@
       "cap_size": "Small Cap",
       "price": 42.35,
       "exchange": "NYQ",
-      "rank": 1974
+      "rank": 1975
     },
     {
       "ticker": "AMRC",
@@ -23700,7 +23712,7 @@
       "cap_size": "Small Cap",
       "price": 34.53,
       "exchange": "NYQ",
-      "rank": 1975
+      "rank": 1976
     },
     {
       "ticker": "CBZ",
@@ -23712,7 +23724,7 @@
       "cap_size": "Small Cap",
       "price": 34.065,
       "exchange": "NYQ",
-      "rank": 1976
+      "rank": 1977
     },
     {
       "ticker": "VCEL",
@@ -23724,7 +23736,7 @@
       "cap_size": "Small Cap",
       "price": 35.745,
       "exchange": "NGM",
-      "rank": 1977
+      "rank": 1978
     },
     {
       "ticker": "PLGO",
@@ -23736,7 +23748,7 @@
       "cap_size": "Small Cap",
       "price": 21.345,
       "exchange": "NYQ",
-      "rank": 1978
+      "rank": 1979
     },
     {
       "ticker": "AAT",
@@ -23748,7 +23760,7 @@
       "cap_size": "Small Cap",
       "price": 23.45,
       "exchange": "NYQ",
-      "rank": 1979
+      "rank": 1980
     },
     {
       "ticker": "LKFT",
@@ -23760,7 +23772,7 @@
       "cap_size": "Small Cap",
       "price": 27.6,
       "exchange": "NMS",
-      "rank": 1980
+      "rank": 1981
     },
     {
       "ticker": "ARCO",
@@ -23772,7 +23784,7 @@
       "cap_size": "Small Cap",
       "price": 8.63,
       "exchange": "NYQ",
-      "rank": 1981
+      "rank": 1982
     },
     {
       "ticker": "RXRX",
@@ -23784,7 +23796,7 @@
       "cap_size": "Small Cap",
       "price": 3.42,
       "exchange": "NMS",
-      "rank": 1982
+      "rank": 1983
     },
     {
       "ticker": "HRMY",
@@ -23796,7 +23808,7 @@
       "cap_size": "Small Cap",
       "price": 31.33,
       "exchange": "NGM",
-      "rank": 1983
+      "rank": 1984
     },
     {
       "ticker": "STOK",
@@ -23808,7 +23820,7 @@
       "cap_size": "Small Cap",
       "price": 29.0,
       "exchange": "NMS",
-      "rank": 1984
+      "rank": 1985
     },
     {
       "ticker": "VRDN",
@@ -23820,7 +23832,7 @@
       "cap_size": "Small Cap",
       "price": 16.33,
       "exchange": "NCM",
-      "rank": 1985
+      "rank": 1986
     },
     {
       "ticker": "COTY",
@@ -23832,7 +23844,7 @@
       "cap_size": "Small Cap",
       "price": 2.045,
       "exchange": "NYQ",
-      "rank": 1986
+      "rank": 1987
     },
     {
       "ticker": "MQ",
@@ -23844,7 +23856,7 @@
       "cap_size": "Small Cap",
       "price": 4.245,
       "exchange": "NMS",
-      "rank": 1987
+      "rank": 1988
     },
     {
       "ticker": "ADMA",
@@ -23856,7 +23868,7 @@
       "cap_size": "Small Cap",
       "price": 7.75,
       "exchange": "NGM",
-      "rank": 1988
+      "rank": 1989
     },
     {
       "ticker": "SID",
@@ -23868,7 +23880,7 @@
       "cap_size": "Small Cap",
       "price": 1.3499,
       "exchange": "NYQ",
-      "rank": 1989
+      "rank": 1990
     },
     {
       "ticker": "STRA",
@@ -23880,7 +23892,7 @@
       "cap_size": "Small Cap",
       "price": 78.97,
       "exchange": "NMS",
-      "rank": 1990
+      "rank": 1991
     },
     {
       "ticker": "KSS",
@@ -23892,7 +23904,7 @@
       "cap_size": "Small Cap",
       "price": 15.97,
       "exchange": "NYQ",
-      "rank": 1991
+      "rank": 1992
     },
     {
       "ticker": "CRML",
@@ -23904,7 +23916,7 @@
       "cap_size": "Small Cap",
       "price": 12.2101,
       "exchange": "NGM",
-      "rank": 1992
+      "rank": 1993
     },
     {
       "ticker": "OCUL",
@@ -23916,7 +23928,7 @@
       "cap_size": "Small Cap",
       "price": 8.18,
       "exchange": "NGM",
-      "rank": 1993
+      "rank": 1994
     },
     {
       "ticker": "MD",
@@ -23928,7 +23940,7 @@
       "cap_size": "Small Cap",
       "price": 21.795,
       "exchange": "NYQ",
-      "rank": 1994
+      "rank": 1995
     },
     {
       "ticker": "IOVA",
@@ -23940,7 +23952,7 @@
       "cap_size": "Small Cap",
       "price": 4.005,
       "exchange": "NGM",
-      "rank": 1995
+      "rank": 1996
     },
     {
       "ticker": "ETG",
@@ -23952,7 +23964,7 @@
       "cap_size": "Small Cap",
       "price": 23.42,
       "exchange": "NYQ",
-      "rank": 1996
+      "rank": 1997
     },
     {
       "ticker": "SIND",
@@ -23964,7 +23976,7 @@
       "cap_size": "Small Cap",
       "price": 12.0,
       "exchange": "NYQ",
-      "rank": 1997
+      "rank": 1998
     },
     {
       "ticker": "MRVI",
@@ -23976,7 +23988,7 @@
       "cap_size": "Small Cap",
       "price": 4.845,
       "exchange": "NMS",
-      "rank": 1998
+      "rank": 1999
     },
     {
       "ticker": "NBTX",
@@ -23988,7 +24000,7 @@
       "cap_size": "Small Cap",
       "price": 35.21,
       "exchange": "NMS",
-      "rank": 1999
+      "rank": 2000
     },
     {
       "ticker": "BL",
@@ -24000,7 +24012,7 @@
       "cap_size": "Small Cap",
       "price": 30.44,
       "exchange": "NMS",
-      "rank": 2000
+      "rank": 2001
     },
     {
       "ticker": "ALG",
@@ -24012,7 +24024,7 @@
       "cap_size": "Small Cap",
       "price": 146.69,
       "exchange": "NYQ",
-      "rank": 2001
+      "rank": 2002
     },
     {
       "ticker": "CNXN",
@@ -24024,7 +24036,7 @@
       "cap_size": "Small Cap",
       "price": 70.705,
       "exchange": "NMS",
-      "rank": 2002
+      "rank": 2003
     },
     {
       "ticker": "AIN",
@@ -24036,7 +24048,7 @@
       "cap_size": "Small Cap",
       "price": 62.86,
       "exchange": "NYQ",
-      "rank": 2003
+      "rank": 2004
     },
     {
       "ticker": "SGRY",
@@ -24048,7 +24060,7 @@
       "cap_size": "Small Cap",
       "price": 13.615,
       "exchange": "NMS",
-      "rank": 2004
+      "rank": 2005
     },
     {
       "ticker": "WLTH",
@@ -24060,7 +24072,7 @@
       "cap_size": "Small Cap",
       "price": 11.895,
       "exchange": "NMS",
-      "rank": 2005
+      "rank": 2006
     },
     {
       "ticker": "SRCE",
@@ -24072,7 +24084,7 @@
       "cap_size": "Small Cap",
       "price": 73.83,
       "exchange": "NMS",
-      "rank": 2006
+      "rank": 2007
     },
     {
       "ticker": "AEVA",
@@ -24084,7 +24096,7 @@
       "cap_size": "Small Cap",
       "price": 28.175,
       "exchange": "NMS",
-      "rank": 2007
+      "rank": 2008
     },
     {
       "ticker": "PEB",
@@ -24096,7 +24108,7 @@
       "cap_size": "Small Cap",
       "price": 15.65,
       "exchange": "NYQ",
-      "rank": 2008
+      "rank": 2009
     },
     {
       "ticker": "CTS",
@@ -24108,7 +24120,7 @@
       "cap_size": "Small Cap",
       "price": 62.03,
       "exchange": "NYQ",
-      "rank": 2009
+      "rank": 2010
     },
     {
       "ticker": "TIC",
@@ -24120,7 +24132,7 @@
       "cap_size": "Small Cap",
       "price": 8.015,
       "exchange": "NYQ",
-      "rank": 2010
+      "rank": 2011
     },
     {
       "ticker": "PAX",
@@ -24132,7 +24144,7 @@
       "cap_size": "Small Cap",
       "price": 11.1,
       "exchange": "NMS",
-      "rank": 2011
+      "rank": 2012
     },
     {
       "ticker": "CNXC",
@@ -24144,7 +24156,7 @@
       "cap_size": "Small Cap",
       "price": 29.02,
       "exchange": "NMS",
-      "rank": 2012
+      "rank": 2013
     },
     {
       "ticker": "RQI",
@@ -24156,7 +24168,19 @@
       "cap_size": "Small Cap",
       "price": 13.16,
       "exchange": "NYQ",
-      "rank": 2013
+      "rank": 2014
+    },
+    {
+      "ticker": "STDN",
+      "name": "Standard Nuclear, Inc.",
+      "sector": "Basic Materials",
+      "industry": "Specialty Chemicals",
+      "country": "United States",
+      "mkt_cap": 1767408896,
+      "cap_size": "Small Cap",
+      "price": 11.0,
+      "exchange": "NYQ",
+      "rank": 2015
     },
     {
       "ticker": "ZYME",
@@ -24168,7 +24192,7 @@
       "cap_size": "Small Cap",
       "price": 24.0,
       "exchange": "NMS",
-      "rank": 2014
+      "rank": 2016
     },
     {
       "ticker": "SKWD",
@@ -24180,7 +24204,7 @@
       "cap_size": "Small Cap",
       "price": 43.535,
       "exchange": "NMS",
-      "rank": 2015
+      "rank": 2017
     },
     {
       "ticker": "AZUL",
@@ -24192,7 +24216,7 @@
       "cap_size": "Small Cap",
       "price": 9.64,
       "exchange": "ASE",
-      "rank": 2016
+      "rank": 2018
     },
     {
       "ticker": "ANIP",
@@ -24204,7 +24228,7 @@
       "cap_size": "Small Cap",
       "price": 77.21,
       "exchange": "NGM",
-      "rank": 2017
+      "rank": 2019
     },
     {
       "ticker": "USA",
@@ -24216,7 +24240,7 @@
       "cap_size": "Small Cap",
       "price": 5.815,
       "exchange": "NYQ",
-      "rank": 2018
+      "rank": 2020
     },
     {
       "ticker": "KOS",
@@ -24228,7 +24252,7 @@
       "cap_size": "Small Cap",
       "price": 2.9532,
       "exchange": "NYQ",
-      "rank": 2019
+      "rank": 2021
     },
     {
       "ticker": "EPAC",
@@ -24240,7 +24264,7 @@
       "cap_size": "Small Cap",
       "price": 33.19,
       "exchange": "NYQ",
-      "rank": 2020
+      "rank": 2022
     },
     {
       "ticker": "HLIT",
@@ -24252,7 +24276,7 @@
       "cap_size": "Small Cap",
       "price": 16.1351,
       "exchange": "NMS",
-      "rank": 2021
+      "rank": 2023
     },
     {
       "ticker": "ETV",
@@ -24264,7 +24288,7 @@
       "cap_size": "Small Cap",
       "price": 14.95,
       "exchange": "NYQ",
-      "rank": 2022
+      "rank": 2024
     },
     {
       "ticker": "GAB",
@@ -24276,7 +24300,7 @@
       "cap_size": "Small Cap",
       "price": 5.605,
       "exchange": "NYQ",
-      "rank": 2023
+      "rank": 2025
     },
     {
       "ticker": "LOB",
@@ -24288,7 +24312,7 @@
       "cap_size": "Small Cap",
       "price": 37.58,
       "exchange": "NYQ",
-      "rank": 2024
+      "rank": 2026
     },
     {
       "ticker": "RMIX",
@@ -24300,7 +24324,7 @@
       "cap_size": "Small Cap",
       "price": 17.98,
       "exchange": "NGM",
-      "rank": 2025
+      "rank": 2027
     },
     {
       "ticker": "CHCO",
@@ -24312,7 +24336,7 @@
       "cap_size": "Small Cap",
       "price": 122.9,
       "exchange": "NMS",
-      "rank": 2026
+      "rank": 2028
     },
     {
       "ticker": "GHRS",
@@ -24324,7 +24348,7 @@
       "cap_size": "Small Cap",
       "price": 25.2725,
       "exchange": "NGM",
-      "rank": 2027
+      "rank": 2029
     },
     {
       "ticker": "SRPT",
@@ -24336,7 +24360,7 @@
       "cap_size": "Small Cap",
       "price": 16.41,
       "exchange": "NMS",
-      "rank": 2028
+      "rank": 2030
     },
     {
       "ticker": "XPRO",
@@ -24348,7 +24372,7 @@
       "cap_size": "Small Cap",
       "price": 15.21,
       "exchange": "NYQ",
-      "rank": 2029
+      "rank": 2031
     },
     {
       "ticker": "NCNO",
@@ -24360,7 +24384,7 @@
       "cap_size": "Small Cap",
       "price": 15.705,
       "exchange": "NMS",
-      "rank": 2030
+      "rank": 2032
     },
     {
       "ticker": "LPG",
@@ -24372,7 +24396,7 @@
       "cap_size": "Small Cap",
       "price": 40.185,
       "exchange": "NYQ",
-      "rank": 2031
+      "rank": 2033
     },
     {
       "ticker": "SGML",
@@ -24384,7 +24408,7 @@
       "cap_size": "Small Cap",
       "price": 15.42,
       "exchange": "NCM",
-      "rank": 2032
+      "rank": 2034
     },
     {
       "ticker": "TYRA",
@@ -24396,7 +24420,7 @@
       "cap_size": "Small Cap",
       "price": 28.88,
       "exchange": "NMS",
-      "rank": 2033
+      "rank": 2035
     },
     {
       "ticker": "HURN",
@@ -24408,7 +24432,7 @@
       "cap_size": "Small Cap",
       "price": 105.89,
       "exchange": "NMS",
-      "rank": 2034
+      "rank": 2036
     },
     {
       "ticker": "ADNT",
@@ -24420,7 +24444,7 @@
       "cap_size": "Small Cap",
       "price": 21.87,
       "exchange": "NYQ",
-      "rank": 2035
+      "rank": 2037
     },
     {
       "ticker": "GT",
@@ -24432,7 +24456,7 @@
       "cap_size": "Small Cap",
       "price": 5.965,
       "exchange": "NMS",
-      "rank": 2036
+      "rank": 2038
     },
     {
       "ticker": "PSNY",
@@ -24444,7 +24468,7 @@
       "cap_size": "Small Cap",
       "price": 18.7,
       "exchange": "NGM",
-      "rank": 2037
+      "rank": 2039
     },
     {
       "ticker": "VSTS",
@@ -24456,7 +24480,7 @@
       "cap_size": "Small Cap",
       "price": 12.95,
       "exchange": "NYQ",
-      "rank": 2038
+      "rank": 2040
     },
     {
       "ticker": "VPG",
@@ -24468,7 +24492,7 @@
       "cap_size": "Small Cap",
       "price": 128.595,
       "exchange": "NYQ",
-      "rank": 2039
+      "rank": 2041
     },
     {
       "ticker": "QURE",
@@ -24480,7 +24504,7 @@
       "cap_size": "Small Cap",
       "price": 27.1,
       "exchange": "NMS",
-      "rank": 2040
+      "rank": 2042
     },
     {
       "ticker": "RAPP",
@@ -24492,7 +24516,7 @@
       "cap_size": "Small Cap",
       "price": 35.65,
       "exchange": "NGM",
-      "rank": 2041
+      "rank": 2043
     },
     {
       "ticker": "CASH",
@@ -24504,7 +24528,7 @@
       "cap_size": "Small Cap",
       "price": 80.73,
       "exchange": "NMS",
-      "rank": 2042
+      "rank": 2044
     },
     {
       "ticker": "SMA",
@@ -24516,7 +24540,7 @@
       "cap_size": "Small Cap",
       "price": 30.78,
       "exchange": "NYQ",
-      "rank": 2043
+      "rank": 2045
     },
     {
       "ticker": "BST",
@@ -24528,7 +24552,7 @@
       "cap_size": "Small Cap",
       "price": 49.065,
       "exchange": "NYQ",
-      "rank": 2044
+      "rank": 2046
     },
     {
       "ticker": "SAM",
@@ -24540,7 +24564,7 @@
       "cap_size": "Small Cap",
       "price": 163.23,
       "exchange": "NYQ",
-      "rank": 2045
+      "rank": 2047
     },
     {
       "ticker": "ECPG",
@@ -24552,7 +24576,7 @@
       "cap_size": "Small Cap",
       "price": 79.25,
       "exchange": "NMS",
-      "rank": 2046
+      "rank": 2048
     },
     {
       "ticker": "LIFE",
@@ -24564,7 +24588,7 @@
       "cap_size": "Small Cap",
       "price": 17.83,
       "exchange": "NMS",
-      "rank": 2047
+      "rank": 2049
     },
     {
       "ticker": "TFIN",
@@ -24576,7 +24600,7 @@
       "cap_size": "Small Cap",
       "price": 71.205,
       "exchange": "NYQ",
-      "rank": 2048
+      "rank": 2050
     },
     {
       "ticker": "EFC",
@@ -24588,7 +24612,7 @@
       "cap_size": "Small Cap",
       "price": 13.505,
       "exchange": "NYQ",
-      "rank": 2049
+      "rank": 2051
     },
     {
       "ticker": "PAYO",
@@ -24600,7 +24624,7 @@
       "cap_size": "Small Cap",
       "price": 5.025,
       "exchange": "NGM",
-      "rank": 2050
+      "rank": 2052
     },
     {
       "ticker": "GLP",
@@ -24612,7 +24636,7 @@
       "cap_size": "Small Cap",
       "price": 49.475,
       "exchange": "NYQ",
-      "rank": 2051
+      "rank": 2053
     },
     {
       "ticker": "IMKTA",
@@ -24624,7 +24648,7 @@
       "cap_size": "Small Cap",
       "price": 88.27,
       "exchange": "NMS",
-      "rank": 2052
+      "rank": 2054
     },
     {
       "ticker": "ATAI",
@@ -24636,7 +24660,7 @@
       "cap_size": "Small Cap",
       "price": 4.55,
       "exchange": "NGM",
-      "rank": 2053
+      "rank": 2055
     },
     {
       "ticker": "NRIX",
@@ -24648,7 +24672,7 @@
       "cap_size": "Small Cap",
       "price": 16.18,
       "exchange": "NGM",
-      "rank": 2054
+      "rank": 2056
     },
     {
       "ticker": "SILA",
@@ -24660,7 +24684,7 @@
       "cap_size": "Small Cap",
       "price": 30.26,
       "exchange": "NYQ",
-      "rank": 2055
+      "rank": 2057
     },
     {
       "ticker": "SION",
@@ -24672,7 +24696,7 @@
       "cap_size": "Small Cap",
       "price": 37.02,
       "exchange": "NGM",
-      "rank": 2056
+      "rank": 2058
     },
     {
       "ticker": "AIP",
@@ -24684,7 +24708,7 @@
       "cap_size": "Small Cap",
       "price": 36.18,
       "exchange": "NGM",
-      "rank": 2057
+      "rank": 2059
     },
     {
       "ticker": "ADUS",
@@ -24696,7 +24720,7 @@
       "cap_size": "Small Cap",
       "price": 89.38,
       "exchange": "NMS",
-      "rank": 2058
+      "rank": 2060
     },
     {
       "ticker": "BCAT",
@@ -24708,7 +24732,7 @@
       "cap_size": "Small Cap",
       "price": 15.9197,
       "exchange": "NYQ",
-      "rank": 2059
+      "rank": 2061
     },
     {
       "ticker": "UFPT",
@@ -24720,7 +24744,7 @@
       "cap_size": "Small Cap",
       "price": 215.3,
       "exchange": "NCM",
-      "rank": 2060
+      "rank": 2062
     },
     {
       "ticker": "CLVT",
@@ -24732,7 +24756,7 @@
       "cap_size": "Small Cap",
       "price": 2.6,
       "exchange": "NYQ",
-      "rank": 2061
+      "rank": 2063
     },
     {
       "ticker": "AI",
@@ -24744,7 +24768,7 @@
       "cap_size": "Small Cap",
       "price": 11.435,
       "exchange": "NYQ",
-      "rank": 2062
+      "rank": 2064
     },
     {
       "ticker": "OPRA",
@@ -24756,7 +24780,7 @@
       "cap_size": "Small Cap",
       "price": 18.51,
       "exchange": "NMS",
-      "rank": 2063
+      "rank": 2065
     },
     {
       "ticker": "FMC",
@@ -24768,7 +24792,7 @@
       "cap_size": "Small Cap",
       "price": 13.25,
       "exchange": "NYQ",
-      "rank": 2064
+      "rank": 2066
     },
     {
       "ticker": "DXC",
@@ -24780,7 +24804,7 @@
       "cap_size": "Small Cap",
       "price": 10.13,
       "exchange": "NYQ",
-      "rank": 2065
+      "rank": 2067
     },
     {
       "ticker": "AGIO",
@@ -24792,7 +24816,7 @@
       "cap_size": "Small Cap",
       "price": 27.8,
       "exchange": "NMS",
-      "rank": 2066
+      "rank": 2068
     },
     {
       "ticker": "ZD",
@@ -24804,7 +24828,7 @@
       "cap_size": "Small Cap",
       "price": 44.835,
       "exchange": "NMS",
-      "rank": 2067
+      "rank": 2069
     },
     {
       "ticker": "WD",
@@ -24816,7 +24840,7 @@
       "cap_size": "Small Cap",
       "price": 48.09,
       "exchange": "NYQ",
-      "rank": 2068
+      "rank": 2070
     },
     {
       "ticker": "TILE",
@@ -24828,7 +24852,7 @@
       "cap_size": "Small Cap",
       "price": 28.39,
       "exchange": "NMS",
-      "rank": 2069
+      "rank": 2071
     },
     {
       "ticker": "PLSE",
@@ -24840,7 +24864,7 @@
       "cap_size": "Small Cap",
       "price": 23.81,
       "exchange": "NCM",
-      "rank": 2070
+      "rank": 2072
     },
     {
       "ticker": "TSLX",
@@ -24852,7 +24876,7 @@
       "cap_size": "Small Cap",
       "price": 17.3267,
       "exchange": "NYQ",
-      "rank": 2071
+      "rank": 2073
     },
     {
       "ticker": "BAK",
@@ -24864,7 +24888,7 @@
       "cap_size": "Small Cap",
       "price": 4.13,
       "exchange": "NYQ",
-      "rank": 2072
+      "rank": 2074
     },
     {
       "ticker": "KRP",
@@ -24876,7 +24900,7 @@
       "cap_size": "Small Cap",
       "price": 15.26,
       "exchange": "NYQ",
-      "rank": 2073
+      "rank": 2075
     },
     {
       "ticker": "TH",
@@ -24888,7 +24912,7 @@
       "cap_size": "Small Cap",
       "price": 16.51,
       "exchange": "NCM",
-      "rank": 2074
+      "rank": 2076
     },
     {
       "ticker": "NVAX",
@@ -24900,7 +24924,7 @@
       "cap_size": "Small Cap",
       "price": 9.985,
       "exchange": "NMS",
-      "rank": 2075
+      "rank": 2077
     },
     {
       "ticker": "NUVB",
@@ -24912,7 +24936,7 @@
       "cap_size": "Small Cap",
       "price": 4.715,
       "exchange": "NYQ",
-      "rank": 2076
+      "rank": 2078
     },
     {
       "ticker": "GABC",
@@ -24924,7 +24948,7 @@
       "cap_size": "Small Cap",
       "price": 43.6299,
       "exchange": "NMS",
-      "rank": 2077
+      "rank": 2079
     },
     {
       "ticker": "FSUN",
@@ -24936,7 +24960,7 @@
       "cap_size": "Small Cap",
       "price": 35.01,
       "exchange": "NMS",
-      "rank": 2078
+      "rank": 2080
     },
     {
       "ticker": "HTZ",
@@ -24948,7 +24972,7 @@
       "cap_size": "Small Cap",
       "price": 5.1701,
       "exchange": "NMS",
-      "rank": 2079
+      "rank": 2081
     },
     {
       "ticker": "FLNG",
@@ -24960,7 +24984,7 @@
       "cap_size": "Small Cap",
       "price": 30.18,
       "exchange": "NYQ",
-      "rank": 2080
+      "rank": 2082
     },
     {
       "ticker": "AMBQ",
@@ -24972,7 +24996,7 @@
       "cap_size": "Small Cap",
       "price": 76.37,
       "exchange": "NYQ",
-      "rank": 2081
+      "rank": 2083
     },
     {
       "ticker": "BOBS",
@@ -24984,7 +25008,7 @@
       "cap_size": "Small Cap",
       "price": 12.495,
       "exchange": "NYQ",
-      "rank": 2082
+      "rank": 2084
     },
     {
       "ticker": "BDJ",
@@ -24996,7 +25020,7 @@
       "cap_size": "Small Cap",
       "price": 9.22,
       "exchange": "NYQ",
-      "rank": 2083
+      "rank": 2085
     },
     {
       "ticker": "BVC",
@@ -25008,7 +25032,7 @@
       "cap_size": "Small Cap",
       "price": 9.71,
       "exchange": "NCM",
-      "rank": 2084
+      "rank": 2086
     },
     {
       "ticker": "BHVN",
@@ -25020,7 +25044,7 @@
       "cap_size": "Small Cap",
       "price": 10.8,
       "exchange": "NYQ",
-      "rank": 2085
+      "rank": 2087
     },
     {
       "ticker": "SNDX",
@@ -25032,7 +25056,7 @@
       "cap_size": "Small Cap",
       "price": 18.29,
       "exchange": "NMS",
-      "rank": 2086
+      "rank": 2088
     },
     {
       "ticker": "TCBK",
@@ -25044,7 +25068,7 @@
       "cap_size": "Small Cap",
       "price": 50.28,
       "exchange": "NMS",
-      "rank": 2087
+      "rank": 2089
     },
     {
       "ticker": "STBA",
@@ -25056,7 +25080,7 @@
       "cap_size": "Small Cap",
       "price": 44.88,
       "exchange": "NMS",
-      "rank": 2088
+      "rank": 2090
     },
     {
       "ticker": "DCOM",
@@ -25068,7 +25092,7 @@
       "cap_size": "Small Cap",
       "price": 36.56,
       "exchange": "NYQ",
-      "rank": 2089
+      "rank": 2091
     },
     {
       "ticker": "TSHA",
@@ -25080,7 +25104,7 @@
       "cap_size": "Small Cap",
       "price": 5.595,
       "exchange": "NMS",
-      "rank": 2090
+      "rank": 2092
     },
     {
       "ticker": "SNDA",
@@ -25092,7 +25116,7 @@
       "cap_size": "Small Cap",
       "price": 33.895,
       "exchange": "NYQ",
-      "rank": 2091
+      "rank": 2093
     },
     {
       "ticker": "LILAK",
@@ -25104,7 +25128,7 @@
       "cap_size": "Small Cap",
       "price": 7.965,
       "exchange": "NMS",
-      "rank": 2092
+      "rank": 2094
     },
     {
       "ticker": "SLS",
@@ -25116,7 +25140,7 @@
       "cap_size": "Small Cap",
       "price": 8.15,
       "exchange": "NCM",
-      "rank": 2093
+      "rank": 2095
     },
     {
       "ticker": "FLO",
@@ -25128,7 +25152,7 @@
       "cap_size": "Small Cap",
       "price": 7.555,
       "exchange": "NYQ",
-      "rank": 2094
+      "rank": 2096
     },
     {
       "ticker": "WGS",
@@ -25140,7 +25164,7 @@
       "cap_size": "Small Cap",
       "price": 53.85,
       "exchange": "NMS",
-      "rank": 2095
+      "rank": 2097
     },
     {
       "ticker": "TPB",
@@ -25152,7 +25176,7 @@
       "cap_size": "Small Cap",
       "price": 82.325,
       "exchange": "NYQ",
-      "rank": 2096
+      "rank": 2098
     },
     {
       "ticker": "LILA",
@@ -25164,7 +25188,7 @@
       "cap_size": "Small Cap",
       "price": 7.905,
       "exchange": "NMS",
-      "rank": 2097
+      "rank": 2099
     },
     {
       "ticker": "GENI",
@@ -25176,7 +25200,7 @@
       "cap_size": "Small Cap",
       "price": 5.955,
       "exchange": "NYQ",
-      "rank": 2098
+      "rank": 2100
     },
     {
       "ticker": "HOPE",
@@ -25188,7 +25212,7 @@
       "cap_size": "Small Cap",
       "price": 12.4401,
       "exchange": "NMS",
-      "rank": 2099
+      "rank": 2101
     },
     {
       "ticker": "GLUE",
@@ -25200,7 +25224,7 @@
       "cap_size": "Small Cap",
       "price": 18.8173,
       "exchange": "NMS",
-      "rank": 2100
+      "rank": 2102
     },
     {
       "ticker": "PVLA",
@@ -25212,7 +25236,7 @@
       "cap_size": "Small Cap",
       "price": 110.73,
       "exchange": "NGM",
-      "rank": 2101
+      "rank": 2103
     },
     {
       "ticker": "RBCAA",
@@ -25224,7 +25248,7 @@
       "cap_size": "Small Cap",
       "price": 80.95,
       "exchange": "NMS",
-      "rank": 2102
+      "rank": 2104
     },
     {
       "ticker": "INVA",
@@ -25236,7 +25260,7 @@
       "cap_size": "Small Cap",
       "price": 21.37,
       "exchange": "NMS",
-      "rank": 2103
+      "rank": 2105
     },
     {
       "ticker": "REX",
@@ -25248,7 +25272,7 @@
       "cap_size": "Small Cap",
       "price": 47.88,
       "exchange": "NYQ",
-      "rank": 2104
+      "rank": 2106
     },
     {
       "ticker": "GENB",
@@ -25260,7 +25284,7 @@
       "cap_size": "Small Cap",
       "price": 12.3,
       "exchange": "NMS",
-      "rank": 2105
+      "rank": 2107
     },
     {
       "ticker": "APC",
@@ -25272,7 +25296,7 @@
       "cap_size": "Small Cap",
       "price": 19.07,
       "exchange": "NCM",
-      "rank": 2106
+      "rank": 2108
     },
     {
       "ticker": "LINC",
@@ -25284,7 +25308,7 @@
       "cap_size": "Small Cap",
       "price": 49.59,
       "exchange": "NMS",
-      "rank": 2107
+      "rank": 2109
     },
     {
       "ticker": "CET",
@@ -25296,7 +25320,7 @@
       "cap_size": "Small Cap",
       "price": 52.92,
       "exchange": "ASE",
-      "rank": 2108
+      "rank": 2110
     },
     {
       "ticker": "ECAT",
@@ -25308,7 +25332,7 @@
       "cap_size": "Small Cap",
       "price": 15.71,
       "exchange": "NYQ",
-      "rank": 2109
+      "rank": 2111
     },
     {
       "ticker": "ANAB",
@@ -25320,7 +25344,7 @@
       "cap_size": "Small Cap",
       "price": 53.58,
       "exchange": "NMS",
-      "rank": 2110
+      "rank": 2112
     },
     {
       "ticker": "AMLX",
@@ -25332,7 +25356,7 @@
       "cap_size": "Small Cap",
       "price": 14.01,
       "exchange": "NMS",
-      "rank": 2111
+      "rank": 2113
     },
     {
       "ticker": "WBTN",
@@ -25344,7 +25368,7 @@
       "cap_size": "Small Cap",
       "price": 11.51,
       "exchange": "NMS",
-      "rank": 2112
+      "rank": 2114
     },
     {
       "ticker": "CCS",
@@ -25356,7 +25380,7 @@
       "cap_size": "Small Cap",
       "price": 53.88,
       "exchange": "NYQ",
-      "rank": 2113
+      "rank": 2115
     },
     {
       "ticker": "LZB",
@@ -25368,7 +25392,7 @@
       "cap_size": "Small Cap",
       "price": 37.44,
       "exchange": "NYQ",
-      "rank": 2114
+      "rank": 2116
     },
     {
       "ticker": "RES",
@@ -25380,7 +25404,7 @@
       "cap_size": "Small Cap",
       "price": 6.96,
       "exchange": "NYQ",
-      "rank": 2115
+      "rank": 2117
     },
     {
       "ticker": "SLVM",
@@ -25392,7 +25416,7 @@
       "cap_size": "Small Cap",
       "price": 38.775,
       "exchange": "NYQ",
-      "rank": 2116
+      "rank": 2118
     },
     {
       "ticker": "GAM",
@@ -25404,7 +25428,7 @@
       "cap_size": "Small Cap",
       "price": 64.185,
       "exchange": "NYQ",
-      "rank": 2117
+      "rank": 2119
     },
     {
       "ticker": "QQQX",
@@ -25416,7 +25440,7 @@
       "cap_size": "Small Cap",
       "price": 31.5,
       "exchange": "NGM",
-      "rank": 2118
+      "rank": 2120
     },
     {
       "ticker": "KARO",
@@ -25428,7 +25452,7 @@
       "cap_size": "Small Cap",
       "price": 49.73,
       "exchange": "NCM",
-      "rank": 2119
+      "rank": 2121
     },
     {
       "ticker": "TRIN",
@@ -25440,7 +25464,7 @@
       "cap_size": "Small Cap",
       "price": 17.085,
       "exchange": "NMS",
-      "rank": 2120
+      "rank": 2122
     },
     {
       "ticker": "BKSY",
@@ -25452,7 +25476,7 @@
       "cap_size": "Small Cap",
       "price": 41.3498,
       "exchange": "NYQ",
-      "rank": 2121
+      "rank": 2123
     },
     {
       "ticker": "DV",
@@ -25464,7 +25488,7 @@
       "cap_size": "Small Cap",
       "price": 9.955,
       "exchange": "NYQ",
-      "rank": 2122
+      "rank": 2124
     },
     {
       "ticker": "RLJ",
@@ -25476,7 +25500,7 @@
       "cap_size": "Small Cap",
       "price": 10.0,
       "exchange": "NYQ",
-      "rank": 2123
+      "rank": 2125
     },
     {
       "ticker": "BFC",
@@ -25488,7 +25512,7 @@
       "cap_size": "Small Cap",
       "price": 135.305,
       "exchange": "NCM",
-      "rank": 2124
+      "rank": 2126
     },
     {
       "ticker": "NVRI",
@@ -25500,7 +25524,7 @@
       "cap_size": "Small Cap",
       "price": 18.3,
       "exchange": "NYQ",
-      "rank": 2125
+      "rank": 2127
     },
     {
       "ticker": "EVTC",
@@ -25512,7 +25536,7 @@
       "cap_size": "Small Cap",
       "price": 24.47,
       "exchange": "NYQ",
-      "rank": 2126
+      "rank": 2128
     },
     {
       "ticker": "DMRA",
@@ -25524,7 +25548,7 @@
       "cap_size": "Small Cap",
       "price": 24.47,
       "exchange": "NCM",
-      "rank": 2127
+      "rank": 2129
     },
     {
       "ticker": "QCRH",
@@ -25536,7 +25560,7 @@
       "cap_size": "Small Cap",
       "price": 91.21,
       "exchange": "NGM",
-      "rank": 2128
+      "rank": 2130
     },
     {
       "ticker": "IPX",
@@ -25548,7 +25572,7 @@
       "cap_size": "Small Cap",
       "price": 44.245,
       "exchange": "NCM",
-      "rank": 2129
+      "rank": 2131
     },
     {
       "ticker": "WKC",
@@ -25560,7 +25584,7 @@
       "cap_size": "Small Cap",
       "price": 29.23,
       "exchange": "NYQ",
-      "rank": 2130
+      "rank": 2132
     },
     {
       "ticker": "PRCT",
@@ -25572,7 +25596,7 @@
       "cap_size": "Small Cap",
       "price": 26.33,
       "exchange": "NGM",
-      "rank": 2131
+      "rank": 2133
     },
     {
       "ticker": "CBL",
@@ -25584,7 +25608,7 @@
       "cap_size": "Small Cap",
       "price": 48.39,
       "exchange": "NYQ",
-      "rank": 2132
+      "rank": 2134
     },
     {
       "ticker": "MAN",
@@ -25596,7 +25620,7 @@
       "cap_size": "Small Cap",
       "price": 32.125,
       "exchange": "NYQ",
-      "rank": 2133
+      "rank": 2135
     },
     {
       "ticker": "LKFN",
@@ -25608,7 +25632,7 @@
       "cap_size": "Small Cap",
       "price": 59.74,
       "exchange": "NMS",
-      "rank": 2134
+      "rank": 2136
     },
     {
       "ticker": "BY",
@@ -25620,7 +25644,7 @@
       "cap_size": "Small Cap",
       "price": 32.75,
       "exchange": "NYQ",
-      "rank": 2135
+      "rank": 2137
     },
     {
       "ticker": "PWP",
@@ -25632,7 +25656,7 @@
       "cap_size": "Small Cap",
       "price": 15.64,
       "exchange": "NMS",
-      "rank": 2136
+      "rank": 2138
     },
     {
       "ticker": "CNOB",
@@ -25644,7 +25668,7 @@
       "cap_size": "Small Cap",
       "price": 29.55,
       "exchange": "NMS",
-      "rank": 2137
+      "rank": 2139
     },
     {
       "ticker": "AVAH",
@@ -25656,7 +25680,7 @@
       "cap_size": "Small Cap",
       "price": 6.815,
       "exchange": "NMS",
-      "rank": 2138
+      "rank": 2140
     },
     {
       "ticker": "SFL",
@@ -25668,7 +25692,7 @@
       "cap_size": "Small Cap",
       "price": 11.13,
       "exchange": "NYQ",
-      "rank": 2139
+      "rank": 2141
     },
     {
       "ticker": "DAO",
@@ -25680,7 +25704,7 @@
       "cap_size": "Small Cap",
       "price": 12.25,
       "exchange": "NYQ",
-      "rank": 2140
+      "rank": 2142
     },
     {
       "ticker": "FTRE",
@@ -25692,7 +25716,7 @@
       "cap_size": "Small Cap",
       "price": 15.62,
       "exchange": "NMS",
-      "rank": 2141
+      "rank": 2143
     },
     {
       "ticker": "DCH",
@@ -25704,7 +25728,7 @@
       "cap_size": "Small Cap",
       "price": 6.215,
       "exchange": "NYQ",
-      "rank": 2142
+      "rank": 2144
     },
     {
       "ticker": "AGL",
@@ -25716,7 +25740,7 @@
       "cap_size": "Small Cap",
       "price": 88.185,
       "exchange": "NYQ",
-      "rank": 2143
+      "rank": 2145
     },
     {
       "ticker": "OBK",
@@ -25728,7 +25752,7 @@
       "cap_size": "Small Cap",
       "price": 47.57,
       "exchange": "NYQ",
-      "rank": 2144
+      "rank": 2146
     },
     {
       "ticker": "CXM",
@@ -25740,7 +25764,7 @@
       "cap_size": "Small Cap",
       "price": 5.885,
       "exchange": "NYQ",
-      "rank": 2145
+      "rank": 2147
     },
     {
       "ticker": "WLDN",
@@ -25752,7 +25776,7 @@
       "cap_size": "Small Cap",
       "price": 96.9,
       "exchange": "NGM",
-      "rank": 2146
+      "rank": 2148
     },
     {
       "ticker": "LIND",
@@ -25764,7 +25788,7 @@
       "cap_size": "Small Cap",
       "price": 22.26,
       "exchange": "NCM",
-      "rank": 2147
+      "rank": 2149
     },
     {
       "ticker": "DXYZ",
@@ -25776,7 +25800,7 @@
       "cap_size": "Small Cap",
       "price": 47.88,
       "exchange": "NYQ",
-      "rank": 2148
+      "rank": 2150
     },
     {
       "ticker": "BLKB",
@@ -25788,7 +25812,7 @@
       "cap_size": "Small Cap",
       "price": 31.715,
       "exchange": "NMS",
-      "rank": 2149
+      "rank": 2151
     },
     {
       "ticker": "MBX",
@@ -25800,7 +25824,7 @@
       "cap_size": "Small Cap",
       "price": 30.59,
       "exchange": "NMS",
-      "rank": 2150
+      "rank": 2152
     },
     {
       "ticker": "CSWC",
@@ -25812,7 +25836,7 @@
       "cap_size": "Small Cap",
       "price": 23.41,
       "exchange": "NMS",
-      "rank": 2151
+      "rank": 2153
     },
     {
       "ticker": "GBX",
@@ -25824,7 +25848,7 @@
       "cap_size": "Small Cap",
       "price": 46.985,
       "exchange": "NYQ",
-      "rank": 2152
+      "rank": 2154
     },
     {
       "ticker": "KMPR",
@@ -25836,7 +25860,7 @@
       "cap_size": "Small Cap",
       "price": 24.67,
       "exchange": "NYQ",
-      "rank": 2153
+      "rank": 2155
     },
     {
       "ticker": "AMC",
@@ -25848,7 +25872,7 @@
       "cap_size": "Small Cap",
       "price": 1.9256,
       "exchange": "NYQ",
-      "rank": 2154
+      "rank": 2156
     },
     {
       "ticker": "FDP",
@@ -25860,7 +25884,7 @@
       "cap_size": "Small Cap",
       "price": 30.505,
       "exchange": "NYQ",
-      "rank": 2155
+      "rank": 2157
     },
     {
       "ticker": "ARLO",
@@ -25872,7 +25896,7 @@
       "cap_size": "Small Cap",
       "price": 13.36,
       "exchange": "NYQ",
-      "rank": 2156
+      "rank": 2158
     },
     {
       "ticker": "HLX",
@@ -25884,7 +25908,7 @@
       "cap_size": "Small Cap",
       "price": 9.85,
       "exchange": "NYQ",
-      "rank": 2157
+      "rank": 2159
     },
     {
       "ticker": "BTT",
@@ -25896,7 +25920,7 @@
       "cap_size": "Small Cap",
       "price": 22.78,
       "exchange": "NYQ",
-      "rank": 2158
+      "rank": 2160
     },
     {
       "ticker": "ARI",
@@ -25908,7 +25932,7 @@
       "cap_size": "Small Cap",
       "price": 10.885,
       "exchange": "NYQ",
-      "rank": 2159
+      "rank": 2161
     },
     {
       "ticker": "RYZ",
@@ -25920,7 +25944,7 @@
       "cap_size": "Small Cap",
       "price": 27.82,
       "exchange": "NYQ",
-      "rank": 2160
+      "rank": 2162
     },
     {
       "ticker": "TNC",
@@ -25932,7 +25956,7 @@
       "cap_size": "Small Cap",
       "price": 84.45,
       "exchange": "NYQ",
-      "rank": 2161
+      "rank": 2163
     },
     {
       "ticker": "KALV",
@@ -25944,7 +25968,7 @@
       "cap_size": "Small Cap",
       "price": 26.95,
       "exchange": "NGM",
-      "rank": 2162
+      "rank": 2164
     },
     {
       "ticker": "ARDX",
@@ -25956,7 +25980,7 @@
       "cap_size": "Small Cap",
       "price": 5.7873,
       "exchange": "NGM",
-      "rank": 2163
+      "rank": 2165
     },
     {
       "ticker": "PRGO",
@@ -25968,7 +25992,7 @@
       "cap_size": "Small Cap",
       "price": 10.331,
       "exchange": "NYQ",
-      "rank": 2164
+      "rank": 2166
     },
     {
       "ticker": "JJSF",
@@ -25980,7 +26004,7 @@
       "cap_size": "Small Cap",
       "price": 76.175,
       "exchange": "NMS",
-      "rank": 2165
+      "rank": 2167
     },
     {
       "ticker": "NRP",
@@ -25992,7 +26016,7 @@
       "cap_size": "Small Cap",
       "price": 107.395,
       "exchange": "NYQ",
-      "rank": 2166
+      "rank": 2168
     },
     {
       "ticker": "STAA",
@@ -26004,7 +26028,7 @@
       "cap_size": "Small Cap",
       "price": 28.58,
       "exchange": "NGM",
-      "rank": 2167
+      "rank": 2169
     },
     {
       "ticker": "UMAC",
@@ -26016,7 +26040,7 @@
       "cap_size": "Small Cap",
       "price": 29.75,
       "exchange": "ASE",
-      "rank": 2168
+      "rank": 2170
     },
     {
       "ticker": "ECVT",
@@ -26028,7 +26052,7 @@
       "cap_size": "Small Cap",
       "price": 12.93,
       "exchange": "NYQ",
-      "rank": 2169
+      "rank": 2171
     },
     {
       "ticker": "MRTN",
@@ -26040,7 +26064,7 @@
       "cap_size": "Small Cap",
       "price": 17.335,
       "exchange": "NMS",
-      "rank": 2170
+      "rank": 2172
     },
     {
       "ticker": "NOMD",
@@ -26052,7 +26076,7 @@
       "cap_size": "Small Cap",
       "price": 10.1,
       "exchange": "NYQ",
-      "rank": 2171
+      "rank": 2173
     },
     {
       "ticker": "NFJ",
@@ -26064,7 +26088,7 @@
       "cap_size": "Small Cap",
       "price": 15.0,
       "exchange": "NYQ",
-      "rank": 2172
+      "rank": 2174
     },
     {
       "ticker": "HLMN",
@@ -26076,7 +26100,7 @@
       "cap_size": "Small Cap",
       "price": 7.19,
       "exchange": "NGM",
-      "rank": 2173
+      "rank": 2175
     },
     {
       "ticker": "NNNN",
@@ -26088,7 +26112,7 @@
       "cap_size": "Small Cap",
       "price": 32.12,
       "exchange": "NGM",
-      "rank": 2174
+      "rank": 2176
     },
     {
       "ticker": "NNE",
@@ -26100,7 +26124,7 @@
       "cap_size": "Small Cap",
       "price": 27.03,
       "exchange": "NCM",
-      "rank": 2175
+      "rank": 2177
     },
     {
       "ticker": "DFH",
@@ -26112,7 +26136,7 @@
       "cap_size": "Small Cap",
       "price": 15.39,
       "exchange": "NYQ",
-      "rank": 2176
+      "rank": 2178
     },
     {
       "ticker": "HYT",
@@ -26124,7 +26148,7 @@
       "cap_size": "Small Cap",
       "price": 8.635,
       "exchange": "NYQ",
-      "rank": 2177
+      "rank": 2179
     },
     {
       "ticker": "WBI",
@@ -26136,7 +26160,7 @@
       "cap_size": "Small Cap",
       "price": 29.88,
       "exchange": "NYQ",
-      "rank": 2178
+      "rank": 2180
     },
     {
       "ticker": "CNL",
@@ -26148,7 +26172,7 @@
       "cap_size": "Small Cap",
       "price": 15.145,
       "exchange": "ASE",
-      "rank": 2179
+      "rank": 2181
     },
     {
       "ticker": "TRS",
@@ -26160,7 +26184,7 @@
       "cap_size": "Small Cap",
       "price": 39.13,
       "exchange": "NMS",
-      "rank": 2180
+      "rank": 2182
     },
     {
       "ticker": "PRG",
@@ -26172,7 +26196,7 @@
       "cap_size": "Small Cap",
       "price": 34.975,
       "exchange": "NYQ",
-      "rank": 2181
+      "rank": 2183
     },
     {
       "ticker": "ATRC",
@@ -26184,7 +26208,7 @@
       "cap_size": "Small Cap",
       "price": 27.67,
       "exchange": "NGM",
-      "rank": 2182
+      "rank": 2184
     },
     {
       "ticker": "CRI",
@@ -26196,7 +26220,7 @@
       "cap_size": "Small Cap",
       "price": 37.975,
       "exchange": "NYQ",
-      "rank": 2183
+      "rank": 2185
     },
     {
       "ticker": "CCEC",
@@ -26208,7 +26232,7 @@
       "cap_size": "Small Cap",
       "price": 23.27,
       "exchange": "NMS",
-      "rank": 2184
+      "rank": 2186
     },
     {
       "ticker": "IAUX",
@@ -26220,7 +26244,7 @@
       "cap_size": "Small Cap",
       "price": 1.6199,
       "exchange": "ASE",
-      "rank": 2185
+      "rank": 2187
     },
     {
       "ticker": "AVBP",
@@ -26232,7 +26256,7 @@
       "cap_size": "Small Cap",
       "price": 29.95,
       "exchange": "NGM",
-      "rank": 2186
+      "rank": 2188
     },
     {
       "ticker": "ULCC",
@@ -26244,7 +26268,7 @@
       "cap_size": "Small Cap",
       "price": 6.05,
       "exchange": "NMS",
-      "rank": 2187
+      "rank": 2189
     },
     {
       "ticker": "SVV",
@@ -26256,7 +26280,7 @@
       "cap_size": "Small Cap",
       "price": 9.01,
       "exchange": "NYQ",
-      "rank": 2188
+      "rank": 2190
     },
     {
       "ticker": "LOMA",
@@ -26268,7 +26292,7 @@
       "cap_size": "Small Cap",
       "price": 11.88,
       "exchange": "NYQ",
-      "rank": 2189
+      "rank": 2191
     },
     {
       "ticker": "ADTN",
@@ -26280,7 +26304,7 @@
       "cap_size": "Small Cap",
       "price": 17.115,
       "exchange": "NMS",
-      "rank": 2190
+      "rank": 2192
     },
     {
       "ticker": "PBT",
@@ -26292,7 +26316,7 @@
       "cap_size": "Small Cap",
       "price": 29.67,
       "exchange": "NYQ",
-      "rank": 2191
+      "rank": 2193
     },
     {
       "ticker": "KDK",
@@ -26304,7 +26328,7 @@
       "cap_size": "Small Cap",
       "price": 6.9115,
       "exchange": "NGM",
-      "rank": 2192
+      "rank": 2194
     },
     {
       "ticker": "IDT",
@@ -26316,7 +26340,7 @@
       "cap_size": "Small Cap",
       "price": 54.95,
       "exchange": "NYQ",
-      "rank": 2193
+      "rank": 2195
     },
     {
       "ticker": "EDN",
@@ -26328,7 +26352,19 @@
       "cap_size": "Small Cap",
       "price": 28.945,
       "exchange": "NYQ",
-      "rank": 2194
+      "rank": 2196
+    },
+    {
+      "ticker": "FRNM",
+      "name": "Freenome, Inc. Common stock",
+      "sector": "Healthcare",
+      "industry": "Diagnostics & Research",
+      "country": "United States",
+      "mkt_cap": 1375041408,
+      "cap_size": "Small Cap",
+      "price": 12.96,
+      "exchange": "NGM",
+      "rank": 2197
     },
     {
       "ticker": "OLPX",
@@ -26340,7 +26376,7 @@
       "cap_size": "Small Cap",
       "price": 2.045,
       "exchange": "NMS",
-      "rank": 2195
+      "rank": 2198
     },
     {
       "ticker": "IMTX",
@@ -26352,7 +26388,7 @@
       "cap_size": "Small Cap",
       "price": 10.055,
       "exchange": "NCM",
-      "rank": 2196
+      "rank": 2199
     },
     {
       "ticker": "DMC",
@@ -26364,7 +26400,7 @@
       "cap_size": "Small Cap",
       "price": 28.84,
       "exchange": "NYQ",
-      "rank": 2197
+      "rank": 2200
     },
     {
       "ticker": "CMP",
@@ -26376,7 +26412,7 @@
       "cap_size": "Small Cap",
       "price": 32.6075,
       "exchange": "NYQ",
-      "rank": 2198
+      "rank": 2201
     },
     {
       "ticker": "TV",
@@ -26388,7 +26424,7 @@
       "cap_size": "Small Cap",
       "price": 2.595,
       "exchange": "NYQ",
-      "rank": 2199
+      "rank": 2202
     },
     {
       "ticker": "UAMY",
@@ -26400,7 +26436,7 @@
       "cap_size": "Small Cap",
       "price": 9.225,
       "exchange": "NYQ",
-      "rank": 2200
+      "rank": 2203
     },
     {
       "ticker": "PRGS",
@@ -26412,7 +26448,7 @@
       "cap_size": "Small Cap",
       "price": 32.485,
       "exchange": "NMS",
-      "rank": 2201
+      "rank": 2204
     },
     {
       "ticker": "NWL",
@@ -26424,7 +26460,7 @@
       "cap_size": "Small Cap",
       "price": 3.215,
       "exchange": "NMS",
-      "rank": 2202
+      "rank": 2205
     },
     {
       "ticker": "SEPN",
@@ -26436,7 +26472,7 @@
       "cap_size": "Small Cap",
       "price": 30.27,
       "exchange": "NGM",
-      "rank": 2203
+      "rank": 2206
     },
     {
       "ticker": "SHAZ",
@@ -26448,7 +26484,7 @@
       "cap_size": "Small Cap",
       "price": 80.78,
       "exchange": "NCM",
-      "rank": 2204
+      "rank": 2207
     },
     {
       "ticker": "VMET",
@@ -26460,7 +26496,7 @@
       "cap_size": "Small Cap",
       "price": 12.5501,
       "exchange": "NCM",
-      "rank": 2205
+      "rank": 2208
     },
     {
       "ticker": "NVGS",
@@ -26472,7 +26508,7 @@
       "cap_size": "Small Cap",
       "price": 22.07,
       "exchange": "NYQ",
-      "rank": 2206
+      "rank": 2209
     },
     {
       "ticker": "HCSG",
@@ -26484,7 +26520,7 @@
       "cap_size": "Small Cap",
       "price": 19.84,
       "exchange": "NMS",
-      "rank": 2207
+      "rank": 2210
     },
     {
       "ticker": "TRIP",
@@ -26496,7 +26532,7 @@
       "cap_size": "Small Cap",
       "price": 11.69,
       "exchange": "NMS",
-      "rank": 2208
+      "rank": 2211
     },
     {
       "ticker": "MAZE",
@@ -26508,7 +26544,7 @@
       "cap_size": "Small Cap",
       "price": 24.56,
       "exchange": "NGM",
-      "rank": 2209
+      "rank": 2212
     },
     {
       "ticker": "PGEN",
@@ -26520,7 +26556,7 @@
       "cap_size": "Small Cap",
       "price": 3.81,
       "exchange": "NMS",
-      "rank": 2210
+      "rank": 2213
     },
     {
       "ticker": "GIII",
@@ -26532,7 +26568,7 @@
       "cap_size": "Small Cap",
       "price": 32.17,
       "exchange": "NMS",
-      "rank": 2211
+      "rank": 2214
     },
     {
       "ticker": "BCAX",
@@ -26544,7 +26580,7 @@
       "cap_size": "Small Cap",
       "price": 20.63,
       "exchange": "NGM",
-      "rank": 2212
+      "rank": 2215
     },
     {
       "ticker": "WLFC",
@@ -26556,7 +26592,7 @@
       "cap_size": "Small Cap",
       "price": 170.01,
       "exchange": "NGM",
-      "rank": 2213
+      "rank": 2216
     },
     {
       "ticker": "VZLA",
@@ -26568,7 +26604,7 @@
       "cap_size": "Small Cap",
       "price": 3.875,
       "exchange": "ASE",
-      "rank": 2214
+      "rank": 2217
     },
     {
       "ticker": "RVLV",
@@ -26580,7 +26616,7 @@
       "cap_size": "Small Cap",
       "price": 18.925,
       "exchange": "NYQ",
-      "rank": 2215
+      "rank": 2218
     },
     {
       "ticker": "GSL",
@@ -26592,7 +26628,7 @@
       "cap_size": "Small Cap",
       "price": 37.57,
       "exchange": "NYQ",
-      "rank": 2216
+      "rank": 2219
     },
     {
       "ticker": "TTI",
@@ -26604,7 +26640,7 @@
       "cap_size": "Small Cap",
       "price": 9.98,
       "exchange": "NYQ",
-      "rank": 2217
+      "rank": 2220
     },
     {
       "ticker": "ARRY",
@@ -26616,7 +26652,7 @@
       "cap_size": "Small Cap",
       "price": 8.77,
       "exchange": "NGM",
-      "rank": 2218
+      "rank": 2221
     },
     {
       "ticker": "LEG",
@@ -26628,7 +26664,7 @@
       "cap_size": "Small Cap",
       "price": 9.875,
       "exchange": "NYQ",
-      "rank": 2219
+      "rank": 2222
     },
     {
       "ticker": "ALNT",
@@ -26640,7 +26676,7 @@
       "cap_size": "Small Cap",
       "price": 79.245,
       "exchange": "NGM",
-      "rank": 2220
+      "rank": 2223
     },
     {
       "ticker": "ORC",
@@ -26652,7 +26688,7 @@
       "cap_size": "Small Cap",
       "price": 6.685,
       "exchange": "NYQ",
-      "rank": 2221
+      "rank": 2224
     },
     {
       "ticker": "DOLE",
@@ -26664,7 +26700,7 @@
       "cap_size": "Small Cap",
       "price": 14.0601,
       "exchange": "NYQ",
-      "rank": 2222
+      "rank": 2225
     },
     {
       "ticker": "WINA",
@@ -26676,7 +26712,7 @@
       "cap_size": "Small Cap",
       "price": 373.49,
       "exchange": "NGM",
-      "rank": 2223
+      "rank": 2226
     },
     {
       "ticker": "INBX",
@@ -26688,7 +26724,7 @@
       "cap_size": "Small Cap",
       "price": 90.96,
       "exchange": "NMS",
-      "rank": 2224
+      "rank": 2227
     },
     {
       "ticker": "UVV",
@@ -26700,7 +26736,7 @@
       "cap_size": "Small Cap",
       "price": 53.49,
       "exchange": "NYQ",
-      "rank": 2225
+      "rank": 2228
     },
     {
       "ticker": "TROX",
@@ -26712,7 +26748,7 @@
       "cap_size": "Small Cap",
       "price": 8.355,
       "exchange": "NYQ",
-      "rank": 2226
+      "rank": 2229
     },
     {
       "ticker": "DMLP",
@@ -26724,7 +26760,7 @@
       "cap_size": "Small Cap",
       "price": 27.615,
       "exchange": "NMS",
-      "rank": 2227
+      "rank": 2230
     },
     {
       "ticker": "WEN",
@@ -26736,7 +26772,7 @@
       "cap_size": "Small Cap",
       "price": 6.9852,
       "exchange": "NMS",
-      "rank": 2228
+      "rank": 2231
     },
     {
       "ticker": "AHCO",
@@ -26748,7 +26784,7 @@
       "cap_size": "Small Cap",
       "price": 9.7758,
       "exchange": "NCM",
-      "rank": 2229
+      "rank": 2232
     },
     {
       "ticker": "FCEL",
@@ -26760,7 +26796,7 @@
       "cap_size": "Small Cap",
       "price": 25.09,
       "exchange": "NGM",
-      "rank": 2230
+      "rank": 2233
     },
     {
       "ticker": "MLTX",
@@ -26772,7 +26808,7 @@
       "cap_size": "Small Cap",
       "price": 18.03,
       "exchange": "NCM",
-      "rank": 2231
+      "rank": 2234
     },
     {
       "ticker": "RXT",
@@ -26784,7 +26820,7 @@
       "cap_size": "Small Cap",
       "price": 5.315,
       "exchange": "NMS",
-      "rank": 2232
+      "rank": 2235
     },
     {
       "ticker": "MSDL",
@@ -26796,7 +26832,7 @@
       "cap_size": "Small Cap",
       "price": 15.6002,
       "exchange": "NYQ",
-      "rank": 2233
+      "rank": 2236
     },
     {
       "ticker": "LSPD",
@@ -26808,7 +26844,7 @@
       "cap_size": "Small Cap",
       "price": 9.55,
       "exchange": "NYQ",
-      "rank": 2234
+      "rank": 2237
     },
     {
       "ticker": "ENRD",
@@ -26820,7 +26856,7 @@
       "cap_size": "Small Cap",
       "price": 9.39,
       "exchange": "NGM",
-      "rank": 2235
+      "rank": 2238
     },
     {
       "ticker": "TBLA",
@@ -26832,7 +26868,7 @@
       "cap_size": "Small Cap",
       "price": 4.805,
       "exchange": "NMS",
-      "rank": 2236
+      "rank": 2239
     },
     {
       "ticker": "BLFS",
@@ -26844,7 +26880,7 @@
       "cap_size": "Small Cap",
       "price": 26.835,
       "exchange": "NCM",
-      "rank": 2237
+      "rank": 2240
     },
     {
       "ticker": "AOSL",
@@ -26856,7 +26892,7 @@
       "cap_size": "Small Cap",
       "price": 43.8,
       "exchange": "NMS",
-      "rank": 2238
+      "rank": 2241
     },
     {
       "ticker": "CDRE",
@@ -26868,7 +26904,7 @@
       "cap_size": "Small Cap",
       "price": 30.55,
       "exchange": "NYQ",
-      "rank": 2239
+      "rank": 2242
     },
     {
       "ticker": "ITRN",
@@ -26880,7 +26916,7 @@
       "cap_size": "Small Cap",
       "price": 66.05,
       "exchange": "NMS",
-      "rank": 2240
+      "rank": 2243
     },
     {
       "ticker": "NBXG",
@@ -26892,7 +26928,7 @@
       "cap_size": "Small Cap",
       "price": 16.555,
       "exchange": "NYQ",
-      "rank": 2241
+      "rank": 2244
     },
     {
       "ticker": "ARDT",
@@ -26904,7 +26940,7 @@
       "cap_size": "Small Cap",
       "price": 9.08,
       "exchange": "NYQ",
-      "rank": 2242
+      "rank": 2245
     },
     {
       "ticker": "TWO",
@@ -26916,7 +26952,7 @@
       "cap_size": "Small Cap",
       "price": 12.39,
       "exchange": "NYQ",
-      "rank": 2243
+      "rank": 2246
     },
     {
       "ticker": "WABC",
@@ -26928,7 +26964,7 @@
       "cap_size": "Small Cap",
       "price": 55.29,
       "exchange": "NMS",
-      "rank": 2244
+      "rank": 2247
     },
     {
       "ticker": "NSP",
@@ -26940,7 +26976,7 @@
       "cap_size": "Small Cap",
       "price": 33.99,
       "exchange": "NYQ",
-      "rank": 2245
+      "rank": 2248
     },
     {
       "ticker": "COAG",
@@ -26952,7 +26988,7 @@
       "cap_size": "Small Cap",
       "price": 27.715,
       "exchange": "NMS",
-      "rank": 2246
+      "rank": 2249
     },
     {
       "ticker": "AHG",
@@ -26964,7 +27000,7 @@
       "cap_size": "Small Cap",
       "price": 1.51,
       "exchange": "NCM",
-      "rank": 2247
+      "rank": 2250
     },
     {
       "ticker": "VIA",
@@ -26976,7 +27012,7 @@
       "cap_size": "Small Cap",
       "price": 15.18,
       "exchange": "NYQ",
-      "rank": 2248
+      "rank": 2251
     },
     {
       "ticker": "IRS",
@@ -26988,7 +27024,7 @@
       "cap_size": "Small Cap",
       "price": 15.27,
       "exchange": "NYQ",
-      "rank": 2249
+      "rank": 2252
     },
     {
       "ticker": "NAK",
@@ -27000,7 +27036,7 @@
       "cap_size": "Small Cap",
       "price": 2.305,
       "exchange": "ASE",
-      "rank": 2250
+      "rank": 2253
     },
     {
       "ticker": "SPH",
@@ -27012,7 +27048,7 @@
       "cap_size": "Small Cap",
       "price": 19.44,
       "exchange": "NYQ",
-      "rank": 2251
+      "rank": 2254
     },
     {
       "ticker": "UAN",
@@ -27024,7 +27060,7 @@
       "cap_size": "Small Cap",
       "price": 121.97,
       "exchange": "NYQ",
-      "rank": 2252
+      "rank": 2255
     },
     {
       "ticker": "NEO",
@@ -27036,7 +27072,7 @@
       "cap_size": "Small Cap",
       "price": 9.9,
       "exchange": "NCM",
-      "rank": 2253
+      "rank": 2256
     },
     {
       "ticker": "NSSC",
@@ -27048,7 +27084,7 @@
       "cap_size": "Small Cap",
       "price": 35.985,
       "exchange": "NMS",
-      "rank": 2254
+      "rank": 2257
     },
     {
       "ticker": "URGN",
@@ -27060,7 +27096,7 @@
       "cap_size": "Small Cap",
       "price": 26.33,
       "exchange": "NGM",
-      "rank": 2255
+      "rank": 2258
     },
     {
       "ticker": "EYE",
@@ -27072,7 +27108,7 @@
       "cap_size": "Small Cap",
       "price": 15.945,
       "exchange": "NMS",
-      "rank": 2256
+      "rank": 2259
     },
     {
       "ticker": "PICS",
@@ -27084,7 +27120,7 @@
       "cap_size": "Small Cap",
       "price": 9.83,
       "exchange": "NMS",
-      "rank": 2257
+      "rank": 2260
     },
     {
       "ticker": "MUX",
@@ -27096,7 +27132,7 @@
       "cap_size": "Small Cap",
       "price": 21.305,
       "exchange": "NYQ",
-      "rank": 2258
+      "rank": 2261
     },
     {
       "ticker": "TNDM",
@@ -27108,7 +27144,7 @@
       "cap_size": "Small Cap",
       "price": 18.55,
       "exchange": "NGM",
-      "rank": 2259
+      "rank": 2262
     },
     {
       "ticker": "AFYA",
@@ -27120,7 +27156,7 @@
       "cap_size": "Small Cap",
       "price": 14.25,
       "exchange": "NMS",
-      "rank": 2260
+      "rank": 2263
     },
     {
       "ticker": "PRA",
@@ -27132,7 +27168,7 @@
       "cap_size": "Small Cap",
       "price": 24.57,
       "exchange": "NYQ",
-      "rank": 2261
+      "rank": 2264
     },
     {
       "ticker": "BHRB",
@@ -27144,7 +27180,7 @@
       "cap_size": "Small Cap",
       "price": 62.81,
       "exchange": "NCM",
-      "rank": 2262
+      "rank": 2265
     },
     {
       "ticker": "HBNB",
@@ -27156,7 +27192,7 @@
       "cap_size": "Small Cap",
       "price": 5.4,
       "exchange": "NCM",
-      "rank": 2263
+      "rank": 2266
     },
     {
       "ticker": "TDOC",
@@ -27168,7 +27204,7 @@
       "cap_size": "Small Cap",
       "price": 6.995,
       "exchange": "NYQ",
-      "rank": 2264
+      "rank": 2267
     },
     {
       "ticker": "UMH",
@@ -27180,7 +27216,7 @@
       "cap_size": "Small Cap",
       "price": 14.82,
       "exchange": "NYQ",
-      "rank": 2265
+      "rank": 2268
     },
     {
       "ticker": "ALX",
@@ -27192,7 +27228,7 @@
       "cap_size": "Small Cap",
       "price": 246.8,
       "exchange": "NYQ",
-      "rank": 2266
+      "rank": 2269
     },
     {
       "ticker": "DSL",
@@ -27204,7 +27240,7 @@
       "cap_size": "Small Cap",
       "price": 10.9901,
       "exchange": "NYQ",
-      "rank": 2267
+      "rank": 2270
     },
     {
       "ticker": "GCT",
@@ -27216,7 +27252,7 @@
       "cap_size": "Small Cap",
       "price": 34.5799,
       "exchange": "NGM",
-      "rank": 2268
+      "rank": 2271
     },
     {
       "ticker": "HLF",
@@ -27228,7 +27264,7 @@
       "cap_size": "Small Cap",
       "price": 12.13,
       "exchange": "NYQ",
-      "rank": 2269
+      "rank": 2272
     },
     {
       "ticker": "ATLC",
@@ -27240,7 +27276,7 @@
       "cap_size": "Small Cap",
       "price": 83.16,
       "exchange": "NMS",
-      "rank": 2270
+      "rank": 2273
     },
     {
       "ticker": "ASST",
@@ -27252,7 +27288,7 @@
       "cap_size": "Small Cap",
       "price": 16.56,
       "exchange": "NGM",
-      "rank": 2271
+      "rank": 2274
     },
     {
       "ticker": "YELP",
@@ -27264,7 +27300,7 @@
       "cap_size": "Small Cap",
       "price": 22.8,
       "exchange": "NYQ",
-      "rank": 2272
+      "rank": 2275
     },
     {
       "ticker": "AVLN",
@@ -27276,7 +27312,7 @@
       "cap_size": "Small Cap",
       "price": 28.28,
       "exchange": "NMS",
-      "rank": 2273
+      "rank": 2276
     },
     {
       "ticker": "FINV",
@@ -27288,7 +27324,7 @@
       "cap_size": "Small Cap",
       "price": 5.295,
       "exchange": "NYQ",
-      "rank": 2274
+      "rank": 2277
     },
     {
       "ticker": "TUYA",
@@ -27300,7 +27336,7 @@
       "cap_size": "Small Cap",
       "price": 2.038,
       "exchange": "NYQ",
-      "rank": 2275
+      "rank": 2278
     },
     {
       "ticker": "PEBO",
@@ -27312,7 +27348,7 @@
       "cap_size": "Small Cap",
       "price": 34.77,
       "exchange": "NMS",
-      "rank": 2276
+      "rank": 2279
     },
     {
       "ticker": "MPLT",
@@ -27324,7 +27360,7 @@
       "cap_size": "Small Cap",
       "price": 27.52,
       "exchange": "NMS",
-      "rank": 2277
+      "rank": 2280
     },
     {
       "ticker": "XPEL",
@@ -27336,7 +27372,7 @@
       "cap_size": "Small Cap",
       "price": 45.11,
       "exchange": "NCM",
-      "rank": 2278
+      "rank": 2281
     },
     {
       "ticker": "ENOV",
@@ -27348,7 +27384,7 @@
       "cap_size": "Small Cap",
       "price": 21.56,
       "exchange": "NYQ",
-      "rank": 2279
+      "rank": 2282
     },
     {
       "ticker": "GILT",
@@ -27360,7 +27396,7 @@
       "cap_size": "Small Cap",
       "price": 16.415,
       "exchange": "NMS",
-      "rank": 2280
+      "rank": 2283
     },
     {
       "ticker": "ICFI",
@@ -27372,7 +27408,7 @@
       "cap_size": "Small Cap",
       "price": 68.41,
       "exchange": "NMS",
-      "rank": 2281
+      "rank": 2284
     },
     {
       "ticker": "PLTK",
@@ -27384,7 +27420,7 @@
       "cap_size": "Small Cap",
       "price": 3.2501,
       "exchange": "NMS",
-      "rank": 2282
+      "rank": 2285
     },
     {
       "ticker": "CSIQ",
@@ -27396,7 +27432,7 @@
       "cap_size": "Small Cap",
       "price": 18.2,
       "exchange": "NMS",
-      "rank": 2283
+      "rank": 2286
     },
     {
       "ticker": "EVLV",
@@ -27408,7 +27444,7 @@
       "cap_size": "Small Cap",
       "price": 6.855,
       "exchange": "NCM",
-      "rank": 2284
+      "rank": 2287
     },
     {
       "ticker": "OI",
@@ -27420,7 +27456,7 @@
       "cap_size": "Small Cap",
       "price": 8.01,
       "exchange": "NYQ",
-      "rank": 2285
+      "rank": 2288
     },
     {
       "ticker": "TMP",
@@ -27432,7 +27468,7 @@
       "cap_size": "Small Cap",
       "price": 85.255,
       "exchange": "ASE",
-      "rank": 2286
+      "rank": 2289
     },
     {
       "ticker": "VTOL",
@@ -27444,7 +27480,7 @@
       "cap_size": "Small Cap",
       "price": 41.405,
       "exchange": "NYQ",
-      "rank": 2287
+      "rank": 2290
     },
     {
       "ticker": "ATEX",
@@ -27456,7 +27492,7 @@
       "cap_size": "Small Cap",
       "price": 65.35,
       "exchange": "NCM",
-      "rank": 2288
+      "rank": 2291
     },
     {
       "ticker": "CCO",
@@ -27468,7 +27504,7 @@
       "cap_size": "Small Cap",
       "price": 2.405,
       "exchange": "NYQ",
-      "rank": 2289
+      "rank": 2292
     },
     {
       "ticker": "EOS",
@@ -27480,7 +27516,7 @@
       "cap_size": "Small Cap",
       "price": 22.9447,
       "exchange": "NYQ",
-      "rank": 2290
+      "rank": 2293
     },
     {
       "ticker": "RVI",
@@ -27492,7 +27528,7 @@
       "cap_size": "Small Cap",
       "price": 44.875,
       "exchange": "NYQ",
-      "rank": 2291
+      "rank": 2294
     },
     {
       "ticker": "ASM",
@@ -27504,7 +27540,7 @@
       "cap_size": "Small Cap",
       "price": 6.975,
       "exchange": "ASE",
-      "rank": 2292
+      "rank": 2295
     },
     {
       "ticker": "GSHD",
@@ -27516,7 +27552,7 @@
       "cap_size": "Small Cap",
       "price": 34.2701,
       "exchange": "NMS",
-      "rank": 2293
+      "rank": 2296
     },
     {
       "ticker": "PAHC",
@@ -27528,7 +27564,7 @@
       "cap_size": "Small Cap",
       "price": 30.005,
       "exchange": "NGM",
-      "rank": 2294
+      "rank": 2297
     },
     {
       "ticker": "AMAL",
@@ -27540,7 +27576,7 @@
       "cap_size": "Small Cap",
       "price": 40.71,
       "exchange": "NGM",
-      "rank": 2295
+      "rank": 2298
     },
     {
       "ticker": "XZO",
@@ -27552,7 +27588,7 @@
       "cap_size": "Small Cap",
       "price": 13.33,
       "exchange": "NYQ",
-      "rank": 2296
+      "rank": 2299
     },
     {
       "ticker": "NPKI",
@@ -27564,7 +27600,7 @@
       "cap_size": "Small Cap",
       "price": 14.335,
       "exchange": "NYQ",
-      "rank": 2297
+      "rank": 2300
     },
     {
       "ticker": "SATL",
@@ -27576,7 +27612,7 @@
       "cap_size": "Small Cap",
       "price": 8.14,
       "exchange": "NCM",
-      "rank": 2298
+      "rank": 2301
     },
     {
       "ticker": "SIFY",
@@ -27588,7 +27624,7 @@
       "cap_size": "Small Cap",
       "price": 16.61,
       "exchange": "NCM",
-      "rank": 2299
+      "rank": 2302
     },
     {
       "ticker": "CEVA",
@@ -27600,7 +27636,7 @@
       "cap_size": "Small Cap",
       "price": 43.1,
       "exchange": "NMS",
-      "rank": 2300
+      "rank": 2303
     },
     {
       "ticker": "NMZ",
@@ -27612,7 +27648,7 @@
       "cap_size": "Small Cap",
       "price": 10.21,
       "exchange": "NYQ",
-      "rank": 2301
+      "rank": 2304
     },
     {
       "ticker": "CTBI",
@@ -27624,7 +27660,7 @@
       "cap_size": "Small Cap",
       "price": 66.0,
       "exchange": "NMS",
-      "rank": 2302
+      "rank": 2305
     },
     {
       "ticker": "ACDC",
@@ -27636,7 +27672,7 @@
       "cap_size": "Small Cap",
       "price": 6.625,
       "exchange": "NMS",
-      "rank": 2303
+      "rank": 2306
     },
     {
       "ticker": "PDS",
@@ -27648,7 +27684,7 @@
       "cap_size": "Small Cap",
       "price": 92.41,
       "exchange": "NYQ",
-      "rank": 2304
+      "rank": 2307
     },
     {
       "ticker": "HTLD",
@@ -27660,7 +27696,7 @@
       "cap_size": "Small Cap",
       "price": 15.43,
       "exchange": "NMS",
-      "rank": 2305
+      "rank": 2308
     },
     {
       "ticker": "ATEC",
@@ -27672,7 +27708,7 @@
       "cap_size": "Small Cap",
       "price": 7.755,
       "exchange": "NMS",
-      "rank": 2306
+      "rank": 2309
     },
     {
       "ticker": "BFS",
@@ -27684,7 +27720,7 @@
       "cap_size": "Small Cap",
       "price": 34.46,
       "exchange": "NYQ",
-      "rank": 2307
+      "rank": 2310
     },
     {
       "ticker": "OPFI",
@@ -27696,7 +27732,7 @@
       "cap_size": "Small Cap",
       "price": 8.24,
       "exchange": "NYQ",
-      "rank": 2308
+      "rank": 2311
     },
     {
       "ticker": "HYLN",
@@ -27708,7 +27744,7 @@
       "cap_size": "Small Cap",
       "price": 6.65,
       "exchange": "ASE",
-      "rank": 2309
+      "rank": 2312
     },
     {
       "ticker": "CRF",
@@ -27720,7 +27756,7 @@
       "cap_size": "Small Cap",
       "price": 7.305,
       "exchange": "ASE",
-      "rank": 2310
+      "rank": 2313
     },
     {
       "ticker": "HIVE",
@@ -27732,7 +27768,7 @@
       "cap_size": "Small Cap",
       "price": 4.655,
       "exchange": "NCM",
-      "rank": 2311
+      "rank": 2314
     },
     {
       "ticker": "AVNS",
@@ -27744,7 +27780,7 @@
       "cap_size": "Small Cap",
       "price": 25.155,
       "exchange": "NYQ",
-      "rank": 2312
+      "rank": 2315
     },
     {
       "ticker": "LNN",
@@ -27756,7 +27792,7 @@
       "cap_size": "Small Cap",
       "price": 112.475,
       "exchange": "NYQ",
-      "rank": 2313
+      "rank": 2316
     },
     {
       "ticker": "SCL",
@@ -27768,7 +27804,7 @@
       "cap_size": "Small Cap",
       "price": 51.615,
       "exchange": "NYQ",
-      "rank": 2314
+      "rank": 2317
     },
     {
       "ticker": "JKS",
@@ -27780,7 +27816,7 @@
       "cap_size": "Small Cap",
       "price": 22.3601,
       "exchange": "NYQ",
-      "rank": 2315
+      "rank": 2318
     },
     {
       "ticker": "FMBH",
@@ -27792,7 +27828,7 @@
       "cap_size": "Small Cap",
       "price": 43.96,
       "exchange": "NGM",
-      "rank": 2316
+      "rank": 2319
     },
     {
       "ticker": "METC",
@@ -27804,7 +27840,7 @@
       "cap_size": "Small Cap",
       "price": 17.95,
       "exchange": "NMS",
-      "rank": 2317
+      "rank": 2320
     },
     {
       "ticker": "PGY",
@@ -27816,7 +27852,7 @@
       "cap_size": "Small Cap",
       "price": 14.11,
       "exchange": "NCM",
-      "rank": 2318
+      "rank": 2321
     },
     {
       "ticker": "GIC",
@@ -27828,7 +27864,7 @@
       "cap_size": "Small Cap",
       "price": 30.53,
       "exchange": "NYQ",
-      "rank": 2319
+      "rank": 2322
     },
     {
       "ticker": "PSEC",
@@ -27840,7 +27876,7 @@
       "cap_size": "Small Cap",
       "price": 2.33,
       "exchange": "NMS",
-      "rank": 2320
+      "rank": 2323
     },
     {
       "ticker": "BFLY",
@@ -27852,7 +27888,7 @@
       "cap_size": "Small Cap",
       "price": 4.46,
       "exchange": "NYQ",
-      "rank": 2321
+      "rank": 2324
     },
     {
       "ticker": "GOLD",
@@ -27864,7 +27900,7 @@
       "cap_size": "Small Cap",
       "price": 40.12,
       "exchange": "NYQ",
-      "rank": 2322
+      "rank": 2325
     },
     {
       "ticker": "IRMD",
@@ -27876,7 +27912,19 @@
       "cap_size": "Small Cap",
       "price": 91.0,
       "exchange": "NGM",
-      "rank": 2323
+      "rank": 2326
+    },
+    {
+      "ticker": "GFUZ",
+      "name": "General Fusion Group Ltd.",
+      "sector": "Industrials",
+      "industry": "Specialty Industrial Machinery",
+      "country": "Canada",
+      "mkt_cap": 1161697408,
+      "cap_size": "Small Cap",
+      "price": 11.0,
+      "exchange": "NGM",
+      "rank": 2327
     },
     {
       "ticker": "INSP",
@@ -27888,7 +27936,7 @@
       "cap_size": "Small Cap",
       "price": 40.285,
       "exchange": "NYQ",
-      "rank": 2324
+      "rank": 2328
     },
     {
       "ticker": "THRM",
@@ -27900,7 +27948,7 @@
       "cap_size": "Small Cap",
       "price": 37.845,
       "exchange": "NMS",
-      "rank": 2325
+      "rank": 2329
     },
     {
       "ticker": "SBH",
@@ -27912,7 +27960,7 @@
       "cap_size": "Small Cap",
       "price": 12.15,
       "exchange": "NYQ",
-      "rank": 2326
+      "rank": 2330
     },
     {
       "ticker": "GPRE",
@@ -27924,7 +27972,7 @@
       "cap_size": "Small Cap",
       "price": 16.49,
       "exchange": "NMS",
-      "rank": 2327
+      "rank": 2331
     },
     {
       "ticker": "LGIH",
@@ -27936,7 +27984,7 @@
       "cap_size": "Small Cap",
       "price": 49.69,
       "exchange": "NMS",
-      "rank": 2328
+      "rank": 2332
     },
     {
       "ticker": "CDNA",
@@ -27948,7 +27996,7 @@
       "cap_size": "Small Cap",
       "price": 22.345,
       "exchange": "NGM",
-      "rank": 2329
+      "rank": 2333
     },
     {
       "ticker": "TBN",
@@ -27960,7 +28008,7 @@
       "cap_size": "Small Cap",
       "price": 33.045,
       "exchange": "NYQ",
-      "rank": 2330
+      "rank": 2334
     },
     {
       "ticker": "ASA",
@@ -27972,7 +28020,7 @@
       "cap_size": "Small Cap",
       "price": 61.3,
       "exchange": "NYQ",
-      "rank": 2331
+      "rank": 2335
     },
     {
       "ticker": "GHM",
@@ -27984,7 +28032,7 @@
       "cap_size": "Small Cap",
       "price": 103.87,
       "exchange": "NYQ",
-      "rank": 2332
+      "rank": 2336
     },
     {
       "ticker": "EVEX",
@@ -27996,7 +28044,7 @@
       "cap_size": "Small Cap",
       "price": 3.3,
       "exchange": "NYQ",
-      "rank": 2333
+      "rank": 2337
     },
     {
       "ticker": "APPS",
@@ -28008,7 +28056,7 @@
       "cap_size": "Small Cap",
       "price": 9.525,
       "exchange": "NCM",
-      "rank": 2334
+      "rank": 2338
     },
     {
       "ticker": "REAL",
@@ -28020,7 +28068,7 @@
       "cap_size": "Small Cap",
       "price": 9.525,
       "exchange": "NMS",
-      "rank": 2335
+      "rank": 2339
     },
     {
       "ticker": "AMN",
@@ -28032,7 +28080,7 @@
       "cap_size": "Small Cap",
       "price": 29.58,
       "exchange": "NYQ",
-      "rank": 2336
+      "rank": 2340
     },
     {
       "ticker": "NWPX",
@@ -28044,7 +28092,7 @@
       "cap_size": "Small Cap",
       "price": 119.01,
       "exchange": "NMS",
-      "rank": 2337
+      "rank": 2341
     },
     {
       "ticker": "TDAY",
@@ -28056,7 +28104,7 @@
       "cap_size": "Small Cap",
       "price": 7.765,
       "exchange": "NYQ",
-      "rank": 2338
+      "rank": 2342
     },
     {
       "ticker": "LQDT",
@@ -28068,7 +28116,7 @@
       "cap_size": "Small Cap",
       "price": 36.63,
       "exchange": "NMS",
-      "rank": 2339
+      "rank": 2343
     },
     {
       "ticker": "AGBK",
@@ -28080,7 +28128,7 @@
       "cap_size": "Small Cap",
       "price": 7.14,
       "exchange": "NYQ",
-      "rank": 2340
+      "rank": 2344
     },
     {
       "ticker": "DEA",
@@ -28092,7 +28140,7 @@
       "cap_size": "Small Cap",
       "price": 23.715,
       "exchange": "NYQ",
-      "rank": 2341
+      "rank": 2345
     },
     {
       "ticker": "SBET",
@@ -28104,7 +28152,7 @@
       "cap_size": "Small Cap",
       "price": 5.755,
       "exchange": "NCM",
-      "rank": 2342
+      "rank": 2346
     },
     {
       "ticker": "PRCH",
@@ -28116,7 +28164,7 @@
       "cap_size": "Small Cap",
       "price": 10.37,
       "exchange": "NCM",
-      "rank": 2343
+      "rank": 2347
     },
     {
       "ticker": "CIM",
@@ -28128,7 +28176,7 @@
       "cap_size": "Small Cap",
       "price": 13.555,
       "exchange": "NYQ",
-      "rank": 2344
+      "rank": 2348
     },
     {
       "ticker": "PFBC",
@@ -28140,7 +28188,7 @@
       "cap_size": "Small Cap",
       "price": 95.26,
       "exchange": "NMS",
-      "rank": 2345
+      "rank": 2349
     },
     {
       "ticker": "BV",
@@ -28152,7 +28200,7 @@
       "cap_size": "Small Cap",
       "price": 12.1,
       "exchange": "NYQ",
-      "rank": 2346
+      "rank": 2350
     },
     {
       "ticker": "ELE",
@@ -28164,7 +28212,7 @@
       "cap_size": "Small Cap",
       "price": 17.5,
       "exchange": "NCM",
-      "rank": 2347
+      "rank": 2351
     },
     {
       "ticker": "HFWA",
@@ -28176,7 +28224,7 @@
       "cap_size": "Small Cap",
       "price": 27.19,
       "exchange": "NMS",
-      "rank": 2348
+      "rank": 2352
     },
     {
       "ticker": "KMTS",
@@ -28188,7 +28236,7 @@
       "cap_size": "Small Cap",
       "price": 19.164,
       "exchange": "NMS",
-      "rank": 2349
+      "rank": 2353
     },
     {
       "ticker": "ODC",
@@ -28200,7 +28248,7 @@
       "cap_size": "Small Cap",
       "price": 77.19,
       "exchange": "NYQ",
-      "rank": 2350
+      "rank": 2354
     },
     {
       "ticker": "TEN",
@@ -28212,7 +28260,7 @@
       "cap_size": "Small Cap",
       "price": 37.0947,
       "exchange": "NYQ",
-      "rank": 2351
+      "rank": 2355
     },
     {
       "ticker": "ROCK",
@@ -28224,7 +28272,7 @@
       "cap_size": "Small Cap",
       "price": 37.66,
       "exchange": "NMS",
-      "rank": 2352
+      "rank": 2356
     },
     {
       "ticker": "MMI",
@@ -28236,7 +28284,7 @@
       "cap_size": "Small Cap",
       "price": 29.49,
       "exchange": "NYQ",
-      "rank": 2353
+      "rank": 2357
     },
     {
       "ticker": "MBC",
@@ -28248,7 +28296,7 @@
       "cap_size": "Small Cap",
       "price": 8.705,
       "exchange": "NYQ",
-      "rank": 2354
+      "rank": 2358
     },
     {
       "ticker": "LZ",
@@ -28260,7 +28308,7 @@
       "cap_size": "Small Cap",
       "price": 6.49,
       "exchange": "NMS",
-      "rank": 2355
+      "rank": 2359
     },
     {
       "ticker": "AMPL",
@@ -28272,7 +28320,7 @@
       "cap_size": "Small Cap",
       "price": 8.3978,
       "exchange": "NCM",
-      "rank": 2356
+      "rank": 2360
     },
     {
       "ticker": "DQ",
@@ -28284,7 +28332,7 @@
       "cap_size": "Small Cap",
       "price": 16.45,
       "exchange": "NYQ",
-      "rank": 2357
+      "rank": 2361
     },
     {
       "ticker": "MCB",
@@ -28296,7 +28344,7 @@
       "cap_size": "Small Cap",
       "price": 89.4575,
       "exchange": "NYQ",
-      "rank": 2358
+      "rank": 2362
     },
     {
       "ticker": "INDI",
@@ -28308,7 +28356,7 @@
       "cap_size": "Small Cap",
       "price": 5.245,
       "exchange": "NCM",
-      "rank": 2359
+      "rank": 2363
     },
     {
       "ticker": "PXED",
@@ -28320,7 +28368,7 @@
       "cap_size": "Small Cap",
       "price": 30.945,
       "exchange": "NYQ",
-      "rank": 2360
+      "rank": 2364
     },
     {
       "ticker": "NAT",
@@ -28332,7 +28380,7 @@
       "cap_size": "Small Cap",
       "price": 5.225,
       "exchange": "NYQ",
-      "rank": 2361
+      "rank": 2365
     },
     {
       "ticker": "UFCS",
@@ -28344,7 +28392,7 @@
       "cap_size": "Small Cap",
       "price": 43.085,
       "exchange": "NMS",
-      "rank": 2362
+      "rank": 2366
     },
     {
       "ticker": "WVE",
@@ -28356,7 +28404,7 @@
       "cap_size": "Small Cap",
       "price": 5.745,
       "exchange": "NGM",
-      "rank": 2363
+      "rank": 2367
     },
     {
       "ticker": "ASTE",
@@ -28368,7 +28416,7 @@
       "cap_size": "Small Cap",
       "price": 48.055,
       "exchange": "NMS",
-      "rank": 2364
+      "rank": 2368
     },
     {
       "ticker": "AOD",
@@ -28380,7 +28428,7 @@
       "cap_size": "Small Cap",
       "price": 10.475,
       "exchange": "NYQ",
-      "rank": 2365
+      "rank": 2369
     },
     {
       "ticker": "DLX",
@@ -28392,7 +28440,7 @@
       "cap_size": "Small Cap",
       "price": 24.1,
       "exchange": "NYQ",
-      "rank": 2366
+      "rank": 2370
     },
     {
       "ticker": "WYFI",
@@ -28404,7 +28452,7 @@
       "cap_size": "Small Cap",
       "price": 28.54,
       "exchange": "NCM",
-      "rank": 2367
+      "rank": 2371
     },
     {
       "ticker": "DBVT",
@@ -28416,7 +28464,7 @@
       "cap_size": "Small Cap",
       "price": 18.6,
       "exchange": "NCM",
-      "rank": 2368
+      "rank": 2372
     },
     {
       "ticker": "IQ",
@@ -28428,7 +28476,7 @@
       "cap_size": "Small Cap",
       "price": 1.14,
       "exchange": "NMS",
-      "rank": 2369
+      "rank": 2373
     },
     {
       "ticker": "FPF",
@@ -28440,7 +28488,7 @@
       "cap_size": "Small Cap",
       "price": 18.065,
       "exchange": "NYQ",
-      "rank": 2370
+      "rank": 2374
     },
     {
       "ticker": "ZBIO",
@@ -28452,7 +28500,7 @@
       "cap_size": "Small Cap",
       "price": 17.39,
       "exchange": "NMS",
-      "rank": 2371
+      "rank": 2375
     },
     {
       "ticker": "AKTS",
@@ -28464,7 +28512,7 @@
       "cap_size": "Small Cap",
       "price": 19.83,
       "exchange": "NMS",
-      "rank": 2372
+      "rank": 2376
     },
     {
       "ticker": "UVSP",
@@ -28476,7 +28524,7 @@
       "cap_size": "Small Cap",
       "price": 39.35,
       "exchange": "NMS",
-      "rank": 2373
+      "rank": 2377
     },
     {
       "ticker": "PSNL",
@@ -28488,7 +28536,7 @@
       "cap_size": "Small Cap",
       "price": 10.45,
       "exchange": "NGM",
-      "rank": 2374
+      "rank": 2378
     },
     {
       "ticker": "SVC",
@@ -28500,7 +28548,7 @@
       "cap_size": "Small Cap",
       "price": 1.69,
       "exchange": "NMS",
-      "rank": 2375
+      "rank": 2379
     },
     {
       "ticker": "EVV",
@@ -28512,7 +28560,7 @@
       "cap_size": "Small Cap",
       "price": 9.4,
       "exchange": "NYQ",
-      "rank": 2376
+      "rank": 2380
     },
     {
       "ticker": "DEC",
@@ -28524,7 +28572,7 @@
       "cap_size": "Small Cap",
       "price": 15.075,
       "exchange": "NYQ",
-      "rank": 2377
+      "rank": 2381
     },
     {
       "ticker": "ACVA",
@@ -28536,7 +28584,7 @@
       "cap_size": "Small Cap",
       "price": 6.235,
       "exchange": "NYQ",
-      "rank": 2378
+      "rank": 2382
     },
     {
       "ticker": "NHP",
@@ -28548,7 +28596,7 @@
       "cap_size": "Small Cap",
       "price": 14.71,
       "exchange": "NGM",
-      "rank": 2379
+      "rank": 2383
     },
     {
       "ticker": "HQH",
@@ -28560,7 +28608,7 @@
       "cap_size": "Small Cap",
       "price": 19.02,
       "exchange": "NYQ",
-      "rank": 2380
+      "rank": 2384
     },
     {
       "ticker": "PTA",
@@ -28572,7 +28620,7 @@
       "cap_size": "Small Cap",
       "price": 19.67,
       "exchange": "NYQ",
-      "rank": 2381
+      "rank": 2385
     },
     {
       "ticker": "KOPN",
@@ -28584,7 +28632,7 @@
       "cap_size": "Small Cap",
       "price": 5.939,
       "exchange": "NCM",
-      "rank": 2382
+      "rank": 2386
     },
     {
       "ticker": "OSBC",
@@ -28596,7 +28644,7 @@
       "cap_size": "Small Cap",
       "price": 21.1,
       "exchange": "NMS",
-      "rank": 2383
+      "rank": 2387
     },
     {
       "ticker": "SVRA",
@@ -28608,7 +28656,7 @@
       "cap_size": "Small Cap",
       "price": 5.29,
       "exchange": "NMS",
-      "rank": 2384
+      "rank": 2388
     },
     {
       "ticker": "PNTG",
@@ -28620,7 +28668,7 @@
       "cap_size": "Small Cap",
       "price": 31.15,
       "exchange": "NMS",
-      "rank": 2385
+      "rank": 2389
     },
     {
       "ticker": "SAFE",
@@ -28632,7 +28680,7 @@
       "cap_size": "Small Cap",
       "price": 15.085,
       "exchange": "NYQ",
-      "rank": 2386
+      "rank": 2390
     },
     {
       "ticker": "LUCK",
@@ -28644,7 +28692,7 @@
       "cap_size": "Small Cap",
       "price": 7.915,
       "exchange": "NYQ",
-      "rank": 2387
+      "rank": 2391
     },
     {
       "ticker": "EXPI",
@@ -28656,7 +28704,7 @@
       "cap_size": "Small Cap",
       "price": 6.74,
       "exchange": "NGM",
-      "rank": 2388
+      "rank": 2392
     },
     {
       "ticker": "HSLV",
@@ -28668,7 +28716,7 @@
       "cap_size": "Small Cap",
       "price": 5.27,
       "exchange": "ASE",
-      "rank": 2389
+      "rank": 2393
     },
     {
       "ticker": "CRON",
@@ -28680,7 +28728,7 @@
       "cap_size": "Small Cap",
       "price": 2.865,
       "exchange": "NGM",
-      "rank": 2390
+      "rank": 2394
     },
     {
       "ticker": "AZTA",
@@ -28692,7 +28740,7 @@
       "cap_size": "Small Cap",
       "price": 23.18,
       "exchange": "NMS",
-      "rank": 2391
+      "rank": 2395
     },
     {
       "ticker": "MNKD",
@@ -28704,7 +28752,7 @@
       "cap_size": "Small Cap",
       "price": 3.445,
       "exchange": "NGM",
-      "rank": 2392
+      "rank": 2396
     },
     {
       "ticker": "CNMD",
@@ -28716,7 +28764,7 @@
       "cap_size": "Small Cap",
       "price": 35.32,
       "exchange": "NYQ",
-      "rank": 2393
+      "rank": 2397
     },
     {
       "ticker": "SMPL",
@@ -28728,7 +28776,7 @@
       "cap_size": "Small Cap",
       "price": 11.48,
       "exchange": "NCM",
-      "rank": 2394
+      "rank": 2398
     },
     {
       "ticker": "COLL",
@@ -28740,7 +28788,7 @@
       "cap_size": "Small Cap",
       "price": 32.75,
       "exchange": "NMS",
-      "rank": 2395
+      "rank": 2399
     },
     {
       "ticker": "UPWK",
@@ -28752,7 +28800,7 @@
       "cap_size": "Small Cap",
       "price": 8.595,
       "exchange": "NMS",
-      "rank": 2396
+      "rank": 2400
     },
     {
       "ticker": "BTX",
@@ -28764,7 +28812,7 @@
       "cap_size": "Small Cap",
       "price": 9.0701,
       "exchange": "NYQ",
-      "rank": 2397
+      "rank": 2401
     },
     {
       "ticker": "EVO",
@@ -28776,7 +28824,7 @@
       "cap_size": "Small Cap",
       "price": 2.98,
       "exchange": "NMS",
-      "rank": 2398
+      "rank": 2402
     },
     {
       "ticker": "CCB",
@@ -28788,7 +28836,7 @@
       "cap_size": "Small Cap",
       "price": 69.4,
       "exchange": "NMS",
-      "rank": 2399
+      "rank": 2403
     },
     {
       "ticker": "CHY",
@@ -28800,7 +28848,7 @@
       "cap_size": "Small Cap",
       "price": 13.165,
       "exchange": "NGM",
-      "rank": 2400
+      "rank": 2404
     },
     {
       "ticker": "NMAX",
@@ -28812,7 +28860,7 @@
       "cap_size": "Small Cap",
       "price": 8.18,
       "exchange": "NYQ",
-      "rank": 2401
+      "rank": 2405
     },
     {
       "ticker": "CII",
@@ -28824,7 +28872,7 @@
       "cap_size": "Small Cap",
       "price": 25.75,
       "exchange": "NYQ",
-      "rank": 2402
+      "rank": 2406
     },
     {
       "ticker": "OCSL",
@@ -28836,7 +28884,7 @@
       "cap_size": "Small Cap",
       "price": 11.9363,
       "exchange": "NMS",
-      "rank": 2403
+      "rank": 2407
     },
     {
       "ticker": "GNK",
@@ -28848,7 +28896,7 @@
       "cap_size": "Small Cap",
       "price": 24.1075,
       "exchange": "NYQ",
-      "rank": 2404
+      "rank": 2408
     },
     {
       "ticker": "UPBD",
@@ -28860,7 +28908,7 @@
       "cap_size": "Small Cap",
       "price": 18.01,
       "exchange": "NMS",
-      "rank": 2405
+      "rank": 2409
     },
     {
       "ticker": "IGIC",
@@ -28872,7 +28920,7 @@
       "cap_size": "Small Cap",
       "price": 24.6,
       "exchange": "NCM",
-      "rank": 2406
+      "rank": 2410
     },
     {
       "ticker": "GTM",
@@ -28884,7 +28932,7 @@
       "cap_size": "Small Cap",
       "price": 3.555,
       "exchange": "NMS",
-      "rank": 2407
+      "rank": 2411
     },
     {
       "ticker": "MLKN",
@@ -28896,7 +28944,7 @@
       "cap_size": "Small Cap",
       "price": 15.28,
       "exchange": "NMS",
-      "rank": 2408
+      "rank": 2412
     },
     {
       "ticker": "PDM",
@@ -28908,7 +28956,7 @@
       "cap_size": "Small Cap",
       "price": 8.34,
       "exchange": "NYQ",
-      "rank": 2409
+      "rank": 2413
     },
     {
       "ticker": "EYPT",
@@ -28920,7 +28968,7 @@
       "cap_size": "Small Cap",
       "price": 12.425,
       "exchange": "NGM",
-      "rank": 2410
+      "rank": 2414
     },
     {
       "ticker": "RZLV",
@@ -28932,7 +28980,7 @@
       "cap_size": "Small Cap",
       "price": 2.61,
       "exchange": "NGM",
-      "rank": 2411
+      "rank": 2415
     },
     {
       "ticker": "GSBD",
@@ -28944,7 +28992,7 @@
       "cap_size": "Small Cap",
       "price": 9.2,
       "exchange": "NYQ",
-      "rank": 2412
+      "rank": 2416
     },
     {
       "ticker": "OPK",
@@ -28956,7 +29004,7 @@
       "cap_size": "Small Cap",
       "price": 1.3701,
       "exchange": "NMS",
-      "rank": 2413
+      "rank": 2417
     },
     {
       "ticker": "OMDA",
@@ -28968,7 +29016,7 @@
       "cap_size": "Small Cap",
       "price": 17.37,
       "exchange": "NMS",
-      "rank": 2414
+      "rank": 2418
     },
     {
       "ticker": "NRGV",
@@ -28980,7 +29028,7 @@
       "cap_size": "Small Cap",
       "price": 5.79,
       "exchange": "NYQ",
-      "rank": 2415
+      "rank": 2419
     },
     {
       "ticker": "HBT",
@@ -28992,7 +29040,7 @@
       "cap_size": "Small Cap",
       "price": 28.34,
       "exchange": "NMS",
-      "rank": 2416
+      "rank": 2420
     },
     {
       "ticker": "CHI",
@@ -29004,7 +29052,7 @@
       "cap_size": "Small Cap",
       "price": 12.77,
       "exchange": "NGM",
-      "rank": 2417
+      "rank": 2421
     },
     {
       "ticker": "OCFC",
@@ -29016,7 +29064,7 @@
       "cap_size": "Small Cap",
       "price": 17.87,
       "exchange": "NMS",
-      "rank": 2418
+      "rank": 2422
     },
     {
       "ticker": "GDRX",
@@ -29028,7 +29076,7 @@
       "cap_size": "Small Cap",
       "price": 3.035,
       "exchange": "NMS",
-      "rank": 2419
+      "rank": 2423
     },
     {
       "ticker": "STK",
@@ -29040,7 +29088,7 @@
       "cap_size": "Small Cap",
       "price": 58.04,
       "exchange": "NYQ",
-      "rank": 2420
+      "rank": 2424
     },
     {
       "ticker": "NBN",
@@ -29052,7 +29100,7 @@
       "cap_size": "Small Cap",
       "price": 119.585,
       "exchange": "NGM",
-      "rank": 2421
+      "rank": 2425
     },
     {
       "ticker": "PZZA",
@@ -29064,7 +29112,7 @@
       "cap_size": "Small Cap",
       "price": 31.02,
       "exchange": "NMS",
-      "rank": 2422
+      "rank": 2426
     },
     {
       "ticker": "ABSI",
@@ -29076,7 +29124,7 @@
       "cap_size": "Small Cap",
       "price": 6.54,
       "exchange": "NMS",
-      "rank": 2423
+      "rank": 2427
     },
     {
       "ticker": "CVLG",
@@ -29088,7 +29136,7 @@
       "cap_size": "Small Cap",
       "price": 40.47,
       "exchange": "NYQ",
-      "rank": 2424
+      "rank": 2428
     },
     {
       "ticker": "XERS",
@@ -29100,7 +29148,7 @@
       "cap_size": "Small Cap",
       "price": 5.9,
       "exchange": "NMS",
-      "rank": 2425
+      "rank": 2429
     },
     {
       "ticker": "INNV",
@@ -29112,7 +29160,7 @@
       "cap_size": "Small Cap",
       "price": 7.4795,
       "exchange": "NMS",
-      "rank": 2426
+      "rank": 2430
     },
     {
       "ticker": "FSCO",
@@ -29124,7 +29172,7 @@
       "cap_size": "Small Cap",
       "price": 5.015,
       "exchange": "NYQ",
-      "rank": 2427
+      "rank": 2431
     },
     {
       "ticker": "SECZ",
@@ -29136,7 +29184,7 @@
       "cap_size": "Small Cap",
       "price": 6.85,
       "exchange": "NYQ",
-      "rank": 2428
+      "rank": 2432
     },
     {
       "ticker": "MUC",
@@ -29148,7 +29196,7 @@
       "cap_size": "Small Cap",
       "price": 10.765,
       "exchange": "NYQ",
-      "rank": 2429
+      "rank": 2433
     },
     {
       "ticker": "ALVO",
@@ -29160,7 +29208,7 @@
       "cap_size": "Small Cap",
       "price": 3.245,
       "exchange": "NGM",
-      "rank": 2430
+      "rank": 2434
     },
     {
       "ticker": "TK",
@@ -29172,7 +29220,7 @@
       "cap_size": "Small Cap",
       "price": 11.61,
       "exchange": "NYQ",
-      "rank": 2431
+      "rank": 2435
     },
     {
       "ticker": "SAFT",
@@ -29184,7 +29232,7 @@
       "cap_size": "Small Cap",
       "price": 68.58,
       "exchange": "NMS",
-      "rank": 2432
+      "rank": 2436
     },
     {
       "ticker": "LUXE",
@@ -29196,7 +29244,7 @@
       "cap_size": "Small Cap",
       "price": 7.31,
       "exchange": "NYQ",
-      "rank": 2433
+      "rank": 2437
     },
     {
       "ticker": "CRVS",
@@ -29208,7 +29256,7 @@
       "cap_size": "Small Cap",
       "price": 11.89,
       "exchange": "NGM",
-      "rank": 2434
+      "rank": 2438
     },
     {
       "ticker": "RNP",
@@ -29220,7 +29268,7 @@
       "cap_size": "Small Cap",
       "price": 20.825,
       "exchange": "NYQ",
-      "rank": 2435
+      "rank": 2439
     },
     {
       "ticker": "ASPI",
@@ -29232,7 +29280,7 @@
       "cap_size": "Small Cap",
       "price": 7.935,
       "exchange": "NCM",
-      "rank": 2436
+      "rank": 2440
     },
     {
       "ticker": "SBGI",
@@ -29244,7 +29292,7 @@
       "cap_size": "Small Cap",
       "price": 13.815,
       "exchange": "NMS",
-      "rank": 2437
+      "rank": 2441
     },
     {
       "ticker": "EMO",
@@ -29256,7 +29304,7 @@
       "cap_size": "Small Cap",
       "price": 49.78,
       "exchange": "NYQ",
-      "rank": 2438
+      "rank": 2442
     },
     {
       "ticker": "UVE",
@@ -29268,7 +29316,7 @@
       "cap_size": "Small Cap",
       "price": 35.69,
       "exchange": "NYQ",
-      "rank": 2439
+      "rank": 2443
     },
     {
       "ticker": "DFIN",
@@ -29280,7 +29328,7 @@
       "cap_size": "Small Cap",
       "price": 39.735,
       "exchange": "NYQ",
-      "rank": 2440
+      "rank": 2444
     },
     {
       "ticker": "OPY",
@@ -29292,7 +29340,7 @@
       "cap_size": "Small Cap",
       "price": 92.34,
       "exchange": "NYQ",
-      "rank": 2441
+      "rank": 2445
     },
     {
       "ticker": "EEX",
@@ -29304,7 +29352,7 @@
       "cap_size": "Small Cap",
       "price": 4.995,
       "exchange": "NYQ",
-      "rank": 2442
+      "rank": 2446
     },
     {
       "ticker": "HPK",
@@ -29316,7 +29364,7 @@
       "cap_size": "Small Cap",
       "price": 7.82,
       "exchange": "NGM",
-      "rank": 2443
+      "rank": 2447
     },
     {
       "ticker": "DAKT",
@@ -29328,7 +29376,7 @@
       "cap_size": "Small Cap",
       "price": 20.27,
       "exchange": "NMS",
-      "rank": 2444
+      "rank": 2448
     },
     {
       "ticker": "SENEB",
@@ -29340,7 +29388,7 @@
       "cap_size": "Small Cap",
       "price": 145.75,
       "exchange": "NMS",
-      "rank": 2445
+      "rank": 2449
     },
     {
       "ticker": "RERE",
@@ -29352,7 +29400,7 @@
       "cap_size": "Small Cap",
       "price": 4.455,
       "exchange": "NYQ",
-      "rank": 2446
+      "rank": 2450
     },
     {
       "ticker": "SLI",
@@ -29364,7 +29412,7 @@
       "cap_size": "Small Cap",
       "price": 4.04,
       "exchange": "ASE",
-      "rank": 2447
+      "rank": 2451
     },
     {
       "ticker": "HEPS",
@@ -29376,7 +29424,7 @@
       "cap_size": "Small Cap",
       "price": 2.755,
       "exchange": "NMS",
-      "rank": 2448
+      "rank": 2452
     },
     {
       "ticker": "BBN",
@@ -29388,7 +29436,7 @@
       "cap_size": "Small Cap",
       "price": 15.9214,
       "exchange": "NYQ",
-      "rank": 2449
+      "rank": 2453
     },
     {
       "ticker": "LPTH",
@@ -29400,7 +29448,7 @@
       "cap_size": "Small Cap",
       "price": 15.66,
       "exchange": "NCM",
-      "rank": 2450
+      "rank": 2454
     },
     {
       "ticker": "CGEM",
@@ -29412,7 +29460,7 @@
       "cap_size": "Small Cap",
       "price": 15.97,
       "exchange": "NMS",
-      "rank": 2451
+      "rank": 2455
     },
     {
       "ticker": "SENEA",
@@ -29424,7 +29472,7 @@
       "cap_size": "Small Cap",
       "price": 142.31,
       "exchange": "NMS",
-      "rank": 2452
+      "rank": 2456
     },
     {
       "ticker": "ACEL",
@@ -29436,7 +29484,7 @@
       "cap_size": "Small Cap",
       "price": 12.01,
       "exchange": "NYQ",
-      "rank": 2453
+      "rank": 2457
     },
     {
       "ticker": "KBDC",
@@ -29448,7 +29496,7 @@
       "cap_size": "Small Cap",
       "price": 14.72,
       "exchange": "NYQ",
-      "rank": 2454
+      "rank": 2458
     },
     {
       "ticker": "KODK",
@@ -29460,7 +29508,7 @@
       "cap_size": "Small Cap",
       "price": 9.97,
       "exchange": "NYQ",
-      "rank": 2455
+      "rank": 2459
     },
     {
       "ticker": "MSEX",
@@ -29472,7 +29520,7 @@
       "cap_size": "Small Cap",
       "price": 52.24,
       "exchange": "NMS",
-      "rank": 2456
+      "rank": 2460
     },
     {
       "ticker": "SBSI",
@@ -29484,7 +29532,7 @@
       "cap_size": "Small Cap",
       "price": 32.69,
       "exchange": "NYQ",
-      "rank": 2457
+      "rank": 2461
     },
     {
       "ticker": "VYX",
@@ -29496,7 +29544,7 @@
       "cap_size": "Small Cap",
       "price": 7.04,
       "exchange": "NYQ",
-      "rank": 2458
+      "rank": 2462
     },
     {
       "ticker": "PDX",
@@ -29508,7 +29556,7 @@
       "cap_size": "Small Cap",
       "price": 21.7,
       "exchange": "NYQ",
-      "rank": 2459
+      "rank": 2463
     },
     {
       "ticker": "MFA",
@@ -29520,7 +29568,7 @@
       "cap_size": "Small Cap",
       "price": 9.495,
       "exchange": "NYQ",
-      "rank": 2460
+      "rank": 2464
     },
     {
       "ticker": "LMB",
@@ -29532,7 +29580,7 @@
       "cap_size": "Small Cap",
       "price": 81.07,
       "exchange": "NCM",
-      "rank": 2461
+      "rank": 2465
     },
     {
       "ticker": "OXLC",
@@ -29544,7 +29592,7 @@
       "cap_size": "Small Cap",
       "price": 9.895,
       "exchange": "NGM",
-      "rank": 2462
+      "rank": 2466
     },
     {
       "ticker": "BJRI",
@@ -29556,7 +29604,7 @@
       "cap_size": "Small Cap",
       "price": 45.92,
       "exchange": "NMS",
-      "rank": 2463
+      "rank": 2467
     },
     {
       "ticker": "HMH",
@@ -29568,7 +29616,7 @@
       "cap_size": "Small Cap",
       "price": 21.53,
       "exchange": "NMS",
-      "rank": 2464
+      "rank": 2468
     },
     {
       "ticker": "GLAS",
@@ -29580,7 +29628,7 @@
       "cap_size": "Small Cap",
       "price": 11.25,
       "exchange": "NYQ",
-      "rank": 2465
+      "rank": 2469
     },
     {
       "ticker": "VRTS",
@@ -29592,7 +29640,7 @@
       "cap_size": "Small Cap",
       "price": 143.03,
       "exchange": "NYQ",
-      "rank": 2466
+      "rank": 2470
     },
     {
       "ticker": "GOOS",
@@ -29604,7 +29652,7 @@
       "cap_size": "Small Cap",
       "price": 9.832,
       "exchange": "NYQ",
-      "rank": 2467
+      "rank": 2471
     },
     {
       "ticker": "HBNC",
@@ -29616,7 +29664,7 @@
       "cap_size": "Small Cap",
       "price": 18.52,
       "exchange": "NMS",
-      "rank": 2468
+      "rank": 2472
     },
     {
       "ticker": "CFFN",
@@ -29628,7 +29676,7 @@
       "cap_size": "Small Cap",
       "price": 7.63,
       "exchange": "NMS",
-      "rank": 2469
+      "rank": 2473
     },
     {
       "ticker": "BTZ",
@@ -29640,7 +29688,7 @@
       "cap_size": "Small Cap",
       "price": 10.1635,
       "exchange": "NYQ",
-      "rank": 2470
+      "rank": 2474
     },
     {
       "ticker": "EQBK",
@@ -29652,7 +29700,7 @@
       "cap_size": "Small Cap",
       "price": 45.92,
       "exchange": "NYQ",
-      "rank": 2471
+      "rank": 2475
     },
     {
       "ticker": "AEBI",
@@ -29664,7 +29712,7 @@
       "cap_size": "Small Cap",
       "price": 12.19,
       "exchange": "NMS",
-      "rank": 2472
+      "rank": 2476
     },
     {
       "ticker": "SG",
@@ -29676,7 +29724,7 @@
       "cap_size": "Small Cap",
       "price": 7.95,
       "exchange": "NYQ",
-      "rank": 2473
+      "rank": 2477
     },
     {
       "ticker": "ASIC",
@@ -29688,7 +29736,7 @@
       "cap_size": "Small Cap",
       "price": 19.64,
       "exchange": "NYQ",
-      "rank": 2474
+      "rank": 2478
     },
     {
       "ticker": "WOOF",
@@ -29700,7 +29748,19 @@
       "cap_size": "Small Cap",
       "price": 2.915,
       "exchange": "NMS",
-      "rank": 2475
+      "rank": 2479
+    },
+    {
+      "ticker": "REF",
+      "name": "Reformation Inc.",
+      "sector": "Consumer Cyclical",
+      "industry": "Apparel Retail",
+      "country": "United States",
+      "mkt_cap": 942265536,
+      "cap_size": "Small Cap",
+      "price": 15.95,
+      "exchange": "NYQ",
+      "rank": 2480
     },
     {
       "ticker": "ESQ",
@@ -29712,7 +29772,7 @@
       "cap_size": "Small Cap",
       "price": 109.04,
       "exchange": "NCM",
-      "rank": 2476
+      "rank": 2481
     },
     {
       "ticker": "MCBS",
@@ -29724,7 +29784,7 @@
       "cap_size": "Small Cap",
       "price": 32.85,
       "exchange": "NMS",
-      "rank": 2477
+      "rank": 2482
     },
     {
       "ticker": "USPH",
@@ -29736,7 +29796,7 @@
       "cap_size": "Small Cap",
       "price": 61.795,
       "exchange": "NYQ",
-      "rank": 2478
+      "rank": 2483
     },
     {
       "ticker": "TRUP",
@@ -29748,7 +29808,7 @@
       "cap_size": "Small Cap",
       "price": 21.54,
       "exchange": "NGM",
-      "rank": 2479
+      "rank": 2484
     },
     {
       "ticker": "TYG",
@@ -29760,7 +29820,7 @@
       "cap_size": "Small Cap",
       "price": 43.605,
       "exchange": "NYQ",
-      "rank": 2480
+      "rank": 2485
     },
     {
       "ticker": "CRTO",
@@ -29772,7 +29832,7 @@
       "cap_size": "Small Cap",
       "price": 18.63,
       "exchange": "NMS",
-      "rank": 2481
+      "rank": 2486
     },
     {
       "ticker": "OLMA",
@@ -29784,7 +29844,7 @@
       "cap_size": "Small Cap",
       "price": 10.715,
       "exchange": "NMS",
-      "rank": 2482
+      "rank": 2487
     },
     {
       "ticker": "AIO",
@@ -29796,7 +29856,7 @@
       "cap_size": "Small Cap",
       "price": 26.985,
       "exchange": "NYQ",
-      "rank": 2483
+      "rank": 2488
     },
     {
       "ticker": "SCSC",
@@ -29808,7 +29868,7 @@
       "cap_size": "Small Cap",
       "price": 45.675,
       "exchange": "NMS",
-      "rank": 2484
+      "rank": 2489
     },
     {
       "ticker": "PSIX",
@@ -29820,7 +29880,7 @@
       "cap_size": "Small Cap",
       "price": 40.13,
       "exchange": "NCM",
-      "rank": 2485
+      "rank": 2490
     },
     {
       "ticker": "BBDC",
@@ -29832,7 +29892,7 @@
       "cap_size": "Small Cap",
       "price": 8.83,
       "exchange": "NYQ",
-      "rank": 2486
+      "rank": 2491
     },
     {
       "ticker": "SUPV",
@@ -29844,7 +29904,7 @@
       "cap_size": "Small Cap",
       "price": 9.76,
       "exchange": "NYQ",
-      "rank": 2487
+      "rank": 2492
     },
     {
       "ticker": "NEWP",
@@ -29856,7 +29916,7 @@
       "cap_size": "Small Cap",
       "price": 4.98,
       "exchange": "ASE",
-      "rank": 2488
+      "rank": 2493
     },
     {
       "ticker": "CRAI",
@@ -29868,7 +29928,7 @@
       "cap_size": "Small Cap",
       "price": 142.5,
       "exchange": "NMS",
-      "rank": 2489
+      "rank": 2494
     },
     {
       "ticker": "HNRG",
@@ -29880,7 +29940,7 @@
       "cap_size": "Small Cap",
       "price": 19.52,
       "exchange": "NCM",
-      "rank": 2490
+      "rank": 2495
     },
     {
       "ticker": "BCX",
@@ -29892,7 +29952,7 @@
       "cap_size": "Small Cap",
       "price": 12.04,
       "exchange": "NYQ",
-      "rank": 2491
+      "rank": 2496
     },
     {
       "ticker": "NRK",
@@ -29904,7 +29964,7 @@
       "cap_size": "Small Cap",
       "price": 10.52,
       "exchange": "NYQ",
-      "rank": 2492
+      "rank": 2497
     },
     {
       "ticker": "RHLD",
@@ -29916,7 +29976,7 @@
       "cap_size": "Small Cap",
       "price": 111.085,
       "exchange": "NYQ",
-      "rank": 2493
+      "rank": 2498
     },
     {
       "ticker": "APEI",
@@ -29928,7 +29988,7 @@
       "cap_size": "Small Cap",
       "price": 50.0,
       "exchange": "NMS",
-      "rank": 2494
+      "rank": 2499
     },
     {
       "ticker": "NPK",
@@ -29940,66 +30000,6 @@
       "cap_size": "Small Cap",
       "price": 127.955,
       "exchange": "NYQ",
-      "rank": 2495
-    },
-    {
-      "ticker": "ARHS",
-      "name": "Arhaus, Inc.",
-      "sector": "Consumer Cyclical",
-      "industry": "Specialty Retail",
-      "country": "United States",
-      "mkt_cap": 912933376,
-      "cap_size": "Small Cap",
-      "price": 6.45,
-      "exchange": "NMS",
-      "rank": 2496
-    },
-    {
-      "ticker": "BFST",
-      "name": "Business First Bancshares, Inc.",
-      "sector": "Financial Services",
-      "industry": "Banks - Regional",
-      "country": "United States",
-      "mkt_cap": 911715264,
-      "cap_size": "Small Cap",
-      "price": 27.9,
-      "exchange": "NMS",
-      "rank": 2497
-    },
-    {
-      "ticker": "BMEZ",
-      "name": "BlackRock Health Sciences Term Trust",
-      "sector": "Financial Services",
-      "industry": "Asset Management",
-      "country": "United States",
-      "mkt_cap": 910645440,
-      "cap_size": "Small Cap",
-      "price": 14.57,
-      "exchange": "NYQ",
-      "rank": 2498
-    },
-    {
-      "ticker": "CPAC",
-      "name": "Cementos Pacasmayo S.A.A.",
-      "sector": "Basic Materials",
-      "industry": "Building Materials",
-      "country": "Peru",
-      "mkt_cap": 910583296,
-      "cap_size": "Small Cap",
-      "price": 10.635,
-      "exchange": "NYQ",
-      "rank": 2499
-    },
-    {
-      "ticker": "AIAI",
-      "name": "AIAI Holdings Corporation",
-      "sector": "Industrials",
-      "industry": "Conglomerates",
-      "country": "United States",
-      "mkt_cap": 909771648,
-      "cap_size": "Small Cap",
-      "price": 12.9387,
-      "exchange": "NGM",
       "rank": 2500
     }
   ]
