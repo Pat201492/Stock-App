@@ -949,6 +949,39 @@ def price_live_stats():
     return _price_live.stats()
 
 
+# Symbols we're willing to spend an upstream request on. `allow_live` is a
+# public unauthenticated switch, so without this any caller could point
+# /api/price at arbitrary strings and turn the box into an outbound fetcher —
+# every unknown symbol misses the cache and costs a request, and enough of them
+# evict the real entries too. Built once per process; the DBs only change when
+# publish.ps1 swaps them, which restarts the service.
+MAX_TICKER_LEN = 12
+_known_tickers = None
+_known_lock = threading.Lock()
+
+
+def known_tickers():
+    global _known_tickers
+    if _known_tickers is not None:
+        return _known_tickers
+    with _known_lock:
+        if _known_tickers is None:
+            found = set()
+            db = SessionLocal()
+            try:
+                found.update(t for (t,) in db.query(Stock.ticker).all() if t)
+            finally:
+                db.close()
+            pdb = PolSessionLocal()
+            try:
+                found.update(t for (t,) in
+                             pdb.query(CongressionalTrade.ticker).distinct().all() if t)
+            finally:
+                pdb.close()
+            _known_tickers = found
+    return _known_tickers
+
+
 @app.get("/api/price/{ticker}")
 def price_history(ticker: str, days: int = 365, since: Optional[str] = None,
                   allow_live: int = 0, db: Session = Depends(get_db)):
@@ -961,10 +994,14 @@ def price_history(ticker: str, days: int = 365, since: Optional[str] = None,
     the DB snapshot doesn't reach that far and `allow_live=1`, the missing deep
     tail is fetched on demand and prepended. `days` is ignored in that mode;
     the window is [since, now].
+
+    The on-demand path only runs for symbols we already know about — see
+    known_tickers().
     """
+    tk = ticker.upper()
     rows = (
         db.query(PriceHistory)
-        .filter(PriceHistory.ticker == ticker.upper())
+        .filter(PriceHistory.ticker == tk)
         .order_by(PriceHistory.date)
         .all()
     )
@@ -975,11 +1012,14 @@ def price_history(ticker: str, days: int = 365, since: Optional[str] = None,
     # The snapshot covers the request when its earliest row is at or before
     # `since`. Otherwise everything before out[0] is the gap we can fill.
     if (not out or out[0]["date"] > since) and allow_live:
-        deep = _price_live.get_prices(ticker, since=since)
-        if deep:
-            # Prefer the DB in the overlap: it's daily, the fallback weekly.
-            floor = out[0]["date"] if out else None
-            out = [r for r in deep if floor is None or r["date"] < floor] + out
+        if len(tk) <= MAX_TICKER_LEN and tk in known_tickers():
+            deep = _price_live.get_prices(tk, since=since)
+            if deep:
+                # Prefer the DB in the overlap: it's daily, the fallback weekly.
+                floor = out[0]["date"] if out else None
+                out = [r for r in deep if floor is None or r["date"] < floor] + out
+        else:
+            _price_live.note_refused(tk)
 
     return [r for r in out if r["date"] >= since]
 
