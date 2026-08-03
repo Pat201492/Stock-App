@@ -3,12 +3,12 @@ server.py — FastAPI web server for Stock Tracker
 Run: python server.py
 Dashboard: http://localhost:8000
 """
-import os, subprocess, sys, threading, time
+import os, re, subprocess, sys, threading, time
 from datetime import datetime
 from typing import Optional
 import yfinance as yf
 
-from fastapi import FastAPI, Depends, Query, Body, Header
+from fastapi import FastAPI, Depends, Query, Body, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -956,6 +956,7 @@ def price_live_stats():
 # evict the real entries too. Built once per process; the DBs only change when
 # publish.ps1 swaps them, which restarts the service.
 MAX_TICKER_LEN = 12
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _known_tickers = None
 _known_lock = threading.Lock()
 
@@ -998,6 +999,13 @@ def price_history(ticker: str, days: int = 365, since: Optional[str] = None,
     The on-demand path only runs for symbols we already know about — see
     known_tickers().
     """
+    # Dates are compared as strings throughout, so a malformed `since` wouldn't
+    # error — it would just filter oddly and look like missing data. An empty
+    # `?since=` stays equivalent to omitting it rather than becoming an error.
+    since = since or None
+    if since is not None and not _ISO_DATE.match(since):
+        raise HTTPException(status_code=422, detail="since must be YYYY-MM-DD")
+
     tk = ticker.upper()
     rows = (
         db.query(PriceHistory)
