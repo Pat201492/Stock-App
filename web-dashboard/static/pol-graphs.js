@@ -20,6 +20,24 @@ const PG_EDGE_STYLE = {
   hub:                  { color: "rgba(148,163,184,.16)", dashes: false },
   scaffold:             { color: "rgba(148,163,184,.09)", dashes: false },
 };
+// Edge-type filters. Each carries the colour its edges are drawn in, so the
+// toggle lights up in the same colour as the connections it controls and greys
+// out when they're hidden. "curated" covers several hand-entered kinds; it
+// takes the business-deal amber since that's the bulk of them.
+const PG_EDGE_TOGGLES = [
+  { k: "curated",    label: "Curated ties",         color: "#f59e0b", on: true  },
+  { k: "cotrade",    label: "Co-timed trades",      color: "#fb7185", on: true  },
+  { k: "committee",  label: "Shared committees",    color: "#60a5fa", on: true  },
+  { k: "leadership", label: "Committee leadership", color: "#a3e635", on: true  },
+  { k: "stock",      label: "Shared stocks",        color: "#22c55e", on: false },
+  { k: "sector",     label: "Shared sectors",       color: "#f97316", on: false },
+  { k: "state",      label: "Same state",           color: "#06b6d4", on: false },
+];
+function pgRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
 function pgEdgeGroup(kind) {
   if (kind === "shared_stock") return "stock";
   if (kind === "co_trade") return "cotrade";
@@ -32,13 +50,18 @@ function pgEdgeGroup(kind) {
 }
 
 // ── Relationship network ─────────────────────────────────────────────────────
-// cfg.ids = { container, empty, count, limit, animate, checks:{curated,stock,
-//             cotrade,sector,committee,leadership,state} }
+// cfg.ids = { container, empty, count, limit, checks:{<PG_EDGE_TOGGLES key>: elementId} }
+// checks is optional; it defaults to the ids polNetworkMarkup() emits.
 function createPolNetwork(cfg) {
   const C = cfg.ids;
+  const CHECKS = C.checks || Object.fromEntries(PG_EDGE_TOGGLES.map(t => [t.k, "pg-ek-" + t.k]));
+  // settled: physics runs once to unpack the radial seed into a readable web,
+  // then switches off for good. After that the graph is purely manual — drag a
+  // node and it stays put, because nothing is left to push it around.
   const st = { party: "republican", raw: { nodes: [], edges: [] },
-               network: null, nodeMeta: {}, animate: cfg.animate !== false };
+               network: null, ds: null, nodeMeta: {}, settled: false };
   const el = id => (id ? document.getElementById(id) : null);
+  const isOn = k => { const b = el(CHECKS[k]); return b ? b.classList.contains("active") : false; };
 
   function fatal(msg) {
     const c = el(C.container);
@@ -47,7 +70,14 @@ function createPolNetwork(cfg) {
   }
 
   function switchParty(p) { st.party = p; reload(); }
-  function setAnimate(on) { st.animate = on; rerender(); }
+
+  // Throw away hand-placed positions, re-seed radially and let physics settle
+  // once more. The only way back to a tidy layout after dragging things around.
+  function relayout() {
+    st.settled = false;
+    layout(st.raw.nodes || [], st.raw.edges || []);
+    rerender(true);
+  }
 
   async function reload() {
     if (typeof vis === "undefined" || !vis.Network) {
@@ -65,8 +95,9 @@ function createPolNetwork(cfg) {
       return;
     }
     st.raw = d;
+    st.settled = false;              // new data gets a fresh settle
     layout(d.nodes || [], d.edges || []);
-    rerender();
+    rerender(true);
   }
 
   // Radial concentric seed positions (also the frozen layout when animation is off).
@@ -119,9 +150,9 @@ function createPolNetwork(cfg) {
     const title = n.type === "congress"
       ? `${n.name} · ${n.party || "?"}/${n.state || "?"}${n.chamber ? " · " + n.chamber : ""}`
       : n.role ? `${n.name} · ${n.role}` : n.name;
-    // Hub is always pinned at centre. Other nodes are pinned only when frozen;
-    // when animating they keep the radial seed but are free to move.
-    const fixed = n.type === "hub" ? true : !st.animate;
+    // The hub anchors the web while physics settles. Once settled nothing is
+    // pinned, so every node can be dragged and stays where it's dropped.
+    const fixed = n.type === "hub" && !st.settled;
     return {
       id: n.id, label: n.name, value: n.value || 1, x: n.x, y: n.y, fixed,
       shape, title,
@@ -146,24 +177,23 @@ function createPolNetwork(cfg) {
     };
   }
 
-  function rerender() {
-    const show = {
-      curated:    el(C.checks.curated) ? el(C.checks.curated).checked : true,
-      stock:      el(C.checks.stock) ? el(C.checks.stock).checked : false,
-      cotrade:    el(C.checks.cotrade) ? el(C.checks.cotrade).checked : true,
-      sector:     el(C.checks.sector) ? el(C.checks.sector).checked : false,
-      committee:  el(C.checks.committee) ? el(C.checks.committee).checked : true,
-      leadership: el(C.checks.leadership) ? el(C.checks.leadership).checked : true,
-      state:      el(C.checks.state) ? el(C.checks.state).checked : false,
-      structure:  true,
-    };
+  function rerender(resetPositions) {
+    const show = { structure: true };
+    PG_EDGE_TOGGLES.forEach(t => { show[t.k] = isOn(t.k); });
     const nodes = st.raw.nodes || [];
     st.nodeMeta = {}; nodes.forEach(n => st.nodeMeta[n.id] = n);
     if (el(C.empty)) el(C.empty).style.display = nodes.length ? "none" : "flex";
 
     const allEdges = (st.raw.edges || []).concat(scaffoldEdges(nodes));
     const visEdges = allEdges.filter(e => show[pgEdgeGroup(e.kind)]).map(toVisEdge);
-    const visNodes = nodes.map(toVisNode);
+    // Carry over wherever the nodes currently sit, so flipping an edge filter
+    // doesn't yank everything back to the radial seed and undo the user's drags.
+    const pos = (st.network && !resetPositions) ? st.network.getPositions() : {};
+    const visNodes = nodes.map(n => {
+      const v = toVisNode(n), p = pos[n.id];
+      if (p) { v.x = p.x; v.y = p.y; }
+      return v;
+    });
 
     const c = st.raw.counts || {};
     if (el(C.count)) el(C.count).textContent = nodes.length
@@ -173,16 +203,20 @@ function createPolNetwork(cfg) {
       : "";
 
     const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
+    st.ds = data;                    // keep the handles; avoids reaching into network internals
     const options = {
-      interaction: { hover: true, tooltipDelay: 120, dragNodes: true, zoomView: true },
+      interaction: { hover: true, tooltipDelay: 120, dragNodes: true,
+                     zoomView: true, dragView: true },
       nodes: { borderWidth: 2, scaling: { min: 10, max: 40 } },
       edges: { arrows: { to: false } },
-      physics: st.animate ? {
+      // Run only until the layout unpacks, then stop for good — see the
+      // stabilizationIterationsDone handler below.
+      physics: st.settled ? { enabled: false } : {
         enabled: true, solver: "forceAtlas2Based",
         forceAtlas2Based: { gravitationalConstant: -55, centralGravity: 0.012,
                             springLength: 120, springConstant: 0.08, damping: 0.6, avoidOverlap: 0.35 },
-        stabilization: { enabled: true, iterations: 120 }, minVelocity: 0.6,
-      } : { enabled: false },
+        stabilization: { enabled: true, iterations: 200 }, minVelocity: 0.75,
+      },
     };
     if (st.network) { st.network.setOptions(options); st.network.setData(data); }
     else {
@@ -192,14 +226,22 @@ function createPolNetwork(cfg) {
         const n = st.nodeMeta[params.nodes[0]];
         if (n && n.type === "congress") window.location = "/politician/" + params.nodes[0];
       });
-      // Re-frame after each physics settle so the web stays in view.
-      st.network.on("stabilizationIterationsDone", () => st.network.fit({ animation: false }));
+      // Freeze as soon as the layout stops moving: kill physics, unpin the hub
+      // so it's draggable too, and reframe. From here the graph only moves when
+      // the user moves it.
+      st.network.on("stabilizationIterationsDone", () => {
+        st.settled = true;
+        st.network.setOptions({ physics: { enabled: false } });
+        const hub = (st.raw.nodes || []).find(n => n.type === "hub");
+        if (hub && st.ds) st.ds.nodes.update({ id: hub.id, fixed: false });
+        st.network.fit({ animation: false });
+      });
     }
-    // No stabilization event fires when physics is off, so fit directly.
-    if (!st.animate) st.network.fit({ animation: false });
+    // Physics off means no stabilization event, so reframe directly.
+    if (st.settled) st.network.fit({ animation: false });
   }
 
-  return { reload, switchParty, setAnimate, rerender, state: st };
+  return { reload, switchParty, relayout, rerender, state: st };
 }
 
 // ── Trade timing ─────────────────────────────────────────────────────────────
@@ -423,27 +465,41 @@ function createPolTiming(cfg) {
 // ── Shared markup + mount helpers (used by /relationships and /politicians) ──
 function polNetworkMarkup() {
   return `
+  <style>
+  /* Edge-type toggles. Each button carries --ek (the colour its edges are drawn
+     in) so it lights up in that colour when on and greys out when off. */
+  .pg-ek { padding:4px 11px; border:1px solid var(--border); border-radius:999px;
+    background:transparent; color:var(--muted); cursor:pointer; font-size:12px;
+    line-height:1.6; font-family:inherit; opacity:.6;
+    transition:color .12s, border-color .12s, background .12s, opacity .12s; }
+  .pg-ek:hover { opacity:1; color:var(--ek); border-color:var(--ek); }
+  .pg-ek.active { opacity:1; color:var(--ek); border-color:var(--ek); background:var(--ek-bg); }
+  .pg-ek:focus-visible { outline:2px solid var(--ek); outline-offset:2px; }
+  #pg-net { cursor:grab; }
+  #pg-net:active { cursor:grabbing; }
+  </style>
   <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border)">
     <button class="sub-tab pg-party-btn active" data-party="republican">🐘 Republican web</button>
     <button class="sub-tab pg-party-btn"        data-party="democrat">🫏 Democrat web</button>
   </div>
-  <div class="filters" style="align-items:center;flex-wrap:wrap;gap:14px">
-    <label style="font-size:12px;color:var(--muted)">Main nodes:
+  <div class="filters" style="align-items:center;flex-wrap:wrap;gap:8px">
+    <label style="font-size:12px;color:var(--muted);margin-right:4px">Main nodes:
       <select id="pg-limit" style="font-size:12px">
         <option value="12">Top 12</option><option value="20">Top 20</option>
         <option value="30" selected>Top 30</option><option value="40">Top 40</option>
       </select></label>
-    <label class="ek"><input type="checkbox" id="pg-animate" checked> Animate</label>
-    <span style="width:1px;height:18px;background:var(--border)"></span>
-    <label class="ek"><input type="checkbox" id="pg-ek-curated"    checked> Curated ties</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-cotrade"    checked> Co-timed trades</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-committee"  checked> Shared committees</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-leadership" checked> Committee leadership</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-stock"            > Shared stocks</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-sector"            > Shared sectors</label>
-    <label class="ek"><input type="checkbox" id="pg-ek-state"            > Same state</label>
+    <button class="pg-range-btn" id="pg-relayout"
+            title="Re-seed the layout and let it settle again">↻ Re-layout</button>
+    <span style="width:1px;height:18px;background:var(--border);margin:0 2px"></span>
+    ${PG_EDGE_TOGGLES.map(t =>
+      `<button class="pg-ek${t.on ? " active" : ""}" id="pg-ek-${t.k}"
+               style="--ek:${t.color};--ek-bg:${pgRgba(t.color, 0.14)}"
+               aria-pressed="${t.on}">${t.label}</button>`).join("")}
     <span id="pg-net-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>
+  <p style="color:var(--muted);font-size:12px;margin:8px 0 0">
+    Drag any node to reposition it — it stays where you drop it. Scroll to zoom,
+    drag the background to pan.</p>
   <div id="pg-legend" class="card" style="margin:10px 0;padding:10px 14px;display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted)">
     <span><b style="color:var(--text)">Nodes:</b></span>
     <span><span class="dot" style="background:#ef4444"></span>Republican</span>
@@ -505,21 +561,25 @@ function polTimingMarkup() {
 
 function mountPolNetwork() {
   const net = createPolNetwork({ ids: {
-    container: "pg-net", empty: "pg-net-empty", count: "pg-net-count",
-    limit: "pg-limit", animate: "pg-animate",
-    checks: { curated: "pg-ek-curated", stock: "pg-ek-stock", cotrade: "pg-ek-cotrade",
-              sector: "pg-ek-sector", committee: "pg-ek-committee",
-              leadership: "pg-ek-leadership", state: "pg-ek-state" },
+    container: "pg-net", empty: "pg-net-empty", count: "pg-net-count", limit: "pg-limit",
+    checks: Object.fromEntries(PG_EDGE_TOGGLES.map(t => [t.k, "pg-ek-" + t.k])),
   } });
   document.querySelectorAll(".pg-party-btn").forEach(b => b.onclick = () => {
     document.querySelectorAll(".pg-party-btn").forEach(x => x.classList.toggle("active", x === b));
     net.switchParty(b.dataset.party);
   });
   const lim = document.getElementById("pg-limit"); if (lim) lim.onchange = () => net.reload();
-  ["curated", "stock", "cotrade", "sector", "committee", "leadership", "state"].forEach(k => {
-    const c = document.getElementById("pg-ek-" + k); if (c) c.onchange = () => net.rerender();
+  PG_EDGE_TOGGLES.forEach(t => {
+    const b = document.getElementById("pg-ek-" + t.k);
+    if (!b) return;
+    b.onclick = () => {
+      const on = !b.classList.contains("active");
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", String(on));
+      net.rerender();          // keeps current node positions
+    };
   });
-  const an = document.getElementById("pg-animate"); if (an) an.onchange = () => net.setAnimate(an.checked);
+  const rl = document.getElementById("pg-relayout"); if (rl) rl.onclick = () => net.relayout();
   net.reload();
   return net;
 }
