@@ -14,10 +14,7 @@
     {"id": "BIZ_TMTG",     "name": "Trump Media & Technology Group (DJT)", "party": "Republican", "type": "business"},
 
     {"id": "EXEC_BIDEN",   "name": "Joseph R. Biden", "role": "President (2021-2025)", "party": "Democrat",   "type": "executive"},
-    {"id": "EXEC_HARRIS",  "name": "Kamala Harris",   "role": "Vice President (2021-2025)", "party": "Democrat", "type": "executive"},
-
-    {"id": "BIZ_EXAMPLE_R", "name": "Example Holdings LLC (sample)",  "party": null, "type": "business"},
-    {"id": "BIZ_EXAMPLE_D", "name": "Example Capital Partners (sample)", "party": null, "type": "business"}
+    {"id": "EXEC_HARRIS",  "name": "Kamala Harris",   "role": "Vice President (2021-2025)", "party": "Democrat", "type": "executive"}
   ],
 
   "edges": [
@@ -31,12 +28,6 @@
     {"source": "EXEC_RUBIO", "target": "R000595", "kind": "former_member", "label": "Former U.S. Senator (FL)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/R000595"},
 
     {"source": "EXEC_BIDEN",  "target": "EXEC_HARRIS", "kind": "appointment",   "label": "2020 running mate; Vice President", "weight": 2, "source_url": "https://bidenwhitehouse.archives.gov/"},
-    {"source": "EXEC_HARRIS", "target": "H001075",     "kind": "former_member", "label": "Former U.S. Senator (CA)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/H001075"},
-
-    {"source": "EXEC_TRUMP",    "target": "BIZ_EXAMPLE_R", "kind": "business_deal", "label": "(sample) licensing deal — replace with sourced data", "weight": 2, "illustrative": true},
-    {"source": "BIZ_EXAMPLE_R", "target": "T000278",       "kind": "other",         "label": "(sample) discloses ownership stake — replace with sourced data", "weight": 1, "illustrative": true},
-
-    {"source": "EXEC_BIDEN",    "target": "BIZ_EXAMPLE_D", "kind": "business_deal", "label": "(sample) contract — replace with sourced data", "weight": 2, "illustrative": true},
-    {"source": "BIZ_EXAMPLE_D", "target": "P000197",       "kind": "family",        "label": "(sample) family business interest — replace with sourced data", "weight": 1, "illustrative": true}
+    {"source": "EXEC_HARRIS", "target": "H001075",     "kind": "former_member", "label": "Former U.S. Senator (CA)", "weight": 1, "source_url": "https://bioguide.congress.gov/search/bio/H001075"}
   ]
 }

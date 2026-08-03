@@ -20,7 +20,7 @@ from data_utils import score_stock
 from politicians_database import (
     get_pol_db, init_pol_db,
     Politician, Committee, CommitteeMembership,
-    CongressionalTrade, InsiderTrade, PolTickerMetadata,
+    CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition,
     SessionLocal as PolSessionLocal,
 )
 from accounts_database import (
@@ -2391,6 +2391,35 @@ def pol_relationships(
                         "weight": 1, "illustrative": False, "source_url": None,
                     })
 
+    # 4b) Outside positions (Schedule E of the annual disclosure) — a real
+    #     member -> organisation tie, and the thing the curated overlay only ever
+    #     had hand-written samples for. Organisations become their own nodes;
+    #     one shared by two members links them through it.
+    org_nodes = {}
+    if congress_ids:
+        pos_rows = (db.query(MemberPosition.bioguide_id, MemberPosition.organization,
+                             MemberPosition.position, MemberPosition.year,
+                             MemberPosition.source_url)
+                      .filter(MemberPosition.bioguide_id.in_(congress_ids),
+                              MemberPosition.organization.isnot(None),
+                              MemberPosition.organization != "")
+                      .all())
+        # Keep the most recent filing per (member, organisation) so a position
+        # re-disclosed year after year is one edge, not one per year.
+        latest = {}
+        for bio, org, pos, yr, url in pos_rows:
+            key = (bio, org.strip())
+            if key not in latest or (yr or 0) > (latest[key][1] or 0):
+                latest[key] = (pos, yr, url)
+        for (bio, org), (pos, yr, url) in latest.items():
+            oid = "ORG_" + re.sub(r"[^A-Za-z0-9]+", "_", org).strip("_")[:60].upper()
+            org_nodes.setdefault(oid, org)
+            edges.append({
+                "from": bio, "to": oid, "kind": "position",
+                "label": f"{pos} — {org}" + (f" ({yr})" if yr else ""),
+                "weight": 2, "illustrative": False, "source_url": url,
+            })
+
     # 5) Assemble nodes (hub + every congress / external node in `included`).
     deg = defaultdict(int)
     for e in edges:
@@ -2428,6 +2457,12 @@ def pol_relationships(
             "ring": depth.get(ext_id, 2), "value": deg.get(ext_id, 1),
         })
 
+    for oid, org in org_nodes.items():
+        nodes.append({
+            "id": oid, "name": org, "party": None, "type": "organization",
+            "ring": 2, "value": deg.get(oid, 1),
+        })
+
     # 6) Hub spokes to each main node (anchors the radial web).
     for bio in main_ids:
         edges.append({"from": hub_id, "to": bio, "kind": "hub", "label": "",
@@ -2448,6 +2483,7 @@ def pol_relationships(
             "shared_committee": kind_of("shared_committee"),
             "committee_leadership": kind_of("committee_leadership"),
             "same_state":       kind_of("same_state"),
+            "position":         kind_of("position"),
             "curated":          sum(1 for e in edges if e["kind"] in
                                     ("business_deal", "appointment", "former_member",
                                      "donor", "family", "other")),
