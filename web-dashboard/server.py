@@ -29,6 +29,7 @@ from accounts_database import (
 )
 import auth as _auth
 import news_trust as _news_trust
+import price_live as _price_live
 
 app = FastAPI(title="Stock Tracker")
 init_db()
@@ -942,15 +943,45 @@ def ticker_news(ticker: str, limit: int = 20, db: Session = Depends(get_db)):
 
 # ── Price history ─────────────────────────────────────────────────────────────
 
+@app.get("/api/price-live/stats")
+def price_live_stats():
+    """Which tickers needed the on-demand fallback. See price_live.py."""
+    return _price_live.stats()
+
+
 @app.get("/api/price/{ticker}")
-def price_history(ticker: str, days: int = 365, db: Session = Depends(get_db)):
+def price_history(ticker: str, days: int = 365, since: Optional[str] = None,
+                  allow_live: int = 0, db: Session = Depends(get_db)):
+    """Price history from the shipped DB.
+
+    Without `since` this is the original behaviour: the last `days` rows.
+
+    With `since` (YYYY-MM-DD) the caller declares how far back it needs — the
+    trade-timing chart passes the oldest congressional trade it's plotting. If
+    the DB snapshot doesn't reach that far and `allow_live=1`, the missing deep
+    tail is fetched on demand and prepended. `days` is ignored in that mode;
+    the window is [since, now].
+    """
     rows = (
         db.query(PriceHistory)
         .filter(PriceHistory.ticker == ticker.upper())
         .order_by(PriceHistory.date)
         .all()
     )
-    return [{"date": r.date, "close": r.close, "volume": r.volume} for r in rows[-days:]]
+    out = [{"date": r.date, "close": r.close, "volume": r.volume} for r in rows]
+    if not since:
+        return out[-days:]
+
+    # The snapshot covers the request when its earliest row is at or before
+    # `since`. Otherwise everything before out[0] is the gap we can fill.
+    if (not out or out[0]["date"] > since) and allow_live:
+        deep = _price_live.get_prices(ticker, since=since)
+        if deep:
+            # Prefer the DB in the overlap: it's daily, the fallback weekly.
+            floor = out[0]["date"] if out else None
+            out = [r for r in deep if floor is None or r["date"] < floor] + out
+
+    return [r for r in out if r["date"] >= since]
 
 
 # ── Live data (fetched fresh from Yahoo Finance on every call) ────────────────
