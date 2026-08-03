@@ -61,6 +61,24 @@ def _trade_hash(idx_path, ticker, txn_date, txn_type, shares):
     return hashlib.sha1(raw.encode()).hexdigest()
 
 
+def _logical_key(ticker, txn_date, insider, txn_type, shares):
+    """Key mirroring the UNIQUE constraint on insider_trades.
+
+    Both sides of the dedupe have to render identically — one is read back out
+    of SQLite, the other comes off the mirror JSON. `shares` is the trap: the
+    column is REAL, so a read gives 3104.0 while the feed gives the int 3104.
+    str() of those differ, the dedupe misses, and the insert then dies on the
+    unique constraint. Normalising through float() keeps both in step.
+    """
+    try:
+        sh = "" if shares is None else repr(float(shares))
+    except (TypeError, ValueError):
+        sh = "" if shares is None else str(shares)
+    head = "|".join("" if c is None else str(c)
+                    for c in (ticker, txn_date, insider, txn_type))
+    return f"{head}|{sh}"
+
+
 def ingest(full_refresh=False):
     init_pol_db()
     db = SessionLocal()
@@ -78,7 +96,7 @@ def ingest(full_refresh=False):
         # Logical keys already present from ANY source (incl. EDGAR) so the two
         # sources don't double-insert the same trade.
         existing_logical = {
-            "|".join("" if c is None else str(c) for c in r)
+            _logical_key(*r)
             for r in db.execute(text(
                 "SELECT ticker, transaction_date, insider_name, transaction_type, shares FROM insider_trades"
             )).fetchall()
@@ -86,6 +104,7 @@ def ingest(full_refresh=False):
 
         inserted = 0
         skipped  = 0
+        failed_days = 0
         for d in days:
             try:
                 body = _get(f"{RAW_BASE}/{d}.json")
@@ -108,8 +127,7 @@ def ingest(full_refresh=False):
                 if trade_id in existing_ids:
                     skipped += 1
                     continue
-                logical = "|".join("" if c is None else str(c)
-                                   for c in (ticker, txn_date, t.get("insider", ""), txn_type, shares))
+                logical = _logical_key(ticker, txn_date, t.get("insider", ""), txn_type, shares)
                 if logical in existing_logical:   # already have it from EDGAR or earlier
                     skipped += 1
                     continue
@@ -136,11 +154,22 @@ def ingest(full_refresh=False):
                 day_inserts += 1
                 inserted += 1
 
-            db.commit()
+            # One day that still collides shouldn't cost us the whole ingest —
+            # roll that day back and keep going with the rest.
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                inserted -= day_inserts
+                day_inserts = 0
+                failed_days += 1
+                print(f"  [warn] {d}: commit failed, day skipped — {type(e).__name__}: "
+                      f"{str(e).splitlines()[0][:160]}")
             if day_inserts:
                 print(f"  [mirror] {d}: +{day_inserts} trades")
 
-        print(f"[mirror] Done — inserted={inserted} skipped={skipped}")
+        print(f"[mirror] Done — inserted={inserted} skipped={skipped} "
+              f"failed_days={failed_days}")
     finally:
         db.close()
 
