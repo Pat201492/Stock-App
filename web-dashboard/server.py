@@ -44,6 +44,34 @@ READ_ONLY = os.environ.get("READ_ONLY") == "1"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
+@app.middleware("http")
+async def _cache_headers(request, call_next):
+    """Set explicit caching rules.
+
+    Nothing sent a Cache-Control header before, so browsers fell back to
+    heuristic caching and could sit on a stale page indefinitely. A deploy would
+    go out, the server would serve the new files, and the browser would keep
+    running the old ones — which is exactly how a shipped fix can look like it
+    never landed.
+
+    HTML must always revalidate: it carries the ?v= references that point at
+    everything else, so if it's fresh the rest follows. Revalidation is cheap —
+    the ETag turns it into a 304 with no body. Versioned assets are immutable,
+    because the version string is part of the cache key and bumping it fetches
+    a new URL. Unversioned assets revalidate, since there's nothing to bust them.
+    """
+    resp = await call_next(request)
+    path = request.url.path
+    if path.startswith("/static/"):
+        if request.url.query.startswith("v="):
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            resp.headers["Cache-Control"] = "no-cache"
+    elif "text/html" in resp.headers.get("content-type", ""):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
 # Curated political-relationship overlay (exec-branch / business ties). Cached,
 # reloaded on file change, tolerant of a missing/broken file (-> empty overlay).
 _REL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "political_relationships.json")

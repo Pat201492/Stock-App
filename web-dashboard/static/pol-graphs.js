@@ -55,11 +55,10 @@ function pgEdgeGroup(kind) {
 function createPolNetwork(cfg) {
   const C = cfg.ids;
   const CHECKS = C.checks || Object.fromEntries(PG_EDGE_TOGGLES.map(t => [t.k, "pg-ek-" + t.k]));
-  // settled: physics runs once to unpack the radial seed into a readable web,
-  // then switches off for good. After that the graph is purely manual — drag a
-  // node and it stays put, because nothing is left to push it around.
+  // The graph is entirely manual: nodes start at their radial seed positions
+  // and move only when dragged. No simulation runs at any point.
   const st = { party: "republican", raw: { nodes: [], edges: [] },
-               network: null, ds: null, nodeMeta: {}, settled: false };
+               network: null, ds: null, nodeMeta: {} };
   const el = id => (id ? document.getElementById(id) : null);
   const isOn = k => { const b = el(CHECKS[k]); return b ? b.classList.contains("active") : false; };
 
@@ -71,10 +70,9 @@ function createPolNetwork(cfg) {
 
   function switchParty(p) { st.party = p; reload(); }
 
-  // Throw away hand-placed positions, re-seed radially and let physics settle
-  // once more. The only way back to a tidy layout after dragging things around.
+  // Throw away hand-placed positions and re-seed radially — the way back to a
+  // tidy starting point after spreading things out by hand.
   function relayout() {
-    st.settled = false;
     layout(st.raw.nodes || [], st.raw.edges || []);
     rerender(true);
   }
@@ -95,7 +93,6 @@ function createPolNetwork(cfg) {
       return;
     }
     st.raw = d;
-    st.settled = false;              // new data gets a fresh settle
     layout(d.nodes || [], d.edges || []);
     rerender(true);
   }
@@ -106,7 +103,11 @@ function createPolNetwork(cfg) {
     const adj = {};
     edges.forEach(e => { (adj[e.from] = adj[e.from] || []).push(e.to);
                          (adj[e.to]   = adj[e.to]   || []).push(e.from); });
-    const R1 = 330, STEP = 235, angle = {};
+    // Radius grows with the ring-1 count. Nothing pushes nodes apart after this
+    // (no physics), so the seed positions have to be roomy on their own.
+    const ring1n = nodes.filter(n => n.ring === 1).length;
+    const R1 = Math.max(330, Math.round(ring1n * 78 / (2 * Math.PI)));
+    const STEP = 235, angle = {};
     const hub = nodes.find(n => n.ring === 0);
     if (hub) { hub.x = 0; hub.y = 0; }
     const ring1 = nodes.filter(n => n.ring === 1);
@@ -150,9 +151,9 @@ function createPolNetwork(cfg) {
     const title = n.type === "congress"
       ? `${n.name} · ${n.party || "?"}/${n.state || "?"}${n.chamber ? " · " + n.chamber : ""}`
       : n.role ? `${n.name} · ${n.role}` : n.name;
-    // The hub anchors the web while physics settles. Once settled nothing is
-    // pinned, so every node can be dragged and stays where it's dropped.
-    const fixed = n.type === "hub" && !st.settled;
+    // Nothing is ever pinned: with physics off, a node sits exactly where it
+    // was put and dragging it is the only thing that moves it.
+    const fixed = false;
     return {
       id: n.id, label: n.name, value: n.value || 1, x: n.x, y: n.y, fixed,
       shape, title,
@@ -208,15 +209,15 @@ function createPolNetwork(cfg) {
       interaction: { hover: true, tooltipDelay: 120, dragNodes: true,
                      zoomView: true, dragView: true },
       nodes: { borderWidth: 2, scaling: { min: 10, max: 40 } },
-      edges: { arrows: { to: false } },
-      // Run only until the layout unpacks, then stop for good — see the
-      // stabilizationIterationsDone handler below.
-      physics: st.settled ? { enabled: false } : {
-        enabled: true, solver: "forceAtlas2Based",
-        forceAtlas2Based: { gravitationalConstant: -55, centralGravity: 0.012,
-                            springLength: 120, springConstant: 0.08, damping: 0.6, avoidOverlap: 0.35 },
-        stabilization: { enabled: true, iterations: 200 }, minVelocity: 0.75,
-      },
+      edges: { arrows: { to: false }, physics: false },
+      // No physics, ever. Positions come from the radial seed above and change
+      // only when the user drags something.
+      //
+      // The previous attempt ran physics once and tried to switch it off from
+      // the stabilizationIterationsDone callback. That callback didn't reliably
+      // land, so the springs stayed live: the web drifted on its own and every
+      // edge pulled on both of its nodes. There is now nothing to switch off.
+      physics: false,
     };
     if (st.network) { st.network.setOptions(options); st.network.setData(data); }
     else {
@@ -226,19 +227,10 @@ function createPolNetwork(cfg) {
         const n = st.nodeMeta[params.nodes[0]];
         if (n && n.type === "congress") window.location = "/politician/" + params.nodes[0];
       });
-      // Freeze as soon as the layout stops moving: kill physics, unpin the hub
-      // so it's draggable too, and reframe. From here the graph only moves when
-      // the user moves it.
-      st.network.on("stabilizationIterationsDone", () => {
-        st.settled = true;
-        st.network.setOptions({ physics: { enabled: false } });
-        const hub = (st.raw.nodes || []).find(n => n.type === "hub");
-        if (hub && st.ds) st.ds.nodes.update({ id: hub.id, fixed: false });
-        st.network.fit({ animation: false });
-      });
     }
-    // Physics off means no stabilization event, so reframe directly.
-    if (st.settled) st.network.fit({ animation: false });
+    // Only reframe on a fresh layout — otherwise a filter toggle would yank the
+    // viewport back and undo whatever the user had panned or zoomed to.
+    if (resetPositions) st.network.fit({ animation: false });
   }
 
   return { reload, switchParty, relayout, rerender, state: st };
