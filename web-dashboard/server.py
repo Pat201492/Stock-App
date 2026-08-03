@@ -11,6 +11,7 @@ import yfinance as yf
 from fastapi import FastAPI, Depends, Query, Body, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.datastructures import MutableHeaders
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, text
 
@@ -45,32 +46,52 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-@app.middleware("http")
-async def _cache_headers(request, call_next):
+class CacheHeaderMiddleware:
     """Set explicit caching rules.
 
     Nothing sent a Cache-Control header before, so browsers fell back to
-    heuristic caching and could sit on a stale page indefinitely. A deploy would
-    go out, the server would serve the new files, and the browser would keep
-    running the old ones — which is exactly how a shipped fix can look like it
-    never landed.
+    heuristic caching and could sit on a stale page indefinitely — a deploy goes
+    out, the server serves the new files, and the browser keeps running the old
+    ones, so a shipped fix looks like it never landed.
 
     HTML must always revalidate: it carries the ?v= references that point at
-    everything else, so if it's fresh the rest follows. Revalidation is cheap —
-    the ETag turns it into a 304 with no body. Versioned assets are immutable,
-    because the version string is part of the cache key and bumping it fetches
-    a new URL. Unversioned assets revalidate, since there's nothing to bust them.
+    everything else, so if it's fresh the rest follows. The ETag turns that into
+    a 304 with no body. Versioned assets are immutable, because the version is
+    part of the cache key and bumping it fetches a new URL. Unversioned assets
+    revalidate, having nothing to bust them.
+
+    Written as raw ASGI on purpose. The first version used @app.middleware,
+    which wraps Starlette's BaseHTTPMiddleware — that reads the entire response
+    body into memory before passing it on. On a 908MB box with no swap, holding
+    a second copy of every large JSON response was enough to get the service
+    OOM-killed. This only rewrites the header frame; the body still streams.
     """
-    resp = await call_next(request)
-    path = request.url.path
-    if path.startswith("/static/"):
-        if request.url.query.startswith("v="):
-            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        else:
-            resp.headers["Cache-Control"] = "no-cache"
-    elif "text/html" in resp.headers.get("content-type", ""):
-        resp.headers["Cache-Control"] = "no-cache"
-    return resp
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        path  = scope.get("path", "")
+        query = scope.get("query_string", b"").decode("latin-1", "replace")
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(raw=message["headers"])
+                if path.startswith("/static/"):
+                    headers["cache-control"] = (
+                        "public, max-age=31536000, immutable"
+                        if query.startswith("v=") else "no-cache")
+                elif "text/html" in headers.get("content-type", ""):
+                    headers["cache-control"] = "no-cache"
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+app.add_middleware(CacheHeaderMiddleware)
 
 # Curated political-relationship overlay (exec-branch / business ties). Cached,
 # reloaded on file change, tolerant of a missing/broken file (-> empty overlay).
