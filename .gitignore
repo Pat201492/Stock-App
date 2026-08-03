@@ -38,3 +38,6 @@ __pycache__/
 
 # Local PTR PDF download cache (House eFD ingest)
 .cache/
+
+# Claude Code local settings + worktrees
+.claude/
