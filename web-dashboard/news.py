@@ -149,20 +149,28 @@ def _tickers_needing_news(tickers, db):
 
 
 def _purge_null_closes(db):
-    """Drop price rows that have no close.
+    """Drop price rows that have no close; return the tickers they belonged to.
 
     They carry no information — every reader filters them out — but they still
     occupy the (ticker, date) slot, so the dedupe in fetch_and_store_prices
-    treats that day as already done and the hole never fills. Clearing them lets
-    this run's 1y fetch put the real bars back.
+    treats that day as already done and the hole never fills.
+
+    Clearing them is only half the job: the caller has to force these tickers
+    into the price refetch. _tickers_needing_prices gates on "no row today", and
+    a ticker with a stale hole back in June still has today's row, so it would
+    be skipped and the gap we just opened would stay open.
     """
+    tickers = {t for (t,) in db.query(PriceHistory.ticker)
+                              .filter(PriceHistory.close.is_(None))
+                              .distinct().all()}
+    if not tickers:
+        return tickers
     n = (db.query(PriceHistory)
            .filter(PriceHistory.close.is_(None))
            .delete(synchronize_session=False))
-    if n:
-        db.commit()
-        print(f"Purged {n} price rows with no close — refilling below.")
-    return n
+    db.commit()
+    print(f"Purged {n} price rows with no close across {len(tickers)} tickers.")
+    return tickers
 
 
 def _tickers_needing_prices(tickers, db):
@@ -186,9 +194,15 @@ def main(tickers=None, limit_per_ticker=10):
         rows = db.query(Stock.ticker).order_by(Stock.rank).limit(1500).all()
         tickers = [r.ticker for r in rows]
 
-    _purge_null_closes(db)
+    purged = _purge_null_closes(db)
     need_news   = _tickers_needing_news(tickers, db)
     need_prices = _tickers_needing_prices(tickers, db)
+    # Purged tickers still have today's row, so the same-day gate above skips
+    # them — which would leave the hole we just cleared unfilled. Force them in.
+    forced = [t for t in tickers if t in purged and t not in set(need_prices)]
+    if forced:
+        need_prices = list(need_prices) + forced
+        print(f"Prices: +{len(forced)} tickers forced in to refill purged gaps")
     print(f"News:   {len(need_news)}/{len(tickers)} tickers need update")
     print(f"Prices: {len(need_prices)}/{len(tickers)} tickers need update")
 
