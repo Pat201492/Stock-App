@@ -23,10 +23,21 @@ if (-not (Test-Path $py)) { throw "venv missing at $py - create it: python -m ve
 
 if (-not $NoBuild) {
   $env:PYTHONUTF8 = "1"
+  # $ErrorActionPreference only governs cmdlets — a native exe that exits
+  # non-zero sets $LASTEXITCODE and PowerShell carries on regardless. Without
+  # these guards a failed build step still publishes, which is exactly how a
+  # broken pol_refresh step (insider mirror) stayed hidden while the job looked
+  # green. Ship stale-but-known data deliberately with -NoBuild, not by accident.
   Write-Host "[publish] Building market data (run.py) ..."
   & $py run.py
+  if ($LASTEXITCODE -ne 0) {
+    throw "run.py failed (exit $LASTEXITCODE) - refusing to publish. Fix it, or re-run with -NoBuild to ship the existing DBs."
+  }
   Write-Host "[publish] Building congressional/insider data (pol_refresh.py) ..."
   & $py pol_refresh.py
+  if ($LASTEXITCODE -ne 0) {
+    throw "pol_refresh.py failed (exit $LASTEXITCODE) - refusing to publish. Fix it, or re-run with -NoBuild to ship the existing DBs."
+  }
 }
 
 foreach ($f in @("stocks.db", "politicians.db")) {
@@ -41,6 +52,7 @@ Write-Host "[publish] Checkpointing DBs (WAL -> main) ..."
 for f in ('stocks.db','politicians.db'):
     try: c=sqlite3.connect(f); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()
     except Exception as e: print('checkpoint warn', f, e)"
+if ($LASTEXITCODE -ne 0) { throw "checkpoint failed (exit $LASTEXITCODE) - the DBs may be mid-write; not publishing." }
 
 $sshArgs = @()
 if ($SSH_KEY -and (Test-Path $SSH_KEY)) { $sshArgs = @("-i", $SSH_KEY) }
