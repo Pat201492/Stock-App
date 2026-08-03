@@ -207,7 +207,8 @@ function createPolNetwork(cfg) {
 function createPolTiming(cfg) {
   const PRESETS = [{ l: "1Y", d: 365 }, { l: "3Y", d: 1095 }, { l: "5Y", d: 1825 }, { l: "All", d: 0 }];
   const st = { chart: null, rangeDays: cfg.rangeDays ?? 0, ticker: cfg.fixedTicker || null,
-               custom: false, customStart: "", customEnd: "", mode: cfg.mode0 || "dots" };
+               custom: false, customStart: "", customEnd: "", mode: cfg.mode0 || "dots",
+               seq: 0 };   // bumped per load() so a slow phase-2 can't overwrite a newer chart
   const el = id => (id ? document.getElementById(id) : null);
   const QUICK = ["NVDA", "AAPL", "MSFT", "TSLA", "AMZN"];
 
@@ -249,11 +250,13 @@ function createPolTiming(cfg) {
     else if (el(cfg.input)) st.ticker = (el(cfg.input).value || "").trim().toUpperCase();
     const ticker = st.ticker;
     if (!ticker) return;
+    const seq = ++st.seq;
 
     const [pol, price] = await Promise.all([
       fetch(`/api/pol/ticker/${encodeURIComponent(ticker)}`).then(r => r.json()).catch(() => ({ trades: [] })),
       fetch(`/api/price/${encodeURIComponent(ticker)}?days=99999`).then(r => r.json()).catch(() => []),
     ]);
+    if (seq !== st.seq) return;   // a newer load() started while we waited
 
     // Resolve the active window: custom [start,end] takes precedence over presets.
     let lo = -Infinity, hi = Infinity;
@@ -275,10 +278,39 @@ function createPolTiming(cfg) {
       ? `${ticker}: ${trades.length} trades · ${members.size} members${avg != null ? ` · avg disclosure lag ${avg}d` : ""}`
       : `${ticker}: no congressional trades in range`;
 
-    const priceData = (Array.isArray(price) ? price : [])
+    const toPts = arr => (Array.isArray(arr) ? arr : [])
       .filter(p => p.close != null && inWin(Date.parse(p.date)))
       .map(p => ({ x: Date.parse(p.date), y: p.close }));
 
+    // Phase 1 — paint straight from the shipped DB snapshot, no waiting.
+    const shallow = toPts(price);
+    draw(trades, shallow);
+
+    // Phase 2 — the snapshot only reaches back ~1yr but trades run to 2012, so
+    // dots can sit over blank chart. If the price line doesn't cover the oldest
+    // trade on screen, ask the server to fill the gap: it serves the DB where it
+    // can and fetches only the missing deep tail (cached + guarded server-side).
+    const oldestTrade = trades.reduce((m, t) => {
+      const ms = Date.parse(t.transaction_date);
+      return (m === null || ms < m) ? ms : m;
+    }, null);
+    if (oldestTrade === null) return;
+    const havePrice = (Array.isArray(price) ? price : []).reduce((m, p) => {
+      const ms = Date.parse(p.date);
+      return (m === null || ms < m) ? ms : m;
+    }, null);
+    if (havePrice !== null && havePrice <= oldestTrade) return;   // already covered
+
+    const since = new Date(oldestTrade).toISOString().slice(0, 10);
+    const deep = await fetch(
+      `/api/price/${encodeURIComponent(ticker)}?since=${since}&allow_live=1`
+    ).then(r => r.json()).catch(() => null);
+    if (seq !== st.seq || !Array.isArray(deep)) return;   // superseded, or failed
+    const deepPts = toPts(deep);
+    if (deepPts.length > shallow.length) draw(trades, deepPts);
+  }
+
+  function draw(trades, priceData) {
     let datasets, scales, tooltip, legend;
     if (st.mode === "hist") {
       // Monthly bins of trade COUNT, split purchases/sales — shows "piling in".

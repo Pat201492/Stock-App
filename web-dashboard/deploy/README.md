@@ -29,6 +29,19 @@ copy publish.config.ps1.example publish.config.ps1
 .\publish.ps1                       # build data + push live
 .\deploy\schedule_publish.ps1       # register the daily auto-publish task
 ```
+
+## Deep price history (one-time)
+`price_history` is filled as a side effect of `news.py`, which fetches one year
+and then creeps forward a day at a time — so it can't reach the congressional
+trades that go back to 2012. Run once to backfill the gap:
+```powershell
+python backfill_prices.py --dry-run   # show scope
+python backfill_prices.py             # ~1.8k tickers, ~18 upstream calls
+```
+Weekly resolution for the deep tail, daily rows left untouched. Tickers outside
+that snapshot (new listings, delisted symbols) are fetched on demand by
+`price_live.py` — see `/api/price-live/stats` for what took that path and which
+tickers are worth adding to the next backfill run.
 Change the update cadence by editing the two lines at the top of
 `deploy/schedule_publish.ps1` (Daily/Weekly + time) and re-running it.
 
