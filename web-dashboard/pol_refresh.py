@@ -29,8 +29,9 @@ POSITIONS = "--positions" in sys.argv   # Schedule E outside positions (annual F
 FEC      = "--fec" in sys.argv          # PAC -> member money, FEC bulk files
 COSPONSORS = "--cosponsors" in sys.argv # bill co-sponsorship, govinfo BILLSTATUS
 LOBBY    = "--lobbying" in sys.argv     # revolving-door ties, Senate LDA
+FLOOR    = "--floor" in sys.argv        # House weekly floor schedule
 ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS,
-                    POSITIONS, FEC, COSPONSORS, LOBBY])
+                    POSITIONS, FEC, COSPONSORS, LOBBY, FLOOR])
 
 DIV = "=" * 58
 
@@ -96,6 +97,10 @@ def main():
     if ALL or LOBBY:
         from ingest_lobbying import ingest as ingest_lobby
         results["lobbying"] = run_step("lobbying", ingest_lobby)
+
+    if ALL or FLOOR:
+        from ingest_floor import ingest as ingest_floor
+        results["floor_schedule"] = run_step("floor_schedule", ingest_floor)
 
     if ALL or MIRROR:
         from ingest_insider_mirror import ingest as ingest_mirror

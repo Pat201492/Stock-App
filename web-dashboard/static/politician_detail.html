@@ -51,6 +51,15 @@
     <div id="ego-map"></div>
   </div>
 
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span id="bills-title">Legislation</span>
+      <a href="/upcoming" style="font-size:11px;color:var(--accent)">Upcoming floor schedule →</a>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px" id="bills-tabs"></div>
+    <div id="bills-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
   <div class="card">
     <div class="card-title" id="trades-title">Recent Trades</div>
     <div class="table-wrap" style="border:none">
@@ -96,6 +105,58 @@ function scoreBadge(s, label) {
           <span style="color:var(--muted);font-size:11px;margin-left:4px">${label || ""}</span>`;
 }
 
+// Sponsored and cosponsored are kept apart deliberately: sponsoring a bill is
+// authorship, cosponsoring is signing on to someone else's. Merging them would
+// inflate the list.
+let _bills = null, _billTab = "sponsored";
+
+function escHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function renderBills() {
+  if (!_bills) return;
+  const rows = _bills[_billTab] || [];
+  document.getElementById("bills-tabs").innerHTML =
+    [["sponsored", "Sponsored"], ["cosponsored", "Cosponsored"]].map(([k, lab]) =>
+      `<button class="pg-range-btn${_billTab === k ? " active" : ""}"
+        onclick="_billTab='${k}';renderBills()">${lab} (${(_bills[k] || []).length})</button>`).join("");
+
+  document.getElementById("bills-list").innerHTML = rows.length ? `
+    <div class="table-wrap" style="border:none"><table>
+      <thead><tr><th>Bill</th><th>Title</th><th>Introduced</th>
+                 <th>Policy area</th><th>Latest action</th></tr></thead>
+      <tbody>${rows.slice(0, 100).map(b => `
+        <tr>
+          <td style="white-space:nowrap">${b.url
+            ? `<a href="${escHtml(b.url)}" target="_blank" rel="noopener" class="ticker-cell">${escHtml(b.label)}</a>`
+            : escHtml(b.label)}</td>
+          <td style="font-size:13px">${escHtml(b.title || "—")}</td>
+          <td class="muted" style="font-size:12px;white-space:nowrap">${escHtml(b.introduced_date || "—")}</td>
+          <td class="muted" style="font-size:12px">${escHtml(b.policy_area || "—")}</td>
+          <td class="muted" style="font-size:12px">${escHtml(b.latest_action || "—")}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>
+    ${rows.length > 100 ? `<div class="muted" style="font-size:12px;margin-top:8px">
+        Showing the 100 most recent of ${rows.length}.</div>` : ""}`
+    : `<div class="empty">No ${_billTab} bills in the 119th Congress.</div>`;
+}
+
+async function loadBills() {
+  const d = await fetch(`/api/pol/bills/sponsored/${bioguide}`)
+    .then(r => r.json()).catch(() => null);
+  if (!d) {
+    document.getElementById("bills-list").innerHTML =
+      `<div class="empty">Could not load legislation.</div>`;
+    return;
+  }
+  _bills = d;
+  document.getElementById("bills-title").textContent =
+    `Legislation — 119th Congress`;
+  renderBills();
+}
+
 async function init() {
   const qs = assetFilter ? `?asset=${encodeURIComponent(assetFilter)}` : "";
   const d = await fetch(`/api/pol/politician/${bioguide}${qs}`).then(r => r.json()).catch(() => null);
@@ -110,6 +171,7 @@ async function init() {
     ego.innerHTML = polEgoMarkup();
     mountPolEgo(bioguide);
   }
+  loadBills();
 
   const p = d.politician;
   document.title = `${p.first_name} ${p.last_name} — Stock Tracker`;

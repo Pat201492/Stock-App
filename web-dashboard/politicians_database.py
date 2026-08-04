@@ -184,6 +184,46 @@ class BillCosponsor(Base):
     )
 
 
+class Bill(Base):
+    """Bill metadata from govinfo BILLSTATUS.
+
+    bill_cosponsors already records who signed what, but only as an id. This
+    carries the parts a person can read — title, when it was introduced, where
+    it has got to — so a sponsored-bills list means something.
+    """
+    __tablename__ = "bills"
+    bill_id            = Column(String, primary_key=True)   # "119-hr-152"
+    congress           = Column(Integer)
+    bill_type          = Column(String)                     # hr, s, hjres, sjres
+    number             = Column(Integer)
+    title              = Column(Text)
+    introduced_date    = Column(String)
+    policy_area        = Column(String)
+    latest_action_date = Column(String)
+    latest_action      = Column(Text)
+    sponsor_bioguide   = Column(String, index=True)
+    n_cosponsors       = Column(Integer)
+
+
+class FloorItem(Base):
+    """A bill on the House weekly floor schedule — genuinely upcoming business.
+
+    docs.house.gov publishes a per-week XML naming what is scheduled. That's an
+    actual calendar rather than something inferred from how far a bill has got,
+    which is the only honest way to say "upcoming". The Senate publishes no
+    equivalent machine-readable feed, so this is House-only.
+    """
+    __tablename__ = "floor_items"
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    week        = Column(String, index=True)   # YYYYMMDD of the week published
+    chamber     = Column(String)
+    legis_num   = Column(String)               # "H.R. 2715" as printed
+    bill_id     = Column(String, index=True)   # "119-hr-2715", when resolvable
+    description = Column(Text)
+    doc_url     = Column(String)
+    __table_args__ = (UniqueConstraint("week", "legis_num", name="uq_floor_item"),)
+
+
 class PacCommittee(Base):
     """FEC committee master row — who is actually behind a PAC.
 
