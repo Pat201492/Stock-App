@@ -619,6 +619,12 @@ function mountPolEgo(bioguideId) {
       // no physics, so the seed positions have to be readable on their own.
       const others = raw.filter(n => n.type !== "focus");
       const R = Math.max(150, Math.round(others.length * 42 / (2 * Math.PI)));
+      // Every reason this neighbour is on the map, for their tooltip — the
+      // edges carry it one tie at a time, which is no use when hovering a node.
+      const why = {};
+      (d.edges || []).forEach(e => {
+        (why[e.to] = why[e.to] || []).push(e.label);
+      });
       const nodes = raw.map(n => {
         const i = others.indexOf(n);
         const a = i < 0 ? 0 : (i / Math.max(1, others.length)) * 2 * Math.PI - Math.PI / 2;
@@ -634,8 +640,10 @@ function mountPolEgo(bioguideId) {
           x: i < 0 ? 0 : Math.round(Math.cos(a) * R),
           y: i < 0 ? 0 : Math.round(Math.sin(a) * R),
           value: n.value || 1,
-          title: n.type === "organization" ? n.name
-               : `${n.name}${n.party ? " · " + n.party : ""}${n.state ? "/" + n.state : ""}`,
+          title: (n.type === "organization"
+                  ? n.name
+                  : `${n.name}${n.party ? " · " + n.party : ""}${n.state ? "/" + n.state : ""}`)
+                 + ((why[n.id] || []).length ? "\n• " + why[n.id].join("\n• ") : ""),
           color: { background: color, border: "#0f172a",
                    highlight: { background: color, border: "#e2e8f0" } },
           font: n.type === "focus"
@@ -643,13 +651,32 @@ function mountPolEgo(bioguideId) {
             : { size: 12, color: "#e2e8f0", strokeWidth: 3, strokeColor: "#0f172a" },
         };
       });
-      const edges = (d.edges || []).map(e => {
-        const stl = PG_EDGE_STYLE[e.kind] || PG_EDGE_STYLE.other;
-        return { from: e.from, to: e.to, title: e.label || undefined,
-                 dashes: stl.dashes, width: Math.min(5, e.weight || 1),
-                 color: { color: stl.color, opacity: 0.85,
-                          highlight: stl.color, hover: stl.color },
-                 smooth: { type: "continuous" } };
+      // Fan parallel ties apart. Two members can be connected three different
+      // ways, and drawn straight those edges share one path exactly — they
+      // stack, only the last colour survives, and a neighbour connected three
+      // ways looks identical to one connected once. Curving them by rank makes
+      // the multiplicity the map is ranking on actually visible.
+      const byPair = {};
+      (d.edges || []).forEach(e => {
+        const k = e.from + "|" + e.to;
+        (byPair[k] = byPair[k] || []).push(e);
+      });
+      const edges = [];
+      Object.values(byPair).forEach(group => {
+        group.forEach((e, i) => {
+          const stl = PG_EDGE_STYLE[e.kind] || PG_EDGE_STYLE.other;
+          const spread = group.length === 1 ? 0 : (i - (group.length - 1) / 2) * 0.26;
+          edges.push({
+            from: e.from, to: e.to, title: e.label || undefined,
+            dashes: stl.dashes, width: Math.min(4, 1 + (e.weight || 1) / 2),
+            color: { color: stl.color, opacity: 0.9,
+                     highlight: stl.color, hover: stl.color },
+            smooth: spread === 0
+              ? { type: "continuous" }
+              : { type: spread > 0 ? "curvedCW" : "curvedCCW",
+                  roundness: Math.abs(spread) },
+          });
+        });
       });
 
       const net = new vis.Network(host,
