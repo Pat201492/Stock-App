@@ -7,7 +7,7 @@ Usage:
   python pol_refresh.py --senate-efd # Senate efdsearch official PTRs only
   python pol_refresh.py --edgar    # insider trades only
   python pol_refresh.py --committees # committee data only
-  python pol_refresh.py --positions  # Schedule E outside positions (annual FDs)
+  python pol_refresh.py --positions  # outside positions from annual FDs (House + Senate)
   python pol_refresh.py --congress # DEPRECATED legacy peez49 CSV (frozen 2026-02)
   python pol_refresh.py --senate   # DEPRECATED legacy senate mirror (dead 2020)
 """
@@ -67,6 +67,8 @@ def main():
     if ALL or POSITIONS:
         from ingest_house_positions import ingest as ingest_positions
         results["house_positions"] = run_step("house_positions", ingest_positions)
+        from ingest_senate_positions import ingest as ingest_sen_positions
+        results["senate_positions"] = run_step("senate_positions", ingest_sen_positions)
 
     if CONGRESS:   # explicit only — legacy peez49 CSV (frozen since 2026-02)
         from ingest_congress import ingest as ingest_congress

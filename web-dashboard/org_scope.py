@@ -83,11 +83,38 @@ def _has_state(name):
                for a in STATE_ABBR)
 
 
-def classify(name):
-    """-> 'private' | 'state' | 'intl' | 'national' | 'other'"""
+# Senate filings name the entity type outright. Trust it over the name — the
+# House form doesn't ask, so this is only ever available for the Senate half.
+_ETYPE_PRIVATE = re.compile(
+    r"\b(?:Company|Corporation|Partnership|Sole\s+Proprietorship|"
+    r"Trust|LLC|Business)\b", re.I)
+_ETYPE_LOCAL = re.compile(
+    r"\b(?:County|City|Municipal|State\s+Government|Local)\b", re.I)
+
+
+def classify(name, entity_type=None, location=None):
+    """-> 'private' | 'state' | 'intl' | 'national' | 'other'
+
+    entity_type and location come from Senate filings and are authoritative
+    when present: a form field beats a keyword guess against the name.
+    """
     n = (name or "").strip()
     if not n:
         return "other"
+
+    if entity_type:
+        if _ETYPE_PRIVATE.search(entity_type):
+            return "private"
+        if _ETYPE_LOCAL.search(entity_type):
+            return "state"
+    # A city/state suffix on the entity is stronger evidence of a local body
+    # than anything in the name — but only after private has had its say, since
+    # a company headquartered somewhere is still a company.
+    if location and not _PRIVATE_RE.search(n):
+        st = location.rsplit(",", 1)[-1].strip().upper()
+        if st in STATE_ABBR and not _NATIONAL_RE.search(n):
+            return "state"
+
     if _PRIVATE_RE.search(n):
         return "private"
     if _LOCAL_RE.search(n) or _has_state(n):
@@ -107,6 +134,6 @@ GROUP = {"private": "private", "state": "state",
          "intl": "national", "national": "national", "other": "national"}
 
 
-def edge_kind(name):
+def edge_kind(name, entity_type=None, location=None):
     """Edge kind for a position at this organisation."""
-    return "position_" + GROUP[classify(name)]
+    return "position_" + GROUP[classify(name, entity_type, location)]
