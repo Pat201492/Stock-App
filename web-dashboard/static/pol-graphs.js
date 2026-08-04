@@ -17,6 +17,7 @@ const PG_EDGE_STYLE = {
   shared_committee:     { color: "#60a5fa", dashes: false },
   committee_leadership: { color: "#a3e635", dashes: false },
   same_state:           { color: "#06b6d4", dashes: [2, 3] },
+  shared_pac:           { color: "#facc15", dashes: false },
   position_national:    { color: "#e879f9", dashes: false },
   position_state:       { color: "#38bdf8", dashes: false },
   position_private:     { color: "#a78bfa", dashes: [4, 3] },
@@ -36,6 +37,7 @@ const PG_EDGE_TOGGLES = [
   { k: "pos_state",    label: "State / local orgs", color: "#38bdf8", on: true  },
   { k: "pos_private",  label: "Private holdings",   color: "#a78bfa", on: false },
   { k: "cotrade",    label: "Co-timed trades",      color: "#fb7185", on: true  },
+  { k: "pac",        label: "Shared PAC funders",   color: "#facc15", on: true  },
   { k: "committee",  label: "Shared committees",    color: "#60a5fa", on: true  },
   { k: "leadership", label: "Committee leadership", color: "#a3e635", on: true  },
   { k: "stock",      label: "Shared stocks",        color: "#22c55e", on: false },
@@ -54,6 +56,7 @@ function pgEdgeGroup(kind) {
   if (kind === "shared_committee") return "committee";
   if (kind === "committee_leadership") return "leadership";
   if (kind === "same_state") return "state";
+  if (kind === "shared_pac") return "pac";
   if (kind === "position_national") return "pos_national";
   if (kind === "position_state") return "pos_state";
   if (kind === "position_private") return "pos_private";
@@ -530,6 +533,7 @@ function polNetworkMarkup() {
     <span><span class="ln" style="background:#60a5fa"></span>Shared committee</span>
     <span><span class="ln" style="background:#a3e635"></span>Committee leadership</span>
     <span><span class="ln" style="background:#06b6d4"></span>Same state</span>
+    <span><span class="ln" style="background:#facc15"></span>Shared PAC funders</span>
     <span><span class="ln" style="background:#e879f9"></span>Position: national</span>
     <span><span class="ln" style="background:#38bdf8"></span>Position: state/local</span>
     <span><span class="ln" style="background:#a78bfa"></span>Position: private</span>

@@ -137,6 +137,27 @@ class MemberPosition(Base):
     )
 
 
+class PacSupport(Base):
+    """Money from one PAC to one member in one cycle, from FEC bulk data.
+
+    Stored per (member, PAC, cycle) rather than per contribution: the web only
+    cares whether two members draw on the same funders, and the itemised file
+    runs to millions of rows.
+    """
+    __tablename__ = "pac_support"
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    bioguide_id  = Column(String, index=True)
+    cmte_id      = Column(String, index=True)   # FEC committee (PAC) id
+    cmte_name    = Column(String)
+    cycle        = Column(Integer)
+    total_amount = Column(Float)
+    n_contribs   = Column(Integer)
+    ingested_at  = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("bioguide_id", "cmte_id", "cycle", name="uq_pac_support"),
+    )
+
+
 def _migrate():
     """Idempotent migrations for already-created DBs. A UNIQUE index on the
     insider logical key stops the EDGAR + mirror sources from double-inserting

@@ -20,7 +20,7 @@ from data_utils import score_stock
 from politicians_database import (
     get_pol_db, init_pol_db,
     Politician, Committee, CommitteeMembership,
-    CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition,
+    CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition, PacSupport,
     SessionLocal as PolSessionLocal,
 )
 from accounts_database import (
@@ -2188,6 +2188,7 @@ def pol_relationships(
     min_shared_stocks: int = 3,
     min_shared_committees: int = 2,
     min_shared_sectors: int = 3,
+    min_shared_pacs: int = 75,
     cotrade_days: int = 14,
     min_cotrades: int = 1,
     db: Session = Depends(get_pol_db),
@@ -2317,6 +2318,18 @@ def pol_relationships(
         state_by_pol = dict(db.query(Politician.bioguide_id, Politician.state)
                               .filter(Politician.bioguide_id.in_(congress_ids)).all())
 
+        pacs_by_pol = defaultdict(set)       # bio -> {committee_id}
+        pac_weight = {}                      # (bio, cmte) -> $ raised, for labels
+        pac_names = {}
+        for bio, cid, cname, amt in (db.query(
+                PacSupport.bioguide_id, PacSupport.cmte_id,
+                PacSupport.cmte_name, PacSupport.total_amount)
+                .filter(PacSupport.bioguide_id.in_(congress_ids)).all()):
+            pacs_by_pol[bio].add(cid)
+            pac_weight[(bio, cid)] = pac_weight.get((bio, cid), 0) + (amt or 0)
+            if cname:
+                pac_names[cid] = cname
+
         def _co_timed(da, dbb, win):
             """True if any date in `da` is within `win` days of any date in `dbb`."""
             da, dbb = sorted(da), sorted(dbb)
@@ -2355,6 +2368,22 @@ def pol_relationships(
                         "label": f"co-timed on {len(co)} stock(s) (≤{cotrade_days}d): {', '.join(top)}"
                                  + ("…" if len(co) > 5 else ""),
                         "weight": len(co), "illustrative": False, "source_url": None,
+                    })
+
+                # shared_pac: funded by many of the same PACs (FEC bulk data).
+                # The threshold is high on purpose — the median pair already
+                # shares a dozen or so, because the big trade-association PACs
+                # give to hundreds of members. Only a deep overlap says anything.
+                shared_pac = pacs_by_pol.get(a, set()) & pacs_by_pol.get(b, set())
+                if len(shared_pac) >= min_shared_pacs:
+                    top = [pac_names.get(c, c) for c in
+                           sorted(shared_pac, key=lambda c: -pac_weight.get((a, c), 0))[:3]]
+                    edges.append({
+                        "from": a, "to": b, "kind": "shared_pac",
+                        "label": f"{len(shared_pac)} shared PAC funders - top: "
+                                 + "; ".join(t[:44] for t in top),
+                        "weight": min(8, 1 + len(shared_pac) // 25),
+                        "illustrative": False, "source_url": None,
                     })
 
                 # shared_sector: overlap in heavily-traded sectors
@@ -2488,6 +2517,7 @@ def pol_relationships(
             "shared_committee": kind_of("shared_committee"),
             "committee_leadership": kind_of("committee_leadership"),
             "same_state":       kind_of("same_state"),
+            "shared_pac":       kind_of("shared_pac"),
             "position_national": kind_of("position_national"),
             "position_state":    kind_of("position_state"),
             "position_private":  kind_of("position_private"),

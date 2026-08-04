@@ -23,7 +23,9 @@ EDGAR    = "--edgar"     in sys.argv
 MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
 POSITIONS = "--positions" in sys.argv   # Schedule E outside positions (annual FDs)
-ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS, POSITIONS])
+FEC      = "--fec" in sys.argv          # PAC -> member money, FEC bulk files
+ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS,
+                    POSITIONS, FEC])
 
 DIV = "=" * 58
 
@@ -77,6 +79,10 @@ def main():
     if SENATE:   # explicit only — legacy senate-stock-watcher mirror (dead since 2020)
         from ingest_senate import ingest as ingest_senate
         results["senate"] = run_step("senate", ingest_senate, full_refresh=FULL)
+
+    if ALL or FEC:
+        from ingest_fec_pacs import ingest as ingest_fec
+        results["fec_pacs"] = run_step("fec_pacs", ingest_fec)
 
     if ALL or MIRROR:
         from ingest_insider_mirror import ingest as ingest_mirror
