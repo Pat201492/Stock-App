@@ -6,6 +6,8 @@
   <title>Politician — Stock Tracker</title>
   <link rel="stylesheet" href="/static/style.css?v=3" />
   <script src="/static/nav-mobile.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="/static/pol-graphs.js?v=10"></script>
 </head>
 <body>
 
@@ -42,6 +44,11 @@
       <div class="card-title">Most-Traded Tickers</div>
       <div id="top-tickers"></div>
     </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Connections</div>
+    <div id="ego-map"></div>
   </div>
 
   <div class="card">
@@ -96,6 +103,12 @@ async function init() {
     document.getElementById("pol-header").innerHTML =
       `<div class="empty">Politician not found.</div>`;
     return;
+  }
+
+  const ego = document.getElementById("ego-map");
+  if (ego && typeof polEgoMarkup === "function") {
+    ego.innerHTML = polEgoMarkup();
+    mountPolEgo(bioguide);
   }
 
   const p = d.politician;
