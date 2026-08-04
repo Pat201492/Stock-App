@@ -26,7 +26,8 @@ import urllib.request
 import zipfile
 from datetime import datetime
 
-from politicians_database import init_pol_db, SessionLocal, BillCosponsor, Politician
+from politicians_database import (init_pol_db, SessionLocal, BillCosponsor,
+                                  Bill, Politician)
 
 UA = "Mozilla/5.0 (compatible; StockApp/1.0; +https://github.com/Pat201492/Stock-App)"
 URL = "https://www.govinfo.gov/bulkdata/BILLSTATUS/{c}/{t}/BILLSTATUS-{c}-{t}.zip"
@@ -37,6 +38,30 @@ _SPONSORS_RE = re.compile(r"<sponsors>(.*?)</sponsors>", re.S)
 _COSPONSORS_RE = re.compile(r"<cosponsors>(.*?)</cosponsors>", re.S)
 _BIOGUIDE_RE = re.compile(r"<bioguideId>([A-Z]\d{6})</bioguideId>")
 _NUM_RE = re.compile(r"BILLSTATUS-(\d+)([a-z]+)(\d+)\.xml", re.I)
+_TITLE_RE = re.compile(r"<title>(.*?)</title>", re.S)
+_INTRO_RE = re.compile(r"<introducedDate>(.*?)</introducedDate>")
+_POLICY_RE = re.compile(r"<policyArea>\s*<name>(.*?)</name>", re.S)
+_LATEST_RE = re.compile(
+    r"<latestAction>\s*<actionDate>(.*?)</actionDate>\s*<text>(.*?)</text>", re.S)
+
+
+def _clean(s):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s or "")).strip()
+
+
+def parse_meta(xml):
+    """Title, dates and status — the parts of a bill a person can read."""
+    t = _TITLE_RE.search(xml)
+    intro = _INTRO_RE.search(xml)
+    pol = _POLICY_RE.search(xml)
+    la = _LATEST_RE.search(xml)
+    return {
+        "title": _clean(t.group(1))[:400] if t else None,
+        "introduced_date": (intro.group(1) or "").strip()[:10] if intro else None,
+        "policy_area": _clean(pol.group(1))[:120] if pol else None,
+        "latest_action_date": (la.group(1) or "").strip()[:10] if la else None,
+        "latest_action": _clean(la.group(2))[:400] if la else None,
+    }
 
 
 def _fetch_zip(congress, btype):
@@ -95,6 +120,11 @@ def ingest(congresses=None):
                                if m else f"{congress}-{btype}-{i}")
                     bills += 1
                     n_cos = len(cos)
+                    meta = parse_meta(xml)
+                    db.merge(Bill(
+                        bill_id=bill_id, congress=congress, bill_type=btype,
+                        number=int(m.group(3)) if m else None,
+                        sponsor_bioguide=sponsor, n_cosponsors=n_cos, **meta))
                     for bio, is_sp in [(sponsor, True)] + [(c, False) for c in cos]:
                         if not bio:
                             continue

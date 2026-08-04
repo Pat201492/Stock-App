@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upcoming Bills — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians" class="active">Congressional</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Upcoming Bills</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;max-width:900px">
+    The House weekly floor schedule from
+    <a href="https://docs.house.gov/floor/" target="_blank" rel="noopener"
+       style="color:var(--accent)">docs.house.gov</a> — bills the House intends
+    to take up, not a guess from how far a bill has travelled. Senate floor plans
+    are published as prose with no machine-readable feed, so this is House only.
+  </p>
+  <div id="week-note" class="muted" style="font-size:12px;margin-bottom:14px"></div>
+
+  <div class="filters">
+    <select id="weeks" onchange="load()">
+      <option value="1" selected>Most recent week</option>
+      <option value="2">Last 2 weeks</option>
+      <option value="4">Last 4 weeks</option>
+      <option value="8">Last 8 weeks</option>
+    </select>
+    <span id="count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Bill</th>
+          <th>Title</th>
+          <th>Sponsor</th>
+          <th>Policy area</th>
+          <th>Latest action</th>
+          <th style="text-align:right">Cosponsors</th>
+        </tr>
+      </thead>
+      <tbody id="body">
+        <tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function fmtWeek(w) {
+  if (!w || w.length !== 8) return w || "";
+  return `${w.slice(0,4)}-${w.slice(4,6)}-${w.slice(6,8)}`;
+}
+function partyBadge(p) {
+  const c = p === "Republican" ? "#ef4444" : p === "Democrat" ? "#3b82f6" : "#94a3b8";
+  return `<span style="color:${c};font-weight:600">${esc((p||"?")[0])}</span>`;
+}
+
+async function load() {
+  const n = document.getElementById("weeks").value;
+  const body = document.getElementById("body");
+  body.innerHTML = `<tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>`;
+  const d = await fetch(`/api/pol/bills/upcoming?weeks=${n}`).then(r => r.json()).catch(() => null);
+  if (!d || !d.items) {
+    body.innerHTML = `<tr><td colspan="6"><div class="empty">Could not load the floor schedule.</div></td></tr>`;
+    return;
+  }
+  const note = document.getElementById("week-note");
+  if (d.weeks && d.weeks.length) {
+    const newest = fmtWeek(d.weeks[0]);
+    const days = Math.round((Date.now() - new Date(newest).getTime()) / 86400000);
+    note.innerHTML = `Week of <strong>${esc(newest)}</strong>`
+      + (d.weeks.length > 1 ? ` (and ${d.weeks.length - 1} earlier)` : "")
+      + (days > 10
+          ? ` — the newest schedule published is ${days} days old, which usually
+             means the House is in recess.` : "");
+  } else {
+    note.textContent = "No floor schedule on record.";
+  }
+  document.getElementById("count").textContent = `${d.count} items`;
+
+  body.innerHTML = d.items.length ? d.items.map(i => `
+    <tr>
+      <td style="white-space:nowrap">
+        ${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener" class="ticker-cell">${esc(i.legis_num)}</a>`
+                : esc(i.legis_num)}
+        <div class="muted" style="font-size:11px">${esc(fmtWeek(i.week))}</div>
+      </td>
+      <td style="font-size:13px">${esc(i.title || i.description || "—")}
+        ${i.doc_url ? `<div style="font-size:11px"><a href="${esc(i.doc_url)}"
+             target="_blank" rel="noopener" style="color:var(--accent)">text (PDF) →</a></div>` : ""}</td>
+      <td style="font-size:12px;white-space:nowrap">${i.sponsor
+        ? `${partyBadge(i.sponsor.party)} <a href="/politician/${esc(i.sponsor.bioguide_id)}"
+             class="ticker-cell">${esc(i.sponsor.name)}</a>
+           <div class="muted" style="font-size:11px">${esc(i.sponsor.state || "")}</div>`
+        : '<span class="muted">—</span>'}</td>
+      <td class="muted" style="font-size:12px">${esc(i.policy_area || "—")}</td>
+      <td class="muted" style="font-size:12px">${esc(i.latest_action || "—")}</td>
+      <td style="text-align:right">${i.n_cosponsors == null ? "—" : i.n_cosponsors}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="6"><div class="empty">Nothing scheduled in that window.</div></td></tr>`;
+}
+load();
+</script>
+</body>
+</html>

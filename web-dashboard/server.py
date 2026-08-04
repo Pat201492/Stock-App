@@ -22,7 +22,7 @@ from politicians_database import (
     get_pol_db, init_pol_db,
     Politician, Committee, CommitteeMembership,
     CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition, PacSupport,
-    BillCosponsor, PacCommittee, LobbyTie,
+    BillCosponsor, PacCommittee, LobbyTie, Bill, FloorItem,
     SessionLocal as PolSessionLocal,
 )
 from accounts_database import (
@@ -2615,6 +2615,112 @@ def _short_pac(name):
                r"EMPLOYEES? |INC\.?|LLC)\b\.?", "", s, flags=re.I)
     s = re.sub(r"[\s,\-]+$", "", re.sub(r"\s{2,}", " ", s)).strip(" ,-")
     return (s or (name or ""))[:38]
+
+
+_CONGRESS_SLUG = {"hr": "house-bill", "s": "senate-bill",
+                  "hjres": "house-joint-resolution", "sjres": "senate-joint-resolution",
+                  "hres": "house-resolution", "sres": "senate-resolution",
+                  "hconres": "house-concurrent-resolution",
+                  "sconres": "senate-concurrent-resolution"}
+
+
+def _congress_url(congress, bill_type, number):
+    """Deep link to congress.gov, which is where the actual text lives."""
+    slug = _CONGRESS_SLUG.get((bill_type or "").lower())
+    if not (slug and congress and number):
+        return None
+    n = int(congress)
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"https://www.congress.gov/bill/{n}{suffix}-congress/{slug}/{number}"
+
+
+def _bill_row(b):
+    return {
+        "bill_id": b.bill_id, "number": b.number, "type": b.bill_type,
+        "label": _bill_label(b.bill_id), "title": b.title,
+        "introduced_date": b.introduced_date, "policy_area": b.policy_area,
+        "latest_action_date": b.latest_action_date, "latest_action": b.latest_action,
+        "n_cosponsors": b.n_cosponsors,
+        "url": _congress_url(b.congress, b.bill_type, b.number),
+    }
+
+
+@app.get("/api/pol/bills/sponsored/{bioguide_id}")
+def pol_bills_sponsored(bioguide_id: str, limit: int = 200,
+                        db: Session = Depends(get_pol_db)):
+    """Bills this member sponsored, and ones they only cosponsored, kept apart.
+
+    Sponsoring is authorship; cosponsoring is signing on. Merging them would
+    inflate the list and flatter the member.
+    """
+    bio = (bioguide_id or "").strip()
+    limit = max(1, min(limit, 500))
+    sponsored = (db.query(Bill).filter(Bill.sponsor_bioguide == bio)
+                   .order_by(Bill.introduced_date.desc()).limit(limit).all())
+    sponsored_ids = {b.bill_id for b in sponsored}
+    co_ids = [r[0] for r in db.query(BillCosponsor.bill_id).filter(
+        BillCosponsor.bioguide_id == bio, BillCosponsor.is_sponsor == False).all()]
+    co = []
+    if co_ids:
+        co = (db.query(Bill).filter(Bill.bill_id.in_(co_ids[:2000]))
+                .order_by(Bill.introduced_date.desc()).limit(limit).all())
+    return {
+        "bioguide_id": bio,
+        "sponsored": [_bill_row(b) for b in sponsored],
+        "cosponsored": [_bill_row(b) for b in co if b.bill_id not in sponsored_ids],
+        "counts": {"sponsored": len(sponsored), "cosponsored": len(co)},
+    }
+
+
+@app.get("/api/pol/bills/upcoming")
+def pol_bills_upcoming(weeks: int = 1, db: Session = Depends(get_pol_db)):
+    """The House weekly floor schedule — bills actually scheduled, not inferred.
+
+    Returns the most recent published week(s). During a recess the newest week
+    can be some time back, so the week is reported rather than being dressed up
+    as "this week".
+    """
+    weeks = max(1, min(weeks, 8))
+    wk = [r[0] for r in db.execute(text(
+        "SELECT DISTINCT week FROM floor_items ORDER BY week DESC LIMIT :n"),
+        {"n": weeks}).fetchall()]
+    if not wk:
+        return {"weeks": [], "items": [], "source": "docs.house.gov"}
+
+    rows = db.query(FloorItem).filter(FloorItem.week.in_(wk)).all()
+    bill_ids = [r.bill_id for r in rows if r.bill_id]
+    bmap = {b.bill_id: b for b in db.query(Bill).filter(
+        Bill.bill_id.in_(bill_ids)).all()} if bill_ids else {}
+    pol = {}
+    sponsors = [b.sponsor_bioguide for b in bmap.values() if b.sponsor_bioguide]
+    if sponsors:
+        pol = {p.bioguide_id: p for p in db.query(Politician).filter(
+            Politician.bioguide_id.in_(sponsors)).all()}
+
+    items = []
+    for r in sorted(rows, key=lambda x: (x.week, x.legis_num), reverse=True):
+        b = bmap.get(r.bill_id)
+        sp = pol.get(b.sponsor_bioguide) if b else None
+        items.append({
+            "week": r.week, "legis_num": r.legis_num, "bill_id": r.bill_id,
+            "description": r.description, "doc_url": r.doc_url,
+            "title": b.title if b else None,
+            "policy_area": b.policy_area if b else None,
+            "introduced_date": b.introduced_date if b else None,
+            "latest_action": b.latest_action if b else None,
+            "n_cosponsors": b.n_cosponsors if b else None,
+            "url": _congress_url(b.congress, b.bill_type, b.number) if b else None,
+            "sponsor": ({"bioguide_id": sp.bioguide_id,
+                         "name": f"{sp.first_name} {sp.last_name}".strip(),
+                         "party": sp.party, "state": sp.state} if sp else None),
+        })
+    return {"weeks": wk, "items": items, "count": len(items),
+            "source": "docs.house.gov weekly floor schedule (House only)"}
+
+
+@app.get("/upcoming")
+def upcoming_page():
+    return FileResponse(os.path.join(STATIC_DIR, "upcoming.html"))
 
 
 @app.get("/pacs")
