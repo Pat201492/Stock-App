@@ -121,6 +121,11 @@ class MemberPosition(Base):
     bioguide_id  = Column(String, index=True)
     position     = Column(String)        # "Board Member", "Partner", ...
     organization = Column(String)        # "U.S. Holocaust Museum", ...
+    # Senate filings name an entity type and a location; the House form asks for
+    # neither, so both stay nullable. Where present they beat guessing scope
+    # from the organisation's name.
+    entity_type  = Column(String)        # "Company", "Educational Organization", ...
+    location     = Column(String)        # "Detroit, MI"
     year         = Column(Integer)       # filing year the disclosure covers
     doc_id       = Column(String)        # House Clerk DocID, for provenance
     source_url   = Column(String)
@@ -139,6 +144,17 @@ def _migrate():
     exist — run `python validate.py --fix` first to collapse them."""
     from sqlalchemy import text, inspect
     insp = inspect(engine)
+
+    # member_positions gained entity_type/location when the Senate source landed.
+    # create_all() only creates missing tables, never missing columns.
+    if "member_positions" in insp.get_table_names():
+        have = {c["name"] for c in insp.get_columns("member_positions")}
+        for col in ("entity_type", "location"):
+            if col not in have:
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f"ALTER TABLE member_positions ADD COLUMN {col} VARCHAR"))
+
     if "insider_trades" not in insp.get_table_names():
         return
     existing = {ix["name"] for ix in insp.get_indexes("insider_trades")}

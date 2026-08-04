@@ -2400,7 +2400,8 @@ def pol_relationships(
     if congress_ids:
         pos_rows = (db.query(MemberPosition.bioguide_id, MemberPosition.organization,
                              MemberPosition.position, MemberPosition.year,
-                             MemberPosition.source_url)
+                             MemberPosition.source_url, MemberPosition.entity_type,
+                             MemberPosition.location)
                       .filter(MemberPosition.bioguide_id.in_(congress_ids),
                               MemberPosition.organization.isnot(None),
                               MemberPosition.organization != "")
@@ -2408,17 +2409,19 @@ def pol_relationships(
         # Keep the most recent filing per (member, organisation) so a position
         # re-disclosed year after year is one edge, not one per year.
         latest = {}
-        for bio, org, pos, yr, url in pos_rows:
+        for bio, org, pos, yr, url, etype, loc in pos_rows:
             key = (bio, org.strip())
             if key not in latest or (yr or 0) > (latest[key][1] or 0):
-                latest[key] = (pos, yr, url)
-        for (bio, org), (pos, yr, url) in latest.items():
+                latest[key] = (pos, yr, url, etype, loc)
+        for (bio, org), (pos, yr, url, etype, loc) in latest.items():
             oid = "ORG_" + re.sub(r"[^A-Za-z0-9]+", "_", org).strip("_")[:60].upper()
-            scope = _org_scope.classify(org)
+            scope = _org_scope.classify(org, etype, loc)
             org_nodes.setdefault(oid, (org, scope))
             edges.append({
-                "from": bio, "to": oid, "kind": _org_scope.edge_kind(org),
-                "label": f"{pos} — {org}" + (f" ({yr})" if yr else ""),
+                "from": bio, "to": oid,
+                "kind": _org_scope.edge_kind(org, etype, loc),
+                "label": f"{pos} — {org}" + (f" ({yr})" if yr else "")
+                         + (f" · {etype}" if etype else ""),
                 "weight": 2, "illustrative": False, "source_url": url,
             })
 
