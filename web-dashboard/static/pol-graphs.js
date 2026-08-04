@@ -582,6 +582,98 @@ function polTimingMarkup() {
   </div>`;
 }
 
+// ── Ego map (politician detail page) ─────────────────────────────────────────
+// A stripped-down cousin of the relationship web: one member at the centre,
+// their direct ties only, no filters. Everything the full graph offers for
+// exploring a party — toggles, party switch, ring sizing — is noise on a page
+// that is already about one person, so none of it is here.
+function polEgoMarkup() {
+  return `
+  <div class="card" style="padding:0;position:relative">
+    <div id="pg-ego" style="height:380px;border-radius:var(--radius)"></div>
+    <div id="pg-ego-empty" style="display:none;position:absolute;inset:0;
+         align-items:center;justify-content:center" class="muted">
+      No connections on record.</div>
+  </div>
+  <p style="color:var(--muted);font-size:12px;margin:8px 0 0">
+    Direct connections only. Drag to rearrange, scroll to zoom, click another
+    member to open their page.</p>`;
+}
+
+function mountPolEgo(bioguideId) {
+  const host = document.getElementById("pg-ego");
+  if (!host || typeof vis === "undefined" || !vis.Network) return null;
+
+  fetch(`/api/pol/ego/${encodeURIComponent(bioguideId)}`)
+    .then(r => r.json())
+    .then(d => {
+      const raw = (d && d.nodes) || [];
+      const empty = document.getElementById("pg-ego-empty");
+      if (raw.length <= 1) {
+        if (empty) empty.style.display = "flex";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+
+      // Ring the neighbours around the focus. Same reasoning as the big graph:
+      // no physics, so the seed positions have to be readable on their own.
+      const others = raw.filter(n => n.type !== "focus");
+      const R = Math.max(150, Math.round(others.length * 42 / (2 * Math.PI)));
+      const nodes = raw.map(n => {
+        const i = others.indexOf(n);
+        const a = i < 0 ? 0 : (i / Math.max(1, others.length)) * 2 * Math.PI - Math.PI / 2;
+        let color, shape = "dot";
+        if (n.type === "focus") { color = PG_PARTY_COLORS[n.party] || "#94a3b8"; shape = "star"; }
+        else if (n.type === "organization") {
+          color = n.scope === "state" ? "#38bdf8"
+                : n.scope === "private" ? "#a78bfa" : "#e879f9";
+          shape = "triangle";
+        } else color = PG_PARTY_COLORS[n.party] || "#94a3b8";
+        return {
+          id: n.id, label: n.name, shape, fixed: false,
+          x: i < 0 ? 0 : Math.round(Math.cos(a) * R),
+          y: i < 0 ? 0 : Math.round(Math.sin(a) * R),
+          value: n.value || 1,
+          title: n.type === "organization" ? n.name
+               : `${n.name}${n.party ? " · " + n.party : ""}${n.state ? "/" + n.state : ""}`,
+          color: { background: color, border: "#0f172a",
+                   highlight: { background: color, border: "#e2e8f0" } },
+          font: n.type === "focus"
+            ? { size: 15, color: "#fff", strokeWidth: 4, strokeColor: "#0f172a" }
+            : { size: 12, color: "#e2e8f0", strokeWidth: 3, strokeColor: "#0f172a" },
+        };
+      });
+      const edges = (d.edges || []).map(e => {
+        const stl = PG_EDGE_STYLE[e.kind] || PG_EDGE_STYLE.other;
+        return { from: e.from, to: e.to, title: e.label || undefined,
+                 dashes: stl.dashes, width: Math.min(5, e.weight || 1),
+                 color: { color: stl.color, opacity: 0.85,
+                          highlight: stl.color, hover: stl.color },
+                 smooth: { type: "continuous" } };
+      });
+
+      const net = new vis.Network(host,
+        { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) },
+        { interaction: { hover: true, tooltipDelay: 120, dragNodes: true,
+                         zoomView: true, dragView: true },
+          nodes: { borderWidth: 2, scaling: { min: 8, max: 26 } },
+          edges: { arrows: { to: false }, physics: false },
+          physics: false });
+      net.on("click", p => {
+        if (!p.nodes.length) return;
+        const id = p.nodes[0];
+        if (id !== bioguideId && !String(id).startsWith("ORG_")) {
+          window.location = "/politician/" + id;
+        }
+      });
+      net.fit({ animation: false });
+    })
+    .catch(() => {
+      const empty = document.getElementById("pg-ego-empty");
+      if (empty) { empty.textContent = "Could not load connections."; empty.style.display = "flex"; }
+    });
+}
+
 function mountPolNetwork() {
   const net = createPolNetwork({ ids: {
     container: "pg-net", empty: "pg-net-empty", count: "pg-net-count", limit: "pg-limit",

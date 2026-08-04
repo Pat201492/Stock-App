@@ -2554,6 +2554,123 @@ def pol_relationships(
     }
 
 
+@app.get("/api/pol/ego/{bioguide_id}")
+def pol_ego(bioguide_id: str, max_neighbors: int = 12,
+            min_shared_stocks: int = 3, min_shared_committees: int = 1,
+            min_shared_pacs: int = 75, min_cosponsored: int = 5,
+            db: Session = Depends(get_pol_db)):
+    """One member's immediate connections, for the map on their detail page.
+
+    Deliberately not /api/pol/relationships with a filter. That endpoint builds
+    a party web around a hub and compares every pair inside it; this needs the
+    opposite shape — one member against everyone, ignoring party. Doing it there
+    would mean loading all 156k cosponsorship rows to answer a question about
+    one person.
+
+    Each tie is a SQL self-join anchored on the focus member, so only their rows
+    are ever read. Edges run focus->neighbour only: neighbour-to-neighbour links
+    would triple the edge count and bury the thing the page is about.
+    """
+    from collections import defaultdict
+    bio = (bioguide_id or "").strip()
+    me = db.query(Politician).filter(Politician.bioguide_id == bio).first()
+    if not me:
+        return {"focus": bio, "nodes": [], "edges": [], "found": False}
+
+    max_neighbors = max(1, min(max_neighbors, 40))
+    ties = defaultdict(dict)      # other_bio -> {kind: (count, label)}
+
+    def collect(sql, kind, minimum, label):
+        for other, n in db.execute(text(sql), {"me": bio, "min": minimum}).fetchall():
+            if other and other != bio:
+                ties[other][kind] = (n, label(n))
+
+    collect("""WITH mine AS (
+                 SELECT DISTINCT committee_id AS c FROM committee_memberships
+                 WHERE bioguide_id = :me)
+               SELECT o.bioguide_id, COUNT(DISTINCT o.committee_id) n
+               FROM committee_memberships o JOIN mine ON o.committee_id = mine.c
+               WHERE o.bioguide_id != :me
+               GROUP BY o.bioguide_id HAVING n >= :min""",
+            "shared_committee", min_shared_committees,
+            lambda n: f"{n} shared committee(s)")
+
+    collect("""SELECT o.bioguide_id, COUNT(DISTINCT o.bill_id) n
+               FROM bill_cosponsors m JOIN bill_cosponsors o
+                 ON m.bill_id = o.bill_id
+               WHERE m.bioguide_id = :me AND o.bioguide_id != :me
+                 AND m.n_cosponsors <= 25
+               GROUP BY o.bioguide_id HAVING n >= :min""",
+            "cosponsored", min_cosponsored, lambda n: f"co-sponsored {n} bills")
+
+    collect("""SELECT o.bioguide_id, COUNT(DISTINCT o.cmte_id) n
+               FROM pac_support m JOIN pac_support o ON m.cmte_id = o.cmte_id
+               WHERE m.bioguide_id = :me AND o.bioguide_id != :me
+               GROUP BY o.bioguide_id HAVING n >= :min""",
+            "shared_pac", min_shared_pacs, lambda n: f"{n} shared PAC funders")
+
+    # Only the focus side is de-duplicated. Joining the raw table to itself
+    # multiplies out every pair of trades in the same stock, which for the
+    # heaviest traders cost 13 seconds; de-duplicating both sides is worse still,
+    # because materialising DISTINCT over all ~98k rows throws away the ticker
+    # index. A small `mine` driving an indexed lookup is the fast shape.
+    collect("""WITH mine AS (
+                 SELECT DISTINCT ticker AS t FROM congressional_trades
+                 WHERE bioguide_id = :me AND ticker IS NOT NULL AND ticker != '')
+               SELECT o.bioguide_id, COUNT(DISTINCT o.ticker) n
+               FROM congressional_trades o JOIN mine ON o.ticker = mine.t
+               WHERE o.bioguide_id != :me
+               GROUP BY o.bioguide_id HAVING n >= :min""",
+            "shared_stock", min_shared_stocks, lambda n: f"{n} shared stocks")
+
+    # Rank by how many distinct kinds of tie, then by their combined strength —
+    # someone connected three different ways is more interesting than someone
+    # who merely shares a lot of one thing.
+    ranked = sorted(ties.items(),
+                    key=lambda kv: (-len(kv[1]), -sum(v[0] for v in kv[1].values())))
+    keep = dict(ranked[:max_neighbors])
+
+    pol_map = {p.bioguide_id: p for p in db.query(Politician).filter(
+        Politician.bioguide_id.in_(list(keep) or [""])).all()} if keep else {}
+
+    nodes = [{"id": bio, "name": f"{me.first_name} {me.last_name}".strip(),
+              "party": me.party, "type": "focus", "value": 10,
+              "state": me.state, "chamber": me.chamber}]
+    edges = []
+    for other, kinds in keep.items():
+        p = pol_map.get(other)
+        nodes.append({
+            "id": other, "name": f"{p.first_name} {p.last_name}".strip() if p else other,
+            "party": p.party if p else None, "type": "congress",
+            "value": 1 + len(kinds), "state": p.state if p else None,
+            "chamber": p.chamber if p else None,
+        })
+        for kind, (n, label) in kinds.items():
+            edges.append({"from": bio, "to": other, "kind": kind, "label": label,
+                          "weight": 1 + min(5, len(kinds)), "illustrative": False,
+                          "source_url": None})
+
+    # Outside positions: the organisation hangs off the member directly.
+    for org, pos, etype, loc, url in db.execute(text(
+            """SELECT organization, position, entity_type, location, source_url
+               FROM member_positions WHERE bioguide_id = :me"""),
+            {"me": bio}).fetchall():
+        oid = "ORG_" + re.sub(r"[^A-Za-z0-9]+", "_", org).strip("_")[:60].upper()
+        if any(n["id"] == oid for n in nodes):
+            continue
+        nodes.append({"id": oid, "name": org, "party": None,
+                      "type": "organization",
+                      "scope": _org_scope.classify(org, etype, loc), "value": 2})
+        edges.append({"from": bio, "to": oid,
+                      "kind": _org_scope.edge_kind(org, etype, loc),
+                      "label": f"{pos} - {org}", "weight": 2,
+                      "illustrative": False, "source_url": url})
+
+    return {"focus": bio, "found": True, "nodes": nodes, "edges": edges,
+            "counts": {"neighbors": len(keep), "edges": len(edges),
+                       "considered": len(ties)}}
+
+
 def _mid(t):
     if t.amount_min is None:
         return 0.0
