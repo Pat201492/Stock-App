@@ -98,6 +98,11 @@ def ingest():
                 name  = m.get("name", {})
                 terms = m.get("terms", [{}])
                 last_term = terms[-1] if terms else {}
+                # Tenure: when they first took any seat, and how many terms
+                # since. Service is often split across chambers and can have
+                # gaps, so the first term's start is the honest "in office
+                # since" and the count carries the rest.
+                starts = sorted(t.get("start") for t in terms if t.get("start"))
                 db.merge(Politician(
                     bioguide_id = bio,
                     first_name  = name.get("first", ""),
@@ -107,6 +112,9 @@ def ingest():
                     state       = last_term.get("state", ""),
                     district    = str(last_term.get("district", "")) if last_term.get("district") else None,
                     active      = active,
+                    term_start  = starts[0] if starts else None,
+                    term_end    = last_term.get("end"),
+                    terms_count = len(terms),
                 ))
                 count += 1
             db.commit()

@@ -28,7 +28,8 @@ import zipfile
 from collections import defaultdict
 from datetime import datetime
 
-from politicians_database import init_pol_db, SessionLocal, PacSupport, Politician
+from politicians_database import (init_pol_db, SessionLocal, PacSupport,
+                                  PacCommittee, Politician)
 from ingest_house import _strip_accents
 
 UA = "Mozilla/5.0 (compatible; StockApp/1.0; +https://github.com/Pat201492/Stock-App)"
@@ -118,11 +119,26 @@ def ingest(cycles=None):
             if not cand_to_bio:
                 continue
 
+            # The committee master is already being downloaded for the names, so
+            # storing the rest of it is free. connected_org is the useful part —
+            # "BANKPAC" tells you nothing, "AMERICAN BANKERS ASSOCIATION" does.
             print(f"[fec] {cycle}: committee master …")
             cmte_name = {}
             for row in _fetch_rows(cycle, f"cm{yy}.zip"):
-                if len(row) >= 2:
-                    cmte_name[row[0]] = row[1]
+                if len(row) < 2:
+                    continue
+                cmte_name[row[0]] = row[1]
+                g = lambda i: (row[i].strip() or None) if len(row) > i else None
+                db.merge(PacCommittee(
+                    cmte_id=row[0], name=row[1][:200], treasurer=g(2),
+                    city=g(5), state=g(6), designation=g(8), cmte_type=g(9),
+                    party=g(10), org_type=g(12), connected_org=g(13),
+                    cycle=cycle))
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"[fec] {cycle}: committee master commit failed — {e}")
 
             print(f"[fec] {cycle}: contributions …")
             agg = defaultdict(lambda: [0.0, 0])     # (bio, cmte) -> [amount, count]

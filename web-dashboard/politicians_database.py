@@ -30,6 +30,9 @@ Base = declarative_base()
 
 
 class Politician(Base):
+    """Members. term_start/term_end/terms_count come from congress-legislators;
+    service is often split across chambers with gaps, so term_start is the first
+    seat they ever took and terms_count carries the rest."""
     __tablename__ = "politicians"
     bioguide_id = Column(String, primary_key=True)
     first_name  = Column(String)
@@ -39,6 +42,9 @@ class Politician(Base):
     state       = Column(String)
     district    = Column(String)   # house only
     active      = Column(Boolean, default=True)
+    term_start  = Column(String)   # ISO date of their very first term
+    term_end    = Column(String)   # ISO date the current/last term runs to
+    terms_count = Column(Integer)
 
 
 class Committee(Base):
@@ -178,6 +184,55 @@ class BillCosponsor(Base):
     )
 
 
+class PacCommittee(Base):
+    """FEC committee master row — who is actually behind a PAC.
+
+    The PAC's own name is often opaque ("BANKPAC"), while connected_org names
+    the sponsoring company or association outright. That's the field worth
+    surfacing; the rest is provenance.
+
+    Individual donors are deliberately not here: FEC publishes them, but the
+    file is 1.9GB per cycle against a 157MB database that gets copied whole on
+    every publish, and for a corporate PAC it is mostly a staff list.
+    """
+    __tablename__ = "pac_committees"
+    cmte_id       = Column(String, primary_key=True)
+    name          = Column(String)
+    treasurer     = Column(String)
+    city          = Column(String)
+    state         = Column(String)
+    designation   = Column(String)   # e.g. B = lobbyist/registrant PAC
+    cmte_type     = Column(String)   # e.g. Q = qualified multicandidate
+    party         = Column(String)
+    org_type      = Column(String)   # C = corporation, L = labour, T = trade …
+    connected_org = Column(String, index=True)
+    cycle         = Column(Integer)
+
+
+class LobbyTie(Base):
+    """A registered lobbyist who used to work for a sitting member.
+
+    From LDA registrations: when a lobbyist registers for a client they must
+    disclose any "covered position" previously held in government, and those
+    entries name the member they worked for. That makes a revolving-door link
+    from the member's old office to whoever is now paying for the access.
+    """
+    __tablename__ = "lobby_ties"
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    bioguide_id   = Column(String, index=True)   # the member they worked for
+    lobbyist_name = Column(String)
+    position      = Column(Text)                 # the disclosed covered position
+    registrant    = Column(String, index=True)   # lobbying firm
+    client        = Column(String, index=True)   # who is paying
+    filing_year   = Column(Integer)
+    filing_uuid   = Column(String)
+    ingested_at   = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("bioguide_id", "lobbyist_name", "client", "filing_year",
+                         name="uq_lobby_tie"),
+    )
+
+
 def _migrate():
     """Idempotent migrations for already-created DBs. A UNIQUE index on the
     insider logical key stops the EDGAR + mirror sources from double-inserting
@@ -186,15 +241,22 @@ def _migrate():
     from sqlalchemy import text, inspect
     insp = inspect(engine)
 
-    # member_positions gained entity_type/location when the Senate source landed.
-    # create_all() only creates missing tables, never missing columns.
-    if "member_positions" in insp.get_table_names():
-        have = {c["name"] for c in insp.get_columns("member_positions")}
-        for col in ("entity_type", "location"):
+    # create_all() only creates missing tables, never missing columns, so any
+    # column added to an existing table needs an explicit ALTER.
+    added = {
+        "member_positions": [("entity_type", "VARCHAR"), ("location", "VARCHAR")],
+        "politicians": [("term_start", "VARCHAR"), ("term_end", "VARCHAR"),
+                        ("terms_count", "INTEGER")],
+    }
+    tables = set(insp.get_table_names())
+    for table, cols in added.items():
+        if table not in tables:
+            continue
+        have = {c["name"] for c in insp.get_columns(table)}
+        for col, typ in cols:
             if col not in have:
                 with engine.begin() as conn:
-                    conn.execute(text(
-                        f"ALTER TABLE member_positions ADD COLUMN {col} VARCHAR"))
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
 
     if "insider_trades" not in insp.get_table_names():
         return
