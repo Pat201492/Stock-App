@@ -21,6 +21,7 @@ from politicians_database import (
     get_pol_db, init_pol_db,
     Politician, Committee, CommitteeMembership,
     CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition, PacSupport,
+    BillCosponsor,
     SessionLocal as PolSessionLocal,
 )
 from accounts_database import (
@@ -2189,6 +2190,8 @@ def pol_relationships(
     min_shared_committees: int = 2,
     min_shared_sectors: int = 3,
     min_shared_pacs: int = 75,
+    min_cosponsored: int = 5,
+    max_bill_cosponsors: int = 25,
     cotrade_days: int = 14,
     min_cotrades: int = 1,
     db: Session = Depends(get_pol_db),
@@ -2318,6 +2321,16 @@ def pol_relationships(
         state_by_pol = dict(db.query(Politician.bioguide_id, Politician.state)
                               .filter(Politician.bioguide_id.in_(congress_ids)).all())
 
+        # Bills each member signed, excluding mass-signed ones. A resolution with
+        # 300 names on it links every pair who touched it and says nothing about
+        # who actually works together; the cap keeps 92% of bills and drops those.
+        bills_by_pol = defaultdict(set)
+        for bio, bid in (db.query(BillCosponsor.bioguide_id, BillCosponsor.bill_id)
+                           .filter(BillCosponsor.bioguide_id.in_(congress_ids),
+                                   BillCosponsor.n_cosponsors <= max_bill_cosponsors)
+                           .all()):
+            bills_by_pol[bio].add(bid)
+
         pacs_by_pol = defaultdict(set)       # bio -> {committee_id}
         pac_weight = {}                      # (bio, cmte) -> $ raised, for labels
         pac_names = {}
@@ -2368,6 +2381,18 @@ def pol_relationships(
                         "label": f"co-timed on {len(co)} stock(s) (≤{cotrade_days}d): {', '.join(top)}"
                                  + ("…" if len(co) > 5 else ""),
                         "weight": len(co), "illustrative": False, "source_url": None,
+                    })
+
+                # cosponsored: signed the same bills. Selective on its own — the
+                # median pair here shares nothing, so the bar can stay low.
+                co_bills = bills_by_pol.get(a, set()) & bills_by_pol.get(b, set())
+                if len(co_bills) >= min_cosponsored:
+                    edges.append({
+                        "from": a, "to": b, "kind": "cosponsored",
+                        "label": f"co-sponsored {len(co_bills)} bills "
+                                 f"(≤{max_bill_cosponsors} cosponsors each)",
+                        "weight": min(8, 1 + len(co_bills) // 6),
+                        "illustrative": False, "source_url": None,
                     })
 
                 # shared_pac: funded by many of the same PACs (FEC bulk data).
@@ -2518,6 +2543,7 @@ def pol_relationships(
             "committee_leadership": kind_of("committee_leadership"),
             "same_state":       kind_of("same_state"),
             "shared_pac":       kind_of("shared_pac"),
+            "cosponsored":      kind_of("cosponsored"),
             "position_national": kind_of("position_national"),
             "position_state":    kind_of("position_state"),
             "position_private":  kind_of("position_private"),

@@ -24,8 +24,9 @@ MIRROR   = "--mirror"    in sys.argv
 COMS     = "--committees" in sys.argv
 POSITIONS = "--positions" in sys.argv   # Schedule E outside positions (annual FDs)
 FEC      = "--fec" in sys.argv          # PAC -> member money, FEC bulk files
+COSPONSORS = "--cosponsors" in sys.argv # bill co-sponsorship, govinfo BILLSTATUS
 ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS,
-                    POSITIONS, FEC])
+                    POSITIONS, FEC, COSPONSORS])
 
 DIV = "=" * 58
 
@@ -83,6 +84,10 @@ def main():
     if ALL or FEC:
         from ingest_fec_pacs import ingest as ingest_fec
         results["fec_pacs"] = run_step("fec_pacs", ingest_fec)
+
+    if ALL or COSPONSORS:
+        from ingest_cosponsors import ingest as ingest_cospon
+        results["cosponsors"] = run_step("cosponsors", ingest_cospon)
 
     if ALL or MIRROR:
         from ingest_insider_mirror import ingest as ingest_mirror
