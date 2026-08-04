@@ -158,6 +158,26 @@ class PacSupport(Base):
     )
 
 
+class BillCosponsor(Base):
+    """One member's sponsorship or cosponsorship of one bill (govinfo BILLSTATUS).
+
+    n_cosponsors is denormalised onto every row on purpose. A resolution signed
+    by 300 members links 45,000 pairs and says nothing about who works with
+    whom, so the graph needs to exclude mass-signed bills — and doing that
+    without a per-row bill size means a join or a second table for no gain.
+    """
+    __tablename__ = "bill_cosponsors"
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    bioguide_id   = Column(String, index=True)
+    bill_id       = Column(String, index=True)   # "119-hr-152"
+    congress      = Column(Integer)
+    n_cosponsors  = Column(Integer)              # size of the bill's coalition
+    is_sponsor    = Column(Boolean, default=False)
+    __table_args__ = (
+        UniqueConstraint("bioguide_id", "bill_id", name="uq_bill_cosponsor"),
+    )
+
+
 def _migrate():
     """Idempotent migrations for already-created DBs. A UNIQUE index on the
     insider logical key stops the EDGAR + mirror sources from double-inserting
