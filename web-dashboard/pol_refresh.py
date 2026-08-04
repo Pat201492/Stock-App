@@ -8,6 +8,9 @@ Usage:
   python pol_refresh.py --edgar    # insider trades only
   python pol_refresh.py --committees # committee data only
   python pol_refresh.py --positions  # outside positions from annual FDs (House + Senate)
+  python pol_refresh.py --fec        # PAC -> member money, FEC bulk files
+  python pol_refresh.py --cosponsors # bill co-sponsorship, govinfo BILLSTATUS
+  python pol_refresh.py --lobbying   # revolving-door ties, Senate LDA
   python pol_refresh.py --congress # DEPRECATED legacy peez49 CSV (frozen 2026-02)
   python pol_refresh.py --senate   # DEPRECATED legacy senate mirror (dead 2020)
 """
@@ -25,8 +28,9 @@ COMS     = "--committees" in sys.argv
 POSITIONS = "--positions" in sys.argv   # Schedule E outside positions (annual FDs)
 FEC      = "--fec" in sys.argv          # PAC -> member money, FEC bulk files
 COSPONSORS = "--cosponsors" in sys.argv # bill co-sponsorship, govinfo BILLSTATUS
+LOBBY    = "--lobbying" in sys.argv     # revolving-door ties, Senate LDA
 ALL      = not any([HOUSE, SENATE_EFD, SENATE, CONGRESS, EDGAR, MIRROR, COMS,
-                    POSITIONS, FEC, COSPONSORS])
+                    POSITIONS, FEC, COSPONSORS, LOBBY])
 
 DIV = "=" * 58
 
@@ -88,6 +92,10 @@ def main():
     if ALL or COSPONSORS:
         from ingest_cosponsors import ingest as ingest_cospon
         results["cosponsors"] = run_step("cosponsors", ingest_cospon)
+
+    if ALL or LOBBY:
+        from ingest_lobbying import ingest as ingest_lobby
+        results["lobbying"] = run_step("lobbying", ingest_lobby)
 
     if ALL or MIRROR:
         from ingest_insider_mirror import ingest as ingest_mirror

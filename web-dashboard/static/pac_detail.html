@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAC — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians" class="active">Congressional</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="breadcrumb"><a href="/pacs">← All PACs</a></div>
+
+  <div class="stock-header" id="pac-header">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Who is behind this PAC</div>
+    <div id="pac-facts"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="members-title">Members funded</div>
+    <div class="table-wrap" style="border:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Politician</th>
+            <th>Seat</th>
+            <th>Party</th>
+            <th>Committee membership</th>
+            <th>Tenure</th>
+            <th style="text-align:right">Received</th>
+          </tr>
+        </thead>
+        <tbody id="members-body">
+          <tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const cmteId = location.pathname.split("/").filter(Boolean).pop();
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd = n => n == null ? "—"
+  : n >= 1e6 ? `$${(n/1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
+
+function partyBadge(p) {
+  const c = p === "Republican" ? "#ef4444" : p === "Democrat" ? "#3b82f6" : "#94a3b8";
+  return `<span style="color:${c};font-weight:600">${esc(p || "—")}</span>`;
+}
+
+function fact(label, value) {
+  if (!value) return "";
+  return `<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <div style="min-width:190px;color:var(--muted);font-size:12px;text-transform:uppercase;
+                letter-spacing:.04em">${esc(label)}</div>
+    <div style="flex:1;font-size:13px">${value}</div></div>`;
+}
+
+async function init() {
+  const d = await fetch(`/api/pol/pac/${encodeURIComponent(cmteId)}`)
+    .then(r => r.json()).catch(() => null);
+  if (!d || !d.found) {
+    document.getElementById("pac-header").innerHTML =
+      `<div class="empty">No PAC on record for ${esc(cmteId)}.</div>`;
+    document.getElementById("members-body").innerHTML =
+      `<tr><td colspan="6"><div class="empty">—</div></td></tr>`;
+    document.getElementById("pac-facts").innerHTML = "";
+    return;
+  }
+  const p = d.pac;
+  document.title = `${p.name || cmteId} — Stock Tracker`;
+  document.getElementById("pac-header").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="margin:0 0 4px">${esc(p.name || cmteId)}</h2>
+        <div style="color:var(--muted);font-size:13px">
+          ${esc(p.connected_org ? "Sponsored by " + p.connected_org : "No sponsoring organisation on file")}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:26px;font-weight:700">${d.members.length}</div>
+        <div style="color:var(--muted);font-size:12px">members funded</div>
+      </div>
+    </div>`;
+
+  document.getElementById("pac-facts").innerHTML =
+      fact("Sponsoring organisation", esc(p.connected_org))
+    + fact("Organisation type", esc(p.org_type && (p.org_type.label || p.org_type.code)))
+    + fact("Committee type", esc(p.cmte_type && (p.cmte_type.label || p.cmte_type.code)))
+    + fact("Designation", esc(p.designation && (p.designation.label || p.designation.code)))
+    + fact("Treasurer", esc(p.treasurer))
+    + fact("Based in", esc([p.city, p.state].filter(Boolean).join(", ")))
+    + fact("Total to members", usd(p.total_amount)
+        + ` <span class="muted" style="font-size:12px">across ${p.n_contribs} contributions`
+        + (p.cycles && p.cycles.length ? `, cycles ${p.cycles.join("–")}` : "") + `</span>`)
+    + fact("FEC record", `<a href="${esc(p.fec_url)}" target="_blank" rel="noopener"
+             style="color:var(--accent)">Committee ${esc(p.cmte_id)} on FEC.gov →</a>`)
+    + fact("Background", `<a href="${esc(p.wikipedia_search)}" target="_blank" rel="noopener"
+             style="color:var(--accent)">Search Wikipedia for
+             ${esc(p.connected_org || p.name)} →</a>
+             <div class="muted" style="font-size:11px;margin-top:3px">
+               A search, not a fixed article — guessing an article from a corporate
+               name links the wrong company often enough to matter.</div>`);
+
+  document.getElementById("members-title").textContent =
+    `Members funded (${d.members.length})`;
+  document.getElementById("members-body").innerHTML = d.members.length
+    ? d.members.map(m => {
+        const coms = m.committees || [];
+        const shown = coms.slice(0, 3).map(esc).join("<br>");
+        const more = coms.length > 3
+          ? `<div class="muted" style="font-size:11px">+${coms.length - 3} more</div>` : "";
+        return `<tr>
+          <td><a href="/politician/${esc(m.bioguide_id)}" class="ticker-cell">${esc(m.name)}</a></td>
+          <td>${esc(m.seat || "—")}<div class="muted" style="font-size:11px">
+              ${m.chamber === "sen" ? "Senate" : m.chamber === "rep" ? "House" : ""}</div></td>
+          <td>${partyBadge(m.party)}</td>
+          <td style="font-size:12px">${shown || '<span class="muted">—</span>'}${more}</td>
+          <td class="muted" style="font-size:12px">${esc(m.tenure || "—")}</td>
+          <td style="text-align:right;font-weight:600">${usd(m.amount)}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="6"><div class="empty">No sitting members funded.</div></td></tr>`;
+}
+init();
+</script>
+</body>
+</html>

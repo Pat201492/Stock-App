@@ -6,6 +6,7 @@ Dashboard: http://localhost:8000
 import os, re, subprocess, sys, threading, time
 from datetime import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 import yfinance as yf
 
 from fastapi import FastAPI, Depends, Query, Body, Header, HTTPException
@@ -21,7 +22,7 @@ from politicians_database import (
     get_pol_db, init_pol_db,
     Politician, Committee, CommitteeMembership,
     CongressionalTrade, InsiderTrade, PolTickerMetadata, MemberPosition, PacSupport,
-    BillCosponsor,
+    BillCosponsor, PacCommittee, LobbyTie,
     SessionLocal as PolSessionLocal,
 )
 from accounts_database import (
@@ -2558,6 +2559,37 @@ def pol_relationships(
     }
 
 
+PAC_ORG_TYPE = {
+    "C": "Corporation", "L": "Labor organization", "M": "Membership organization",
+    "T": "Trade association", "V": "Cooperative", "W": "Corporation without capital stock",
+}
+PAC_CMTE_TYPE = {
+    "Q": "Qualified multi-candidate PAC", "N": "Non-qualified PAC",
+    "O": "Super PAC (independent expenditure only)", "V": "Hybrid PAC (non-qualified)",
+    "W": "Hybrid PAC (qualified)", "Y": "Party — qualified", "X": "Party — non-qualified",
+    "D": "Delegate committee", "E": "Electioneering communication",
+    "H": "House candidate committee", "S": "Senate candidate committee",
+    "P": "Presidential candidate committee", "I": "Independent expenditure filer",
+    "U": "Single-candidate independent expenditure",
+}
+PAC_DESIGNATION = {
+    "A": "Authorised by a candidate", "B": "Lobbyist/registrant PAC",
+    "D": "Leadership PAC", "J": "Joint fundraiser", "P": "Principal campaign committee",
+    "U": "Unauthorised",
+}
+
+
+def _tenure(term_start, terms_count):
+    """'in office since 1993 · 6 terms' from the first seat they ever took."""
+    if not term_start:
+        return None
+    yr = str(term_start)[:4]
+    bit = f"since {yr}"
+    if terms_count:
+        bit += f" · {terms_count} term{'s' if terms_count != 1 else ''}"
+    return bit
+
+
 _BILL_RE = re.compile(r"^(\d+)-([a-z]+)-(\d+)$")
 _BILL_PRETTY = {"hr": "H.R.", "s": "S.", "hjres": "H.J.Res.", "sjres": "S.J.Res."}
 
@@ -2583,6 +2615,114 @@ def _short_pac(name):
                r"EMPLOYEES? |INC\.?|LLC)\b\.?", "", s, flags=re.I)
     s = re.sub(r"[\s,\-]+$", "", re.sub(r"\s{2,}", " ", s)).strip(" ,-")
     return (s or (name or ""))[:38]
+
+
+@app.get("/pacs")
+def pacs_page():
+    return FileResponse(os.path.join(STATIC_DIR, "pacs.html"))
+
+
+@app.get("/pac/{cmte_id}")
+def pac_page(cmte_id: str):
+    return FileResponse(os.path.join(STATIC_DIR, "pac_detail.html"))
+
+
+@app.get("/api/pol/pacs")
+def pol_pac_index(q: str = "", limit: int = 100, min_members: int = 5,
+                  db: Session = Depends(get_pol_db)):
+    """PACs ranked by how many sitting members they fund."""
+    limit = max(1, min(limit, 500))
+    like = f"%{q.strip().upper()}%" if q.strip() else None
+    rows = db.execute(text(f"""
+        SELECT s.cmte_id,
+               COALESCE(pc.name, MAX(s.cmte_name))       AS nm,
+               pc.connected_org, pc.org_type, pc.state,
+               COUNT(DISTINCT s.bioguide_id)             AS members,
+               SUM(s.total_amount)                       AS total
+        FROM pac_support s
+        LEFT JOIN pac_committees pc ON pc.cmte_id = s.cmte_id
+        {"WHERE UPPER(COALESCE(pc.name, s.cmte_name)) LIKE :like "
+          "OR UPPER(COALESCE(pc.connected_org,'')) LIKE :like" if like else ""}
+        GROUP BY s.cmte_id HAVING members >= :minm
+        ORDER BY members DESC, total DESC LIMIT :lim
+    """), {"like": like, "minm": min_members, "lim": limit}).fetchall()
+    return {"count": len(rows), "pacs": [{
+        "cmte_id": r[0], "name": r[1], "connected_org": r[2],
+        "org_type": PAC_ORG_TYPE.get((r[3] or "").strip(), r[3]),
+        "state": r[4], "members": r[5], "total_amount": round(r[6] or 0, 2),
+    } for r in rows]}
+
+
+@app.get("/api/pol/pac/{cmte_id}")
+def pol_pac_detail(cmte_id: str, db: Session = Depends(get_pol_db)):
+    """One PAC: who is behind it, and every sitting member it funds."""
+    cid = (cmte_id or "").strip().upper()
+    pc = db.query(PacCommittee).filter(PacCommittee.cmte_id == cid).first()
+    agg = db.execute(text(
+        "SELECT MAX(cmte_name), COUNT(DISTINCT bioguide_id), SUM(total_amount), "
+        "       SUM(n_contribs), MIN(cycle), MAX(cycle) "
+        "FROM pac_support WHERE cmte_id = :c"), {"c": cid}).fetchone()
+    if not pc and not (agg and agg[1]):
+        return {"cmte_id": cid, "found": False}
+
+    def code(table, v):
+        v = (v or "").strip()
+        return {"code": v or None, "label": table.get(v)} if v else None
+
+    # Search the sponsoring organisation where we know it, else the PAC's name.
+    wiki_term = ((pc.connected_org if pc else None)
+                 or (pc.name if pc else None)
+                 or (agg[0] if agg else None) or cid)
+
+    pac = {
+        "cmte_id": cid,
+        "name": (pc.name if pc else None) or (agg[0] if agg else None),
+        "connected_org": pc.connected_org if pc else None,
+        "treasurer": pc.treasurer if pc else None,
+        "city": pc.city if pc else None,
+        "state": pc.state if pc else None,
+        "party": pc.party if pc else None,
+        "org_type": code(PAC_ORG_TYPE, pc.org_type if pc else None),
+        "cmte_type": code(PAC_CMTE_TYPE, pc.cmte_type if pc else None),
+        "designation": code(PAC_DESIGNATION, pc.designation if pc else None),
+        "members_funded": agg[1] if agg else 0,
+        "total_amount": round((agg[2] or 0) if agg else 0, 2),
+        "n_contribs": (agg[3] or 0) if agg else 0,
+        "cycles": [c for c in ((agg[4], agg[5]) if agg else ()) if c],
+        # FEC is the record of who this committee is; the Wikipedia link is a
+        # search rather than a resolved article, because guessing an article
+        # from a corporate name is how you end up linking the wrong company.
+        "fec_url": f"https://www.fec.gov/data/committee/{cid}/",
+        "wikipedia_search": ("https://en.wikipedia.org/w/index.php?search="
+                             + quote_plus(wiki_term)),
+    }
+
+    members = db.execute(text("""
+        SELECT p.bioguide_id, p.first_name, p.last_name, p.party, p.chamber,
+               p.state, p.district, p.term_start, p.terms_count,
+               SUM(s.total_amount) AS amt, SUM(s.n_contribs) AS n,
+               (SELECT GROUP_CONCAT(nm, '|@|') FROM (
+                  SELECT DISTINCT COALESCE(cm.name, cmm.committee_id) AS nm
+                  FROM committee_memberships cmm
+                  LEFT JOIN committees cm ON cm.committee_id = cmm.committee_id
+                  WHERE cmm.bioguide_id = p.bioguide_id)) AS committees
+        FROM pac_support s JOIN politicians p ON p.bioguide_id = s.bioguide_id
+        WHERE s.cmte_id = :c
+        GROUP BY p.bioguide_id ORDER BY amt DESC
+    """), {"c": cid}).fetchall()
+
+    out = []
+    for r in members:
+        seat = (r[5] or "") + (f"-{str(r[6]).zfill(2)}" if r[6] else "")
+        out.append({
+            "bioguide_id": r[0], "name": f"{r[1]} {r[2]}".strip(),
+            "party": r[3], "chamber": r[4], "seat": seat or None,
+            "tenure": _tenure(r[7], r[8]), "term_start": r[7],
+            "terms_count": r[8],
+            "committees": [s for s in (r[11] or "").split("|@|") if s.strip()],
+            "amount": round(r[9] or 0, 2), "n_contribs": r[10] or 0,
+        })
+    return {"cmte_id": cid, "found": True, "pac": pac, "members": out}
 
 
 def _ubiquitous_pacs(db, cap):
@@ -2755,6 +2895,28 @@ def pol_ego(bioguide_id: str, max_neighbors: int = 12,
                           "weight": 1 + min(5, len(kinds)), "illustrative": False,
                           "source_url": None})
 
+    # Revolving door: former staff of this member who now lobby, and who pays
+    # them. One node per client, with the strongest-documented tie kept — a firm
+    # often files the same lobbyist against several clients in a year.
+    seen_clients = set()
+    for client, lob, pos, reg, yr in db.execute(text(
+            """SELECT client, lobbyist_name, position, registrant, filing_year
+               FROM lobby_ties WHERE bioguide_id = :me
+               ORDER BY filing_year DESC"""), {"me": bio}).fetchall():
+        cid = "LOBBY_" + re.sub(r"[^A-Za-z0-9]+", "_", client).strip("_")[:60].upper()
+        if cid in seen_clients:
+            continue
+        seen_clients.add(cid)
+        nodes.append({"id": cid, "name": client, "party": None,
+                      "type": "lobby_client", "value": 2})
+        short = re.split(r"[;.]", pos or "")[0].strip()[:70]
+        edges.append({
+            "from": bio, "to": cid, "kind": "revolving_door",
+            "label": f"{lob} — {short}" + (f" · now via {reg}" if reg else ""),
+            "weight": 2, "illustrative": False,
+            "source_url": "https://lda.senate.gov/filings/public/filing/search/",
+        })
+
     # Outside positions: the organisation hangs off the member directly.
     for org, pos, etype, loc, url in db.execute(text(
             """SELECT organization, position, entity_type, location, source_url
@@ -2773,7 +2935,8 @@ def pol_ego(bioguide_id: str, max_neighbors: int = 12,
 
     return {"focus": bio, "found": True, "nodes": nodes, "edges": edges,
             "counts": {"neighbors": len(keep), "edges": len(edges),
-                       "considered": len(ties)}}
+                       "considered": len(ties),
+                       "lobby_clients": len(seen_clients)}}
 
 
 def _mid(t):

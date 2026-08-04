@@ -19,6 +19,7 @@ const PG_EDGE_STYLE = {
   same_state:           { color: "#06b6d4", dashes: [2, 3] },
   shared_pac:           { color: "#facc15", dashes: false },
   cosponsored:          { color: "#34d399", dashes: false },
+  revolving_door:       { color: "#f43f5e", dashes: [6, 3] },
   position_national:    { color: "#e879f9", dashes: false },
   position_state:       { color: "#38bdf8", dashes: false },
   position_private:     { color: "#a78bfa", dashes: [4, 3] },
@@ -40,6 +41,7 @@ const PG_EDGE_TOGGLES = [
   { k: "cotrade",    label: "Co-timed trades",      color: "#fb7185", on: true  },
   { k: "pac",        label: "Shared PAC funders",   color: "#facc15", on: true  },
   { k: "cosponsor",  label: "Co-sponsored bills",   color: "#34d399", on: true  },
+  { k: "revolving",  label: "Revolving door",       color: "#f43f5e", on: true  },
   { k: "committee",  label: "Shared committees",    color: "#60a5fa", on: true  },
   { k: "leadership", label: "Committee leadership", color: "#a3e635", on: true  },
   { k: "stock",      label: "Shared stocks",        color: "#22c55e", on: false },
@@ -60,6 +62,7 @@ function pgEdgeGroup(kind) {
   if (kind === "same_state") return "state";
   if (kind === "shared_pac") return "pac";
   if (kind === "cosponsored") return "cosponsor";
+  if (kind === "revolving_door") return "revolving";
   if (kind === "position_national") return "pos_national";
   if (kind === "position_state") return "pos_state";
   if (kind === "position_private") return "pos_private";
@@ -170,6 +173,7 @@ function createPolNetwork(cfg) {
             : n.scope === "private" ? "#a78bfa" : "#e879f9";
       shape = "triangle";
     }
+    else if (n.type === "lobby_client") { color = "#f43f5e"; shape = "hexagon"; }
     else                             { color = PG_PARTY_COLORS[n.party] || "#94a3b8"; }
     const title = n.type === "congress"
       ? `${n.name} · ${n.party || "?"}/${n.state || "?"}${n.chamber ? " · " + n.chamber : ""}`
@@ -538,6 +542,8 @@ function polNetworkMarkup() {
     <span><span class="ln" style="background:#06b6d4"></span>Same state</span>
     <span><span class="ln" style="background:#facc15"></span>Shared PAC funders</span>
     <span><span class="ln" style="background:#34d399"></span>Co-sponsored bills</span>
+    <span><span class="ln" style="background:#f43f5e"></span>Revolving door</span>
+    <span><span class="dot" style="background:#f43f5e"></span>Lobbying client</span>
     <span><span class="ln" style="background:#e879f9"></span>Position: national</span>
     <span><span class="ln" style="background:#38bdf8"></span>Position: state/local</span>
     <span><span class="ln" style="background:#a78bfa"></span>Position: private</span>
@@ -634,7 +640,8 @@ function mountPolEgo(bioguideId) {
           color = n.scope === "state" ? "#38bdf8"
                 : n.scope === "private" ? "#a78bfa" : "#e879f9";
           shape = "triangle";
-        } else color = PG_PARTY_COLORS[n.party] || "#94a3b8";
+        } else if (n.type === "lobby_client") { color = "#f43f5e"; shape = "hexagon"; }
+        else color = PG_PARTY_COLORS[n.party] || "#94a3b8";
         return {
           id: n.id, label: n.name, shape, fixed: false,
           x: i < 0 ? 0 : Math.round(Math.cos(a) * R),

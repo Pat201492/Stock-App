@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PACs — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians" class="active">Congressional</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Political Action Committees</h2>
+  <p style="color:var(--muted);margin-bottom:18px;font-size:13px;max-width:880px">
+    Every PAC that gave to a sitting member, from FEC bulk filings, ranked by how
+    many members it funds. The ones at the top reach most of Congress — they say
+    little about any single member, which is why the relationship web excludes
+    them from its shared-funder edges.
+  </p>
+
+  <div class="filters">
+    <input type="text" id="q" placeholder="Search PAC or sponsoring organisation…" oninput="debounced()" />
+    <select id="minm" onchange="load()">
+      <option value="1">Any number of members</option>
+      <option value="5" selected>5+ members</option>
+      <option value="50">50+ members</option>
+      <option value="200">200+ members (ubiquitous)</option>
+    </select>
+    <span id="count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PAC</th>
+          <th>Sponsoring organisation</th>
+          <th>Type</th>
+          <th>Based</th>
+          <th style="text-align:right">Members funded</th>
+          <th style="text-align:right">Total given</th>
+        </tr>
+      </thead>
+      <tbody id="body">
+        <tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd = n => n == null ? "—"
+  : n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
+
+let timer = null;
+function debounced() { clearTimeout(timer); timer = setTimeout(load, 250); }
+
+async function load() {
+  const q = document.getElementById("q").value.trim();
+  const minm = document.getElementById("minm").value;
+  const body = document.getElementById("body");
+  body.innerHTML = `<tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>`;
+  const d = await fetch(`/api/pol/pacs?limit=250&min_members=${minm}`
+      + (q ? `&q=${encodeURIComponent(q)}` : ""))
+    .then(r => r.json()).catch(() => null);
+  if (!d || !d.pacs) {
+    body.innerHTML = `<tr><td colspan="6"><div class="empty">Could not load PACs.</div></td></tr>`;
+    return;
+  }
+  document.getElementById("count").textContent = `${d.count} PACs`;
+  body.innerHTML = d.pacs.length ? d.pacs.map(p => `
+    <tr>
+      <td><a href="/pac/${esc(p.cmte_id)}" class="ticker-cell">${esc(p.name || p.cmte_id)}</a></td>
+      <td style="font-size:12px">${esc(p.connected_org || "—")}</td>
+      <td class="muted" style="font-size:12px">${esc(p.org_type || "—")}</td>
+      <td class="muted" style="font-size:12px">${esc(p.state || "—")}</td>
+      <td style="text-align:right;font-weight:600">${p.members}</td>
+      <td style="text-align:right">${usd(p.total_amount)}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="6"><div class="empty">No PACs match.</div></td></tr>`;
+}
+load();
+</script>
+</body>
+</html>
