@@ -2189,7 +2189,8 @@ def pol_relationships(
     min_shared_stocks: int = 3,
     min_shared_committees: int = 2,
     min_shared_sectors: int = 3,
-    min_shared_pacs: int = 75,
+    min_shared_pacs: int = 20,
+    max_pac_reach: int = 100,
     min_cosponsored: int = 5,
     max_bill_cosponsors: int = 25,
     cotrade_days: int = 14,
@@ -2334,10 +2335,13 @@ def pol_relationships(
         pacs_by_pol = defaultdict(set)       # bio -> {committee_id}
         pac_weight = {}                      # (bio, cmte) -> $ raised, for labels
         pac_names = {}
+        ubiquitous = _ubiquitous_pacs(db, max_pac_reach)
         for bio, cid, cname, amt in (db.query(
                 PacSupport.bioguide_id, PacSupport.cmte_id,
                 PacSupport.cmte_name, PacSupport.total_amount)
                 .filter(PacSupport.bioguide_id.in_(congress_ids)).all()):
+            if cid in ubiquitous:
+                continue
             pacs_by_pol[bio].add(cid)
             pac_weight[(bio, cid)] = pac_weight.get((bio, cid), 0) + (amt or 0)
             if cname:
@@ -2401,12 +2405,12 @@ def pol_relationships(
                 # give to hundreds of members. Only a deep overlap says anything.
                 shared_pac = pacs_by_pol.get(a, set()) & pacs_by_pol.get(b, set())
                 if len(shared_pac) >= min_shared_pacs:
-                    top = [pac_names.get(c, c) for c in
+                    top = [_short_pac(pac_names.get(c, c)) for c in
                            sorted(shared_pac, key=lambda c: -pac_weight.get((a, c), 0))[:3]]
                     edges.append({
                         "from": a, "to": b, "kind": "shared_pac",
-                        "label": f"{len(shared_pac)} shared PAC funders - top: "
-                                 + "; ".join(t[:44] for t in top),
+                        "label": f"{len(shared_pac)} shared PAC funders: "
+                                 + ", ".join(top),
                         "weight": min(8, 1 + len(shared_pac) // 25),
                         "illustrative": False, "source_url": None,
                     })
@@ -2554,10 +2558,54 @@ def pol_relationships(
     }
 
 
+_BILL_RE = re.compile(r"^(\d+)-([a-z]+)-(\d+)$")
+_BILL_PRETTY = {"hr": "H.R.", "s": "S.", "hjres": "H.J.Res.", "sjres": "S.J.Res."}
+
+
+def _bill_label(bill_id):
+    """'119-hr-152' -> 'H.R. 152'. The stored id is a lookup key, not a name."""
+    m = _BILL_RE.match(bill_id or "")
+    if not m:
+        return bill_id
+    return f"{_BILL_PRETTY.get(m.group(2), m.group(2).upper())} {m.group(3)}"
+
+
+def _short_pac(name):
+    """Trim the boilerplate off a PAC's legal name so a few fit in a label.
+
+    Nearly every one ends in some spelling of "political action committee",
+    which is the least informative part — the sponsoring organisation is the
+    bit worth reading.
+    """
+    s = re.sub(r"\s*\(.*?\)\s*$", "", (name or "").strip())
+    s = re.sub(r"\b(POLITICAL ACTION COMMITTEE|POLITICAL ACTION COMM|"
+               r"FEDERAL POLITICAL ACTION COMMITTEE|PAC|POLITICAL ACTION|"
+               r"EMPLOYEES? |INC\.?|LLC)\b\.?", "", s, flags=re.I)
+    s = re.sub(r"[\s,\-]+$", "", re.sub(r"\s{2,}", " ", s)).strip(" ,-")
+    return (s or (name or ""))[:38]
+
+
+def _ubiquitous_pacs(db, cap):
+    """PAC ids that fund more than `cap` members.
+
+    The big trade associations give a few thousand dollars to nearly everyone —
+    Realtors reach 533 members, Credit Unions 470 — so counting them makes every
+    pair of incumbents look deeply connected. Excluding them takes the median
+    overlap between two members from 65 shared PACs down to 9, and what's left
+    is money that actually distinguishes one member from another.
+    """
+    if cap <= 0:
+        return set()
+    return {r[0] for r in db.execute(text(
+        "SELECT cmte_id FROM pac_support GROUP BY cmte_id "
+        "HAVING COUNT(DISTINCT bioguide_id) > :cap"), {"cap": cap}).fetchall()}
+
+
 @app.get("/api/pol/ego/{bioguide_id}")
 def pol_ego(bioguide_id: str, max_neighbors: int = 12,
             min_shared_stocks: int = 3, min_shared_committees: int = 1,
-            min_shared_pacs: int = 75, min_cosponsored: int = 5,
+            min_shared_pacs: int = 12, min_cosponsored: int = 5,
+            max_pac_reach: int = 100,
             db: Session = Depends(get_pol_db)):
     """One member's immediate connections, for the map on their detail page.
 
@@ -2579,35 +2627,81 @@ def pol_ego(bioguide_id: str, max_neighbors: int = 12,
 
     max_neighbors = max(1, min(max_neighbors, 40))
     ties = defaultdict(dict)      # other_bio -> {kind: (count, label)}
+    SHOW = 4                      # named examples per tie before "…"
 
     def collect(sql, kind, minimum, label):
-        for other, n in db.execute(text(sql), {"me": bio, "min": minimum}).fetchall():
-            if other and other != bio:
-                ties[other][kind] = (n, label(n))
+        """Each query returns (other, count, comma-joined names of what's shared).
 
-    collect("""WITH mine AS (
-                 SELECT DISTINCT committee_id AS c FROM committee_memberships
-                 WHERE bioguide_id = :me)
-               SELECT o.bioguide_id, COUNT(DISTINCT o.committee_id) n
-               FROM committee_memberships o JOIN mine ON o.committee_id = mine.c
-               WHERE o.bioguide_id != :me
-               GROUP BY o.bioguide_id HAVING n >= :min""",
+        A bare count — "1 shared committee" — doesn't say anything worth
+        clicking on. The names are what make the tie legible, so every query
+        carries them and the label spells out as many as fit.
+        """
+        rows = db.execute(text(sql),
+                          {"me": bio, "min": minimum, "cap": max_pac_reach}).fetchall()
+        for other, n, names in rows:
+            if not other or other == bio:
+                continue
+            # Preserve the order the query chose — each one sorts by whatever
+            # makes an example worth showing (dollars, trade count). Sorting
+            # alphabetically here instead meant every label led with the A's:
+            # "ABUNDANCE, ADVANCED MEDICAL, ALEXION…", which is just the start
+            # of the alphabet, not the biggest funders.
+            items = [s.strip() for s in (names or "").split("|@|") if s.strip()]
+            items = list(dict.fromkeys(items))[:SHOW]
+            ties[other][kind] = (n, label(n, items))
+
+    def spell(head, items, n):
+        if not items:
+            return head
+        return f"{head}: " + ", ".join(items) + ("…" if n > len(items) else "")
+
+    # Every query pre-de-duplicates into (member, name) pairs and only then
+    # concatenates. SQLite's GROUP_CONCAT(DISTINCT x) can't take a separator,
+    # and committee and PAC names are full of commas — splitting the default
+    # output would shred them mid-name.
+    collect("""SELECT b, COUNT(*) n, GROUP_CONCAT(nm, '|@|') FROM (
+                 SELECT DISTINCT o.bioguide_id AS b,
+                        COALESCE(cm.name, o.committee_id) AS nm
+                 FROM committee_memberships o
+                 JOIN (SELECT DISTINCT committee_id AS c FROM committee_memberships
+                       WHERE bioguide_id = :me) mine ON o.committee_id = mine.c
+                 LEFT JOIN committees cm ON cm.committee_id = o.committee_id
+                 WHERE o.bioguide_id != :me)
+               GROUP BY b HAVING n >= :min""",
             "shared_committee", min_shared_committees,
-            lambda n: f"{n} shared committee(s)")
+            lambda n, it: spell(f"{n} shared committee{'s' if n != 1 else ''}", it, n))
 
-    collect("""SELECT o.bioguide_id, COUNT(DISTINCT o.bill_id) n
-               FROM bill_cosponsors m JOIN bill_cosponsors o
-                 ON m.bill_id = o.bill_id
-               WHERE m.bioguide_id = :me AND o.bioguide_id != :me
-                 AND m.n_cosponsors <= 25
-               GROUP BY o.bioguide_id HAVING n >= :min""",
-            "cosponsored", min_cosponsored, lambda n: f"co-sponsored {n} bills")
+    collect("""SELECT b, COUNT(*) n, GROUP_CONCAT(nm, '|@|') FROM (
+                 SELECT DISTINCT o.bioguide_id AS b, o.bill_id AS nm
+                 FROM bill_cosponsors m JOIN bill_cosponsors o
+                   ON m.bill_id = o.bill_id
+                 WHERE m.bioguide_id = :me AND o.bioguide_id != :me
+                   AND m.n_cosponsors <= 25)
+               GROUP BY b HAVING n >= :min""",
+            "cosponsored", min_cosponsored,
+            lambda n, it: spell(f"co-sponsored {n} bills",
+                                [_bill_label(b) for b in it], n))
 
-    collect("""SELECT o.bioguide_id, COUNT(DISTINCT o.cmte_id) n
-               FROM pac_support m JOIN pac_support o ON m.cmte_id = o.cmte_id
-               WHERE m.bioguide_id = :me AND o.bioguide_id != :me
-               GROUP BY o.bioguide_id HAVING n >= :min""",
-            "shared_pac", min_shared_pacs, lambda n: f"{n} shared PAC funders")
+    # Ubiquitous PACs are excluded here — see _ubiquitous_pacs for why counting
+    # them makes every pair of incumbents look deeply connected.
+    collect("""SELECT b, COUNT(*) n, GROUP_CONCAT(nm, '|@|') FROM (
+                 SELECT o.bioguide_id AS b,
+                        COALESCE(o.cmte_name, o.cmte_id) AS nm,
+                        MAX(o.total_amount) AS amt
+                 FROM pac_support o
+                 JOIN (SELECT DISTINCT cmte_id AS c FROM pac_support
+                       WHERE bioguide_id = :me
+                         AND cmte_id IN (SELECT cmte_id FROM pac_support
+                                         GROUP BY cmte_id
+                                         HAVING COUNT(DISTINCT bioguide_id) <= :cap)
+                      ) mine ON o.cmte_id = mine.c
+                 WHERE o.bioguide_id != :me
+                 GROUP BY o.bioguide_id, COALESCE(o.cmte_name, o.cmte_id)
+                 ORDER BY amt DESC)
+               GROUP BY b HAVING n >= :min""",
+            "shared_pac", min_shared_pacs,
+            lambda n, it: spell(f"{n} shared PAC funders",
+                                [_short_pac(p) for p in it], n))
 
     # Only the focus side is de-duplicated. Joining the raw table to itself
     # multiplies out every pair of trades in the same stock, which for the
@@ -2617,17 +2711,28 @@ def pol_ego(bioguide_id: str, max_neighbors: int = 12,
     collect("""WITH mine AS (
                  SELECT DISTINCT ticker AS t FROM congressional_trades
                  WHERE bioguide_id = :me AND ticker IS NOT NULL AND ticker != '')
-               SELECT o.bioguide_id, COUNT(DISTINCT o.ticker) n
-               FROM congressional_trades o JOIN mine ON o.ticker = mine.t
-               WHERE o.bioguide_id != :me
-               GROUP BY o.bioguide_id HAVING n >= :min""",
-            "shared_stock", min_shared_stocks, lambda n: f"{n} shared stocks")
+               SELECT b, COUNT(*) n, GROUP_CONCAT(nm, '|@|') FROM (
+                 SELECT o.bioguide_id AS b, o.ticker AS nm, COUNT(*) AS c
+                 FROM congressional_trades o JOIN mine ON o.ticker = mine.t
+                 WHERE o.bioguide_id != :me
+                 GROUP BY o.bioguide_id, o.ticker
+                 ORDER BY c DESC)
+               GROUP BY b HAVING n >= :min""",
+            "shared_stock", min_shared_stocks,
+            lambda n, it: spell(f"{n} shared stocks", it, n))
 
-    # Rank by how many distinct kinds of tie, then by their combined strength —
+    # Rank by how many distinct kinds of tie, then by combined strength —
     # someone connected three different ways is more interesting than someone
     # who merely shares a lot of one thing.
+    #
+    # Each kind's contribution is capped before summing. Two heavy traders can
+    # share 457 stocks, which without a cap swamps every other signal and turns
+    # the ranking into "who else trades constantly" instead of "who is this
+    # member actually tied to".
+    CAP = 25
     ranked = sorted(ties.items(),
-                    key=lambda kv: (-len(kv[1]), -sum(v[0] for v in kv[1].values())))
+                    key=lambda kv: (-len(kv[1]),
+                                    -sum(min(v[0], CAP) for v in kv[1].values())))
     keep = dict(ranked[:max_neighbors])
 
     pol_map = {p.bioguide_id: p for p in db.query(Politician).filter(
