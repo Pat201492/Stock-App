@@ -17,7 +17,9 @@ const PG_EDGE_STYLE = {
   shared_committee:     { color: "#60a5fa", dashes: false },
   committee_leadership: { color: "#a3e635", dashes: false },
   same_state:           { color: "#06b6d4", dashes: [2, 3] },
-  position:             { color: "#e879f9", dashes: false },
+  position_national:    { color: "#e879f9", dashes: false },
+  position_state:       { color: "#38bdf8", dashes: false },
+  position_private:     { color: "#a78bfa", dashes: [4, 3] },
   hub:                  { color: "rgba(148,163,184,.16)", dashes: false },
   scaffold:             { color: "rgba(148,163,184,.09)", dashes: false },
 };
@@ -27,7 +29,12 @@ const PG_EDGE_STYLE = {
 // takes the business-deal amber since that's the bulk of them.
 const PG_EDGE_TOGGLES = [
   { k: "curated",    label: "Curated ties",         color: "#f59e0b", on: true  },
-  { k: "position",   label: "Outside positions",    color: "#e879f9", on: true  },
+  // Outside positions split by scope. Private holdings default off: they're the
+  // largest group but they're personal LLCs and trusts, not affiliations that
+  // connect anyone to anyone.
+  { k: "pos_national", label: "National orgs",      color: "#e879f9", on: true  },
+  { k: "pos_state",    label: "State / local orgs", color: "#38bdf8", on: true  },
+  { k: "pos_private",  label: "Private holdings",   color: "#a78bfa", on: false },
   { k: "cotrade",    label: "Co-timed trades",      color: "#fb7185", on: true  },
   { k: "committee",  label: "Shared committees",    color: "#60a5fa", on: true  },
   { k: "leadership", label: "Committee leadership", color: "#a3e635", on: true  },
@@ -47,7 +54,9 @@ function pgEdgeGroup(kind) {
   if (kind === "shared_committee") return "committee";
   if (kind === "committee_leadership") return "leadership";
   if (kind === "same_state") return "state";
-  if (kind === "position") return "position";
+  if (kind === "position_national") return "pos_national";
+  if (kind === "position_state") return "pos_state";
+  if (kind === "position_private") return "pos_private";
   if (kind === "hub" || kind === "scaffold") return "structure";
   return "curated";
 }
@@ -150,7 +159,11 @@ function createPolNetwork(cfg) {
     if (n.type === "hub")            { color = PG_PARTY_COLORS[n.party] || "#64748b"; shape = "star"; }
     else if (n.type === "executive") { color = "#f59e0b"; shape = "diamond"; }
     else if (n.type === "business")  { color = "#fb923c"; shape = "square"; }
-    else if (n.type === "organization") { color = "#e879f9"; shape = "triangle"; }
+    else if (n.type === "organization") {
+      color = n.scope === "state" ? "#38bdf8"
+            : n.scope === "private" ? "#a78bfa" : "#e879f9";
+      shape = "triangle";
+    }
     else                             { color = PG_PARTY_COLORS[n.party] || "#94a3b8"; }
     const title = n.type === "congress"
       ? `${n.name} · ${n.party || "?"}/${n.state || "?"}${n.chamber ? " · " + n.chamber : ""}`
@@ -503,7 +516,9 @@ function polNetworkMarkup() {
     <span><span class="dot" style="background:#94a3b8"></span>Independent/other</span>
     <span><span class="dot" style="background:#f59e0b;border-radius:2px;transform:rotate(45deg)"></span>Executive</span>
     <span><span class="dot" style="background:#fb923c;border-radius:2px"></span>Business</span>
-    <span><span class="dot" style="background:#e879f9"></span>Outside organization</span>
+    <span><span class="dot" style="background:#e879f9"></span>National org</span>
+    <span><span class="dot" style="background:#38bdf8"></span>State / local org</span>
+    <span><span class="dot" style="background:#a78bfa"></span>Private holding</span>
     <span style="width:1px;height:16px;background:var(--border)"></span>
     <span><b style="color:var(--text)">Edges:</b></span>
     <span><span class="ln" style="background:#f59e0b"></span>Business deal</span>
@@ -515,7 +530,9 @@ function polNetworkMarkup() {
     <span><span class="ln" style="background:#60a5fa"></span>Shared committee</span>
     <span><span class="ln" style="background:#a3e635"></span>Committee leadership</span>
     <span><span class="ln" style="background:#06b6d4"></span>Same state</span>
-    <span><span class="ln" style="background:#e879f9"></span>Outside position</span>
+    <span><span class="ln" style="background:#e879f9"></span>Position: national</span>
+    <span><span class="ln" style="background:#38bdf8"></span>Position: state/local</span>
+    <span><span class="ln" style="background:#a78bfa"></span>Position: private</span>
   </div>
   <div class="card" style="padding:0;position:relative">
     <div id="pg-net" style="height:700px;border-radius:var(--radius)"></div>

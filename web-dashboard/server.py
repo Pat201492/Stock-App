@@ -31,6 +31,7 @@ from accounts_database import (
 import auth as _auth
 import news_trust as _news_trust
 import price_live as _price_live
+import org_scope as _org_scope
 
 app = FastAPI(title="Stock Tracker")
 init_db()
@@ -2413,9 +2414,10 @@ def pol_relationships(
                 latest[key] = (pos, yr, url)
         for (bio, org), (pos, yr, url) in latest.items():
             oid = "ORG_" + re.sub(r"[^A-Za-z0-9]+", "_", org).strip("_")[:60].upper()
-            org_nodes.setdefault(oid, org)
+            scope = _org_scope.classify(org)
+            org_nodes.setdefault(oid, (org, scope))
             edges.append({
-                "from": bio, "to": oid, "kind": "position",
+                "from": bio, "to": oid, "kind": _org_scope.edge_kind(org),
                 "label": f"{pos} — {org}" + (f" ({yr})" if yr else ""),
                 "weight": 2, "illustrative": False, "source_url": url,
             })
@@ -2457,10 +2459,10 @@ def pol_relationships(
             "ring": depth.get(ext_id, 2), "value": deg.get(ext_id, 1),
         })
 
-    for oid, org in org_nodes.items():
+    for oid, (org, scope) in org_nodes.items():
         nodes.append({
             "id": oid, "name": org, "party": None, "type": "organization",
-            "ring": 2, "value": deg.get(oid, 1),
+            "scope": scope, "ring": 2, "value": deg.get(oid, 1),
         })
 
     # 6) Hub spokes to each main node (anchors the radial web).
@@ -2483,7 +2485,9 @@ def pol_relationships(
             "shared_committee": kind_of("shared_committee"),
             "committee_leadership": kind_of("committee_leadership"),
             "same_state":       kind_of("same_state"),
-            "position":         kind_of("position"),
+            "position_national": kind_of("position_national"),
+            "position_state":    kind_of("position_state"),
+            "position_private":  kind_of("position_private"),
             "curated":          sum(1 for e in edges if e["kind"] in
                                     ("business_deal", "appointment", "former_member",
                                      "donor", "family", "other")),
