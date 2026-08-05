@@ -33,6 +33,13 @@ if (-not $NoBuild) {
   if ($LASTEXITCODE -ne 0) {
     throw "run.py failed (exit $LASTEXITCODE) - refusing to publish. Fix it, or re-run with -NoBuild to ship the existing DBs."
   }
+  # --recent: the daily run only needs to top up the last year. The full
+  # multi-decade pull is a one-off, run by hand without the flag.
+  Write-Host "[publish] Refreshing commodity prices (ingest_commodities.py) ..."
+  & $py ingest_commodities.py --recent
+  if ($LASTEXITCODE -ne 0) {
+    throw "ingest_commodities.py failed (exit $LASTEXITCODE) - refusing to publish. Fix it, or re-run with -NoBuild to ship the existing DBs."
+  }
   Write-Host "[publish] Building congressional/insider data (pol_refresh.py) ..."
   & $py pol_refresh.py
   if ($LASTEXITCODE -ne 0) {

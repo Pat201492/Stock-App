@@ -184,6 +184,31 @@ class PriceHistory(Base):
     __table_args__ = (UniqueConstraint("ticker", "date", name="uq_price_ticker_date"),)
 
 
+class Commodity(Base):
+    """Tracked commodities — futures contracts and the ETFs that follow them.
+
+    A curated list rather than a discovered one: there is no "list all
+    commodities" feed, and the useful set is small and stable. Prices go into
+    price_history alongside equities so the existing chart endpoint, the deep
+    backfill and the trade-timing overlay all work unchanged.
+
+    kind distinguishes a futures contract ("GC=F", continuous front month, no
+    expense ratio, not buyable in a brokerage account) from an ETF ("GLD",
+    which is) — they behave differently enough that the UI should not blur them.
+    """
+    __tablename__ = "commodities"
+    symbol       = Column(String, primary_key=True)   # yfinance symbol
+    name         = Column(String)
+    category     = Column(String)     # Metals | Energy | Agriculture | Livestock | Index
+    kind         = Column(String)     # future | etf
+    unit         = Column(String)     # what one contract is priced in
+    tracks       = Column(String)     # for an ETF, the underlying it follows
+    last_price   = Column(Float)
+    prev_close   = Column(Float)
+    change_pct   = Column(Float)
+    last_updated = Column(DateTime, default=datetime.utcnow)
+
+
 class ETF(Base):
     __tablename__ = "etfs"
     ticker         = Column(String, primary_key=True)

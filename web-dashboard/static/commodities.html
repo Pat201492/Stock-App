@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commodities — Stock Tracker</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script src="/static/nav-mobile.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/static/account-common.js?v=2"></script>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Stock<span>Tracker</span></span>
+  <div class="nav-links">
+    <a href="/">Screener</a>
+    <a href="/etf">ETFs</a>
+    <a href="/commodities" class="active">Commodities</a>
+    <a href="/fed">Fed</a>
+    <a href="/account">Portfolio</a>
+    <a href="/static/news.html">News</a>
+    <a href="/politicians">Congressional</a>
+    <a href="/insiders">Insiders</a>
+    <a href="/distribution">Distribution</a>
+    <a href="/audit">Audit</a>
+    <a href="/debug">Debug</a>
+    <a href="/methodology">Methodology</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h2 style="margin-bottom:4px">Commodities</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;max-width:900px">
+    Front-month futures and the funds that track them. A <strong>future</strong>
+    is what the commodity is worth; an <strong>ETF</strong> is what you can
+    actually hold — it carries an expense ratio and drifts from spot, so the two
+    are labelled separately rather than blurred together.
+  </p>
+
+  <div class="filters">
+    <select id="cat" onchange="render()">
+      <option value="">All categories</option>
+      <option value="Metals">Metals</option>
+      <option value="Energy">Energy</option>
+      <option value="Agriculture">Agriculture</option>
+      <option value="Livestock">Livestock</option>
+      <option value="Index">Index / basket</option>
+    </select>
+    <select id="kind" onchange="render()">
+      <option value="">Futures and ETFs</option>
+      <option value="future">Futures only</option>
+      <option value="etf">ETFs only</option>
+    </select>
+    <span id="count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:20px">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th><th>Name</th><th>Category</th><th>Kind</th>
+          <th style="text-align:right">Last</th>
+          <th style="text-align:right">Change</th>
+          <th>Priced in</th>
+        </tr>
+      </thead>
+      <tbody id="body">
+        <tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" id="detail-card" style="display:none">
+    <div class="card-title" id="detail-title">—</div>
+    <div class="filters" style="margin-bottom:8px">
+      <span id="range-btns"></span>
+      <span id="acct-controls" style="display:inline-flex;gap:8px;margin-left:10px"></span>
+      <span id="detail-meta" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+    </div>
+    <div style="position:relative;height:320px;margin-bottom:16px">
+      <canvas id="chart"></canvas>
+    </div>
+    <div id="linked-note" class="muted" style="font-size:12px;margin-bottom:8px"></div>
+    <div id="trades"></div>
+  </div>
+</div>
+
+<script>
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => n == null ? "—" : n >= 1000 ? n.toLocaleString(undefined,{maximumFractionDigits:0})
+                                             : n.toFixed(2);
+const usd = n => n == null ? "—" : n >= 1e6 ? `$${(n/1e6).toFixed(1)}M`
+                : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
+
+let ALL = [], chart = null, current = null, days = 365;
+
+function pct(v) {
+  if (v == null) return '<span class="muted">—</span>';
+  const c = v > 0 ? "#22c55e" : v < 0 ? "#ef4444" : "#94a3b8";
+  return `<span style="color:${c};font-weight:600">${v > 0 ? "+" : ""}${v.toFixed(2)}%</span>`;
+}
+
+function render() {
+  const cat = document.getElementById("cat").value;
+  const kind = document.getElementById("kind").value;
+  const rows = ALL.filter(c => (!cat || c.category === cat) && (!kind || c.kind === kind));
+  document.getElementById("count").textContent = `${rows.length} tracked`;
+  document.getElementById("body").innerHTML = rows.length ? rows.map(c => `
+    <tr style="cursor:pointer" onclick="open_('${esc(c.symbol)}')">
+      <td><span class="ticker-cell">${esc(c.symbol)}</span></td>
+      <td>${esc(c.name)}${c.tracks ? `<div class="muted" style="font-size:11px">tracks ${esc(c.tracks)}</div>` : ""}</td>
+      <td class="muted" style="font-size:12px">${esc(c.category)}</td>
+      <td><span style="font-size:11px;padding:2px 7px;border-radius:999px;
+            border:1px solid var(--border);color:${c.kind === "future" ? "#f59e0b" : "#38bdf8"}">
+            ${c.kind === "future" ? "future" : "ETF"}</span></td>
+      <td style="text-align:right;font-weight:600">${fmt(c.last_price)}</td>
+      <td style="text-align:right">${pct(c.change_pct)}</td>
+      <td class="muted" style="font-size:12px">${esc(c.unit || "—")}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="7"><div class="empty">Nothing matches.</div></td></tr>`;
+}
+
+function rangeButtons() {
+  const opts = [[90,"3M"],[365,"1Y"],[1825,"5Y"],[99999,"All"]];
+  document.getElementById("range-btns").innerHTML = opts.map(([d,l]) =>
+    `<button class="pg-range-btn${days === d ? " active" : ""}"
+       onclick="days=${d};open_('${esc(current)}')">${l}</button>`).join("");
+}
+
+// A future is its own instrument ("commodity"); the funds in this table are
+// ordinary ETFs, so they keep kind="etf" and stay linkable at /etf/<ticker>.
+const tradeKind = c => c.kind === "future" ? "commodity" : "etf";
+
+async function renderAcct(c) {
+  const el = document.getElementById("acct-controls");
+  const favs = await favSet();
+  el.innerHTML = `
+    <button class="btn btn-outline btn-sm" id="fav-btn" onclick="onFav()">${favs.has(c.symbol) ? "★ Favorited" : "☆ Favorite"}</button>
+    <button class="btn btn-primary btn-sm" onclick="quickTrade()">+ Paper trade</button>`;
+}
+async function onFav() {
+  const c = ALL.find(x => x.symbol === current);
+  if (!c) return;
+  const r = await favToggle(c.symbol, tradeKind(c));
+  if (r) document.getElementById("fav-btn").textContent = r.favorited ? "★ Favorited" : "☆ Favorite";
+}
+async function quickTrade() {
+  const c = ALL.find(x => x.symbol === current);
+  if (!c) return;
+  if (!isAuthed()) { if (confirm("Sign in to paper trade. Go to the Portfolio page?")) location.href = "/account"; return; }
+  const side = (prompt("buy or sell?", "buy") || "").trim().toLowerCase();
+  if (side !== "buy" && side !== "sell") return;
+  const units = c.kind === "future" ? `Contracts (1 = ${c.unit || "one unit"}):` : "Shares:";
+  const shares = parseFloat(prompt(units, "1"));
+  if (!(shares > 0)) return;
+  const price = parseFloat(prompt("Price:", c.last_price ? Number(c.last_price).toFixed(2) : ""));
+  if (!(price >= 0)) return;
+  const r = await addTrade({ ticker: c.symbol, kind: tradeKind(c), side, shares, price,
+                             date: new Date().toISOString().slice(0,10), note: "" });
+  alert(r && r.ok ? `Logged ${side} ${shares} ${c.symbol} @ $${price}` : "Failed.");
+}
+
+async function open_(sym) {
+  current = sym;
+  history.replaceState(null, "", `/commodities?symbol=${encodeURIComponent(sym)}`);
+  const d = await fetch(`/api/commodities/${encodeURIComponent(sym)}?days=${days}`)
+    .then(r => r.json()).catch(() => null);
+  if (!d || !d.found) return;
+  const c = d.commodity;
+  document.getElementById("detail-card").style.display = "block";
+  document.getElementById("detail-title").textContent = `${c.name} (${c.symbol})`;
+  renderAcct(c);
+  document.getElementById("detail-meta").textContent =
+    `${c.kind === "future" ? "Front-month future" : "ETF"} · ${c.unit || ""} · ${d.series.length} bars`;
+  rangeButtons();
+
+  const ctx = document.getElementById("chart");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { datasets: [{
+      label: c.name, parsing: false, borderColor: "#38bdf8", borderWidth: 1.6,
+      pointRadius: 0, tension: 0.1, fill: false,
+      data: d.series.map(p => ({ x: Date.parse(p.date), y: p.close })),
+    }]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { type: "linear", ticks: { maxTicksLimit: 8, color: "#94a3b8",
+             callback: v => new Date(v).toISOString().slice(0,10) },
+             grid: { color: "rgba(148,163,184,.08)" } },
+        y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148,163,184,.06)" } },
+      } },
+  });
+
+  const note = document.getElementById("linked-note");
+  const tr = d.congressional_trades || [];
+  if (!d.linked_tickers.length) {
+    note.textContent = "No tradable instrument mapped to this commodity yet.";
+    document.getElementById("trades").innerHTML = "";
+    return;
+  }
+  note.innerHTML = `Congressional trades in instruments that track this commodity — `
+    + `<strong>${d.linked_tickers.map(esc).join(", ")}</strong>. `
+    + `Futures never appear in disclosures; members can't hold a front-month contract, `
+    + `so exposure shows up through funds and producers.`;
+  document.getElementById("trades").innerHTML = tr.length ? `
+    <div class="table-wrap" style="border:none"><table>
+      <thead><tr><th>Politician</th><th>Party</th><th>Ticker</th><th>Type</th>
+                 <th style="text-align:right">Amount</th><th>Date</th></tr></thead>
+      <tbody>${tr.slice(0,40).map(t => `
+        <tr>
+          <td><a href="/politician/${esc(t.bioguide_id)}" class="ticker-cell">${esc(t.name)}</a></td>
+          <td style="font-size:12px;color:${t.party === "Republican" ? "#ef4444" : t.party === "Democrat" ? "#3b82f6" : "#94a3b8"}">${esc(t.party || "—")}</td>
+          <td><a href="/stock/${esc(t.ticker)}" class="ticker-cell">${esc(t.ticker)}</a></td>
+          <td style="font-size:12px;color:${(t.transaction_type||"").startsWith("purchase") ? "#22c55e" : "#ef4444"}">${esc(t.transaction_type || "—")}</td>
+          <td style="text-align:right">${t.amount_min == null ? "—" : usd((t.amount_min + (t.amount_max || t.amount_min))/2)}</td>
+          <td class="muted" style="font-size:12px">${esc(t.transaction_date || "—")}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>
+    ${tr.length > 40 ? `<div class="muted" style="font-size:12px;margin-top:8px">Showing 40 of ${tr.length}.</div>` : ""}`
+    : `<div class="empty">No congressional trades in those instruments.</div>`;
+}
+
+async function load() {
+  const d = await fetch("/api/commodities").then(r => r.json()).catch(() => null);
+  if (!d || !d.commodities) {
+    document.getElementById("body").innerHTML =
+      `<tr><td colspan="7"><div class="empty">Could not load commodities.</div></td></tr>`;
+    return;
+  }
+  ALL = d.commodities;
+  render();
+  // Deep link from the portfolio page, which links a commodity position back here.
+  const want = new URLSearchParams(location.search).get("symbol");
+  const pick = ALL.find(c => c.symbol === want) || ALL[0];
+  if (pick) open_(pick.symbol);
+}
+load();
+</script>
+
+<style>
+.pg-range-btn { padding:4px 12px;border:1px solid var(--border);border-radius:6px;
+  background:transparent;color:var(--text);cursor:pointer;font-size:12px;margin-right:4px; }
+.pg-range-btn.active { background:#3b82f6;color:#fff;border-color:#3b82f6; }
+</style>
+</body>
+</html>

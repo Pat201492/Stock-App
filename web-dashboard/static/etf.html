@@ -14,6 +14,7 @@
   <div class="nav-links">
     <a href="/">Screener</a>
     <a href="/etf" class="active">ETFs</a>
+    <a href="/commodities">Commodities</a>
     <a href="/fed">Fed</a>
     <a href="/account">Portfolio</a>
     <a href="/static/news.html">News</a>
@@ -36,6 +37,11 @@
   <div class="filters">
     <input type="text" id="search" placeholder="Search ticker or name…" oninput="onSearch()" style="min-width:200px" />
     <select id="cat-filter" onchange="applyFilters()"><option value="">All Categories</option></select>
+    <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer"
+           title="Funds holding a commodity, plus miners and energy funds priced off one">
+      <input type="checkbox" id="commodity-filter" onchange="applyFilters()" style="cursor:pointer" />
+      <span>Commodity exposure</span>
+    </label>
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear</button>
     <span id="result-count" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
   </div>
@@ -69,7 +75,7 @@
 
 <script>
 const PAGE_SIZE = 100;
-let state = { page: 0, sort: "aum", order: "desc", search: "", category: "" };
+let state = { page: 0, sort: "aum", order: "desc", search: "", category: "", commodity: false };
 let searchTimer = null;
 
 function fmtAum(v) {
@@ -93,6 +99,7 @@ async function load() {
   const p = new URLSearchParams({ limit: PAGE_SIZE, offset: state.page * PAGE_SIZE, sort: state.sort, order: state.order });
   if (state.search)   p.set("search", state.search);
   if (state.category) p.set("category", state.category);
+  if (state.commodity) p.set("commodity", "1");
   const d = await fetch(`/api/etfs?${p}`).then(r => r.json()).catch(() => ({etfs: [], total: 0}));
   document.getElementById("etf-count").textContent = (d.total || 0).toLocaleString();
   document.getElementById("result-count").textContent = `${(d.total || 0).toLocaleString()} ETFs`;
@@ -129,9 +136,9 @@ function sortBy(col) {
   else { state.sort = col; state.order = col === "ticker" ? "asc" : "desc"; }
   state.page = 0; load();
 }
-function applyFilters() { state.category = document.getElementById("cat-filter").value; state.page = 0; load(); }
+function applyFilters() { state.category = document.getElementById("cat-filter").value; state.commodity = document.getElementById("commodity-filter").checked; state.page = 0; load(); }
 function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = document.getElementById("search").value.trim(); state.page = 0; load(); }, 300); }
-function resetFilters() { document.getElementById("search").value=""; document.getElementById("cat-filter").value=""; state = {page:0, sort:"aum", order:"desc", search:"", category:""}; load(); }
+function resetFilters() { document.getElementById("search").value=""; document.getElementById("cat-filter").value=""; document.getElementById("commodity-filter").checked=false; state = {page:0, sort:"aum", order:"desc", search:"", category:"", commodity:false}; load(); }
 function changePage(d) { state.page = Math.max(0, state.page + d); load(); }
 
 loadCategories();

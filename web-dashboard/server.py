@@ -16,7 +16,8 @@ from starlette.datastructures import MutableHeaders
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, text
 
-from database import get_db, init_db, Stock, Fundamentals, Valuation, News, PriceHistory, ETF, ETFHolding, SessionLocal
+from database import (get_db, init_db, Stock, Fundamentals, Valuation, News,
+                      PriceHistory, ETF, ETFHolding, Commodity, SessionLocal)
 from data_utils import score_stock
 from politicians_database import (
     get_pol_db, init_pol_db,
@@ -332,6 +333,7 @@ def _etf_dict(e):
 def list_etfs(
     search:   Optional[str] = None,
     category: Optional[str] = None,
+    commodity: int = 0,
     sort:     str = "aum",
     order:    str = "desc",
     limit:    int = 100,
@@ -344,6 +346,16 @@ def list_etfs(
         q = q.filter(or_(ETF.ticker.ilike(s), ETF.name.ilike(s)))
     if category:
         q = q.filter(ETF.category == category)
+    if commodity:
+        # Commodity exposure comes in two shapes and both belong here: funds
+        # holding the thing (Commodities Focused / Broad Basket) and equity
+        # funds whose value tracks it (miners, energy). Matched on yfinance's
+        # own category plus the curated list, rather than on words in a fund's
+        # name — "Cornerstone" is not corn.
+        cats = ["Commodities Focused", "Commodities Broad Basket",
+                "Equity Precious Metals", "Equity Energy", "Natural Resources"]
+        q = q.filter(or_(ETF.category.in_(cats),
+                         ETF.ticker.in_(sorted(COMMODITY_LINKED))))
     sort_col = {
         "ticker": ETF.ticker, "name": ETF.name, "aum": ETF.aum,
         "expense": ETF.expense_ratio, "yield": ETF.yield_pct,
@@ -682,6 +694,11 @@ def _last_price(ticker):
         e = sdb.query(ETF.price).filter(ETF.ticker == t).first()
         if e and e[0]:
             return float(e[0])
+        # Commodities last, and by symbol — a paper position in GC=F would
+        # otherwise price at nothing and drop out of the portfolio total.
+        c = sdb.query(Commodity.last_price).filter(Commodity.symbol == t).first()
+        if c and c[0]:
+            return float(c[0])
     finally:
         sdb.close()
     return None
@@ -1023,6 +1040,9 @@ def known_tickers():
             db = SessionLocal()
             try:
                 found.update(t for (t,) in db.query(Stock.ticker).all() if t)
+                # Commodities live in price_history too, so they need to be on
+                # the allow-list or their charts can never fall back to live.
+                found.update(s for (s,) in db.query(Commodity.symbol).all() if s)
             finally:
                 db.close()
             pdb = PolSessionLocal()
@@ -2721,6 +2741,118 @@ def pol_bills_upcoming(weeks: int = 1, db: Session = Depends(get_pol_db)):
 @app.get("/upcoming")
 def upcoming_page():
     return FileResponse(os.path.join(STATIC_DIR, "upcoming.html"))
+
+
+@app.get("/commodities")
+def commodities_page():
+    return FileResponse(os.path.join(STATIC_DIR, "commodities.html"))
+
+
+# Commodity ETFs and the miners/energy names that move with them. Used to mark
+# congressional trades as commodity-linked. Deliberately an explicit list:
+# matching on words in a company name turns "Cornerstone" into corn and
+# "Southwest Gas" into natural gas, which is how you invent exposure that isn't
+# there. Every ticker here is one whose value genuinely tracks a commodity.
+COMMODITY_LINKED = {
+    # direct commodity funds
+    "GLD": "Gold", "IAU": "Gold", "SGOL": "Gold", "GLDM": "Gold", "OUNZ": "Gold",
+    "SLV": "Silver", "SIVR": "Silver", "PPLT": "Platinum", "PALL": "Palladium",
+    "CPER": "Copper", "USO": "Crude Oil", "BNO": "Crude Oil", "USL": "Crude Oil",
+    "UNG": "Natural Gas", "UNL": "Natural Gas", "UGA": "Gasoline",
+    "DBA": "Agriculture",
+    "CORN": "Corn", "WEAT": "Wheat", "SOYB": "Soybeans", "CANE": "Sugar",
+    "DBC": "Broad basket", "GSG": "Broad basket", "PDBC": "Broad basket",
+    "COMT": "Broad basket", "FTGC": "Broad basket", "BCI": "Broad basket",
+    # miners and producers — equity, but priced off the underlying
+    "GDX": "Gold miners", "GDXJ": "Gold miners", "SIL": "Silver miners",
+    "NEM": "Gold miners", "GOLD": "Gold miners", "AEM": "Gold miners",
+    "FCX": "Copper", "SCCO": "Copper",
+    "XLE": "Energy", "XOP": "Energy", "OIH": "Energy", "VDE": "Energy",
+    "XOM": "Energy", "CVX": "Energy", "COP": "Energy", "SLB": "Energy",
+    "OXY": "Energy", "PSX": "Energy", "VLO": "Energy", "MPC": "Energy",
+    "MOS": "Agriculture", "NTR": "Agriculture", "CF": "Agriculture",
+    "ADM": "Agriculture", "BG": "Agriculture", "CTVA": "Agriculture",
+}
+
+
+@app.get("/api/commodities")
+def commodities_list(db: Session = Depends(get_db)):
+    """Tracked commodities with their latest close."""
+    rows = db.query(Commodity).all()
+    order = {"Metals": 0, "Energy": 1, "Agriculture": 2, "Livestock": 3, "Index": 4}
+    rows.sort(key=lambda c: (order.get(c.category, 9), c.kind != "future", c.name or ""))
+    return {"count": len(rows), "commodities": [{
+        "symbol": c.symbol, "name": c.name, "category": c.category,
+        "kind": c.kind, "unit": c.unit, "tracks": c.tracks,
+        "last_price": c.last_price, "prev_close": c.prev_close,
+        "change_pct": c.change_pct,
+        "last_updated": c.last_updated.isoformat() if c.last_updated else None,
+    } for c in rows]}
+
+
+@app.get("/api/commodities/{symbol}")
+def commodity_detail(symbol: str, days: int = 365, db: Session = Depends(get_db)):
+    """One commodity plus its price series, and who in Congress trades it.
+
+    Futures themselves never appear in disclosures — a member can't hold a
+    front-month contract in a brokerage account — so the congressional side is
+    matched through the ETFs and producers that track the same underlying.
+    """
+    sym = (symbol or "").strip().upper()
+    c = db.query(Commodity).filter(Commodity.symbol == sym).first()
+    if not c:
+        return {"symbol": sym, "found": False}
+
+    # Cut by calendar date, not row count: markets close ~252 days a year, so
+    # taking the last 1825 *rows* for the "5Y" button would return seven years.
+    # Dates are stored as ISO text, which compares correctly as a string.
+    from datetime import date as _date, timedelta as _td
+    span = max(1, min(days, 40000))
+    cutoff = (_date.today() - _td(days=span)).isoformat()
+    series = [{"date": r.date, "close": r.close} for r in
+              (db.query(PriceHistory)
+                 .filter(PriceHistory.ticker == sym, PriceHistory.date >= cutoff)
+                 .order_by(PriceHistory.date).all())]
+
+    # Which tradable tickers track this commodity, and who traded them.
+    theme = c.tracks or c.name
+    linked = sorted({t for t, lbl in COMMODITY_LINKED.items()
+                     if lbl.lower() in (theme or "").lower()
+                     or (theme or "").lower() in lbl.lower()})
+    trades = []
+    if linked:
+        pdb = PolSessionLocal()
+        try:
+            # Bound params, not an interpolated IN list. These values are from
+            # our own dict today, but an interpolated query is the thing that
+            # gets copied to a handler whose input isn't.
+            names = {f"t{i}": t for i, t in enumerate(linked)}
+            placeholders = ",".join(f":{k}" for k in names)
+            trades = [{
+                "bioguide_id": r[0], "name": f"{r[1]} {r[2]}".strip(), "party": r[3],
+                "ticker": r[4], "transaction_date": str(r[5]) if r[5] else None,
+                "transaction_type": r[6], "amount_min": r[7], "amount_max": r[8],
+            } for r in pdb.execute(text(f"""
+                SELECT t.bioguide_id, p.first_name, p.last_name, p.party, t.ticker,
+                       t.transaction_date, t.transaction_type, t.amount_min, t.amount_max
+                FROM congressional_trades t
+                JOIN politicians p ON p.bioguide_id = t.bioguide_id
+                WHERE t.ticker IN ({placeholders})
+                ORDER BY t.transaction_date DESC LIMIT 100"""), names).fetchall()]
+        finally:
+            pdb.close()
+
+    return {
+        "symbol": sym, "found": True,
+        "commodity": {
+            "symbol": c.symbol, "name": c.name, "category": c.category,
+            "kind": c.kind, "unit": c.unit, "tracks": c.tracks,
+            "last_price": c.last_price, "change_pct": c.change_pct,
+        },
+        "series": series,
+        "linked_tickers": linked,
+        "congressional_trades": trades,
+    }
 
 
 @app.get("/pacs")

@@ -15,6 +15,7 @@
   <div class="nav-links">
     <a href="/">Screener</a>
     <a href="/etf">ETFs</a>
+    <a href="/commodities">Commodities</a>
     <a href="/fed">Fed</a>
     <a href="/account" class="active">Portfolio</a>
     <a href="/static/news.html">News</a>
@@ -99,7 +100,7 @@
           <label>Shares<input id="tr-shares" type="number" step="any" class="fld" placeholder="10" /></label>
           <label>Price <span class="muted" style="font-size:10px">(you enter)</span><input id="tr-price" type="number" step="any" class="fld" placeholder="0.00" /></label>
           <label>Date<input id="tr-date" type="date" class="fld" /></label>
-          <label>Type<select id="tr-kind" class="fld"><option value="stock">Stock</option><option value="etf">ETF</option></select></label>
+          <label>Type<select id="tr-kind" class="fld"><option value="stock">Stock</option><option value="etf">ETF</option><option value="commodity">Commodity</option></select></label>
         </div>
         <input id="tr-note" placeholder="Note (optional)" class="fld" style="width:100%;margin-top:8px;box-sizing:border-box" />
         <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
@@ -172,6 +173,10 @@
 <script>
 const money = v => v==null ? "—" : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
 const plColor = v => v==null ? "var(--muted)" : v>=0 ? "#22c55e" : "#ef4444";
+// Futures have no per-symbol page; they open the commodities dashboard on that row.
+const hrefFor = (kind, ticker) => kind==="commodity"
+  ? `/commodities?symbol=${encodeURIComponent(ticker)}`
+  : `/${kind==="etf"?"etf":"stock"}/${encodeURIComponent(ticker)}`;
 let authMode = "login";
 
 function show(id, on) { document.getElementById(id).style.display = on ? (id==="who"?"flex":"block") : "none"; }
@@ -258,7 +263,7 @@ async function loadPortfolio() {
   tb.innerHTML = d.positions.length ? d.positions.map(p=>{
     const alloc = mv ? (p.market_value/mv*100):0;
     return `<tr>
-      <td><a href="/${p.kind==='etf'?'etf':'stock'}/${p.ticker}" class="ticker-cell">${p.ticker}</a></td>
+      <td><a href="${hrefFor(p.kind, p.ticker)}" class="ticker-cell">${p.ticker}</a></td>
       <td style="text-align:right">${p.shares}</td>
       <td style="text-align:right">$${p.avg_cost.toFixed(2)}</td>
       <td style="text-align:right">${p.last_price!=null?'$'+p.last_price.toFixed(2):'—'}</td>
@@ -273,11 +278,11 @@ async function loadFavorites() {
   const el = document.getElementById("favorites");
   el.innerHTML = (d.favorites||[]).length
     ? `<div style="display:flex;flex-wrap:wrap;gap:8px">${d.favorites.map(f=>`
-        <a href="/${f.kind==='etf'?'etf':'stock'}/${f.ticker}" style="text-decoration:none">
+        <a href="${hrefFor(f.kind, f.ticker)}" style="text-decoration:none">
           <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px">
             <span class="ticker-cell">${f.ticker}</span>
             <span class="muted" style="font-weight:400;margin-left:4px">${f.last_price!=null?'$'+f.last_price.toFixed(2):''}</span></span></a>`).join("")}</div>`
-    : `<div class="muted">None yet — star stocks/ETFs on their pages.</div>`;
+    : `<div class="muted">None yet — star stocks, ETFs or commodities on their pages.</div>`;
 }
 
 async function loadTrades() {
@@ -286,7 +291,7 @@ async function loadTrades() {
   tb.innerHTML = (d.trades||[]).length ? d.trades.map(t=>`
     <tr>
       <td class="muted" style="font-size:12px">${t.date||''}</td>
-      <td><a href="/${t.kind==='etf'?'etf':'stock'}/${t.ticker}" class="ticker-cell">${t.ticker}</a></td>
+      <td><a href="${hrefFor(t.kind, t.ticker)}" class="ticker-cell">${t.ticker}</a></td>
       <td><span class="pill ${t.side==='buy'?'pill-buy':'pill-sell'}">${t.side.toUpperCase()}</span></td>
       <td style="text-align:right">${t.shares}</td>
       <td style="text-align:right">$${t.price.toFixed(2)}</td>
