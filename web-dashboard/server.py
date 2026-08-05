@@ -1043,6 +1043,9 @@ def known_tickers():
                 # Commodities live in price_history too, so they need to be on
                 # the allow-list or their charts can never fall back to live.
                 found.update(s for (s,) in db.query(Commodity.symbol).all() if s)
+                # ETFs have their own detail page pulling live news; without
+                # them here the allow-list would blank that page out.
+                found.update(t for (t,) in db.query(ETF.ticker).all() if t)
             finally:
                 db.close()
             pdb = PolSessionLocal()
@@ -1053,6 +1056,25 @@ def known_tickers():
                 pdb.close()
             _known_tickers = found
     return _known_tickers
+
+
+def _known_or_none(ticker):
+    """Normalise a ticker and return it only if we already track it.
+
+    Every `/api/live/*` route below is public and unauthenticated, and each one
+    turns its path segment into an outbound Yahoo request. Without this check an
+    anonymous caller picks the upstream key and the request count: free rein to
+    burn the shared Yahoo rate limit that the whole site depends on, and to use
+    this server as a request amplifier. The allow-list means an attacker can
+    only ask for symbols we would fetch anyway.
+    """
+    t = (ticker or "").strip().upper()
+    if not t or len(t) > MAX_TICKER_LEN:
+        return None
+    return t if t in known_tickers() else None
+
+
+_UNKNOWN_TICKER = JSONResponse(status_code=404, content={"error": "unknown ticker"})
 
 
 @app.get("/api/price/{ticker}")
@@ -1122,8 +1144,11 @@ def _yf_info_with_retry(ticker, retries=2, delay=1.5):
 @app.get("/api/live/price/{ticker}")
 def live_price(ticker: str):
     """Current price, change, volume — fetched live from Yahoo Finance."""
+    t = _known_or_none(ticker)
+    if not t:
+        return _UNKNOWN_TICKER
     try:
-        info    = _yf_info_with_retry(ticker.upper())
+        info    = _yf_info_with_retry(t)
         price   = info.get("currentPrice") or info.get("regularMarketPrice")
         prev    = info.get("previousClose") or info.get("regularMarketPreviousClose")
         change  = round(price - prev, 2)              if price and prev else None
@@ -1209,7 +1234,9 @@ def _cik_for(ticker):
 @app.get("/api/live/profile/{ticker}")
 def live_profile(ticker: str):
     """Company business summary, C-suite roster, and recent SEC filings."""
-    t = ticker.upper()
+    t = _known_or_none(ticker)
+    if not t:
+        return _UNKNOWN_TICKER
     out = {
         "ticker": t, "summary": None, "officers": [], "website": None,
         "sec_url": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&ticker={t}&type=&dateb=&owner=include&count=40",
@@ -1285,9 +1312,13 @@ def exec_bio(name: str):
 @app.get("/api/live/news/{ticker}")
 def live_news(ticker: str, limit: int = 10):
     """Latest news fetched live from Yahoo Finance + Google News RSS fallback."""
+    sym = _known_or_none(ticker)
+    if not sym:
+        return _UNKNOWN_TICKER
+    limit = max(1, min(limit, 50))
     try:
         from news import sentiment_score
-        t        = yf.Ticker(ticker.upper())
+        t        = yf.Ticker(sym)
         articles = (t.news or [])[:limit]
         result   = []
         for a in articles:
@@ -1328,7 +1359,7 @@ def live_news(ticker: str, limit: int = 10):
 
         # Supplement with Google News RSS so we always have web-search results
         seen_urls = {a["url"] for a in result if a.get("url")}
-        google = _fetch_google_news_rss(ticker, limit=limit)
+        google = _fetch_google_news_rss(sym, limit=limit)
         for g in google:
             if g["url"] in seen_urls:
                 continue
@@ -2853,6 +2884,128 @@ def commodity_detail(symbol: str, days: int = 365, db: Session = Depends(get_db)
         "linked_tickers": linked,
         "congressional_trades": trades,
     }
+
+
+@app.get("/commodity/{symbol}")
+def commodity_detail_page(symbol: str):
+    return FileResponse(os.path.join(STATIC_DIR, "commodity_detail.html"))
+
+
+def _price_stats(series):
+    """52-week range, trailing returns and volatility from a close series.
+
+    Takes the full history and slices it here rather than issuing one query per
+    window — the series is already in memory and these are all cheap scans.
+    """
+    if not series:
+        return {}
+    closes = [p["close"] for p in series if p["close"] is not None]
+    if not closes:
+        return {}
+    last = closes[-1]
+
+    def _ret(back):
+        # `back` is a count of trading days; ~252 to the year.
+        if len(closes) <= back:
+            return None
+        prior = closes[-1 - back]
+        return round((last / prior - 1) * 100, 2) if prior else None
+
+    win = closes[-252:]
+    hi, lo = max(win), min(win)
+    # Annualised stdev of daily log returns over the last year.
+    vol = None
+    if len(win) > 30:
+        import math
+        rets = [math.log(win[i] / win[i - 1])
+                for i in range(1, len(win)) if win[i - 1] > 0 and win[i] > 0]
+        if len(rets) > 30:
+            mean = sum(rets) / len(rets)
+            var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
+            vol = round(math.sqrt(var) * math.sqrt(252) * 100, 1)
+
+    ytd = None
+    year = series[-1]["date"][:4]
+    prior_year = [p["close"] for p in series
+                  if p["date"][:4] < year and p["close"] is not None]
+    if prior_year and prior_year[-1]:
+        ytd = round((last / prior_year[-1] - 1) * 100, 2)
+
+    return {
+        "last": last, "high_52w": hi, "low_52w": lo,
+        "pct_of_52w_range": round((last - lo) / (hi - lo) * 100, 1) if hi > lo else None,
+        "ret_1m": _ret(21), "ret_3m": _ret(63), "ret_1y": _ret(252),
+        "ret_5y": _ret(1260), "ytd": ytd,
+        "volatility_1y": vol,
+        "history_start": series[0]["date"], "bars": len(series),
+    }
+
+
+@app.get("/api/commodities/{symbol}/producers")
+def commodity_producers(symbol: str, db: Session = Depends(get_db)):
+    """Who produces this commodity — by country, and by listed company.
+
+    Company rows are joined to the stocks table so a name we already cover
+    carries its live price and composite score and links to its own page. Names
+    we don't cover still appear (state producers like Codelco and Saudi Aramco
+    are too big to omit just because you can't buy them on a US exchange).
+    """
+    from commodity_producers import producers_for
+
+    sym = (symbol or "").strip().upper()
+    c = db.query(Commodity).filter(Commodity.symbol == sym).first()
+    if not c:
+        return {"symbol": sym, "found": False}
+
+    data = producers_for(c.name, c.tracks)
+    if not data:
+        return {"symbol": sym, "found": True, "producers": None}
+
+    tickers = [x["ticker"] for x in data["companies"] if x["ticker"]]
+    live = {}
+    if tickers:
+        for s in db.query(Stock).filter(Stock.ticker.in_(tickers)).all():
+            live[s.ticker] = {"price": s.price, "mkt_cap": s.mkt_cap,
+                              "sector": s.sector, "covered": True}
+        for v in db.query(Valuation).filter(Valuation.ticker.in_(tickers)).all():
+            live.setdefault(v.ticker, {}).update(
+                {"score": v.score_composite, "label": v.score_label})
+    for co in data["companies"]:
+        co.update(live.get(co["ticker"] or "", {"covered": False}))
+        co.setdefault("covered", bool(co.get("price")))
+
+    return {"symbol": sym, "found": True, "producers": data}
+
+
+@app.get("/api/commodities/{symbol}/related")
+def commodity_related(symbol: str, db: Session = Depends(get_db)):
+    """Other tracked instruments on the same underlying, plus price stats.
+
+    A future and the funds that follow it are the same bet expressed three
+    ways; showing them side by side is the point of the comparison.
+    """
+    from commodity_producers import theme_for
+
+    sym = (symbol or "").strip().upper()
+    c = db.query(Commodity).filter(Commodity.symbol == sym).first()
+    if not c:
+        return {"symbol": sym, "found": False}
+    theme = theme_for(c.name, c.tracks)
+
+    peers = []
+    for o in db.query(Commodity).all():
+        if o.symbol == sym or theme_for(o.name, o.tracks) != theme:
+            continue
+        peers.append({"symbol": o.symbol, "name": o.name, "kind": o.kind,
+                      "unit": o.unit, "last_price": o.last_price,
+                      "change_pct": o.change_pct})
+    peers.sort(key=lambda p: (p["kind"] != "future", p["symbol"]))
+
+    series = [{"date": r.date, "close": r.close} for r in
+              (db.query(PriceHistory).filter(PriceHistory.ticker == sym)
+                 .order_by(PriceHistory.date).all())]
+    return {"symbol": sym, "found": True, "theme": theme,
+            "related": peers, "stats": _price_stats(series)}
 
 
 @app.get("/pacs")
