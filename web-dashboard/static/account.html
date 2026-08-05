@@ -173,9 +173,8 @@
 <script>
 const money = v => v==null ? "—" : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
 const plColor = v => v==null ? "var(--muted)" : v>=0 ? "#22c55e" : "#ef4444";
-// Futures have no per-symbol page; they open the commodities dashboard on that row.
 const hrefFor = (kind, ticker) => kind==="commodity"
-  ? `/commodities?symbol=${encodeURIComponent(ticker)}`
+  ? `/commodity/${encodeURIComponent(ticker)}`
   : `/${kind==="etf"?"etf":"stock"}/${encodeURIComponent(ticker)}`;
 let authMode = "login";
 
