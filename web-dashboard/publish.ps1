@@ -65,14 +65,43 @@ $sshArgs = @()
 if ($SSH_KEY -and (Test-Path $SSH_KEY)) { $sshArgs = @("-i", $SSH_KEY) }
 $target = "$VPS_USER@$VPS_HOST"
 
-Write-Host "[publish] Uploading DBs to $target ..."
 & ssh @sshArgs $target "mkdir -p $VPS_DATA/_incoming"
 if ($LASTEXITCODE -ne 0) { throw "ssh mkdir failed" }
-& scp @sshArgs "$root\stocks.db" "$root\politicians.db" "${target}:$VPS_DATA/_incoming/"
-if ($LASTEXITCODE -ne 0) { throw "scp upload failed" }
 
-Write-Host "[publish] Swapping live + restarting $VPS_SERVICE ..."
-& ssh @sshArgs $target "mv $VPS_DATA/_incoming/*.db $VPS_DATA/ && rm -f $VPS_DATA/stocks.db-wal $VPS_DATA/stocks.db-shm $VPS_DATA/politicians.db-wal $VPS_DATA/politicians.db-shm && sudo systemctl restart $VPS_SERVICE"
-if ($LASTEXITCODE -ne 0) { throw "remote swap/restart failed" }
+# Ship one DB at a time, gzipped, swapping and restarting between files.
+#
+# The old shape sent both databases uncompressed into _incoming and swapped at
+# the end, needing ~350MB of spare disk on a box with well under a gigabyte
+# free. Per-file gzip alone is not enough, and measuring showed why: the running
+# service holds the live database files open, so `mv` frees nothing until the
+# process lets go. Swapping stocks.db and then uploading politicians.db meant the
+# old stocks.db inode was still on disk underneath the new one — measured peak
+# went *up*, to ~396MB. Restarting between files drops those inodes, so the peak
+# is one database plus its own .gz (~230MB) instead of everything at once.
+#
+# Cost is a second brief restart. The atomic `mv` is kept either way: a
+# half-written transfer never becomes the live file.
+$dbs = @("stocks.db", "politicians.db")
+foreach ($f in $dbs) {
+  $gz = Join-Path $env:TEMP "$f.gz"
+  Write-Host "[publish] Compressing $f ..."
+  & $py -c "import gzip,shutil,sys; i=open(sys.argv[1],'rb'); o=gzip.open(sys.argv[2],'wb',compresslevel=6); shutil.copyfileobj(i,o,1048576); o.close(); i.close()" "$root\$f" "$gz"
+  if ($LASTEXITCODE -ne 0) { throw "compressing $f failed (exit $LASTEXITCODE)" }
+
+  $srcMB = [math]::Round((Get-Item "$root\$f").Length / 1MB)
+  $gzMB  = [math]::Round((Get-Item $gz).Length / 1MB)
+  Write-Host "[publish] Uploading $f ($srcMB MB -> $gzMB MB) to $target ..."
+  & scp @sshArgs $gz "${target}:$VPS_DATA/_incoming/"
+  if ($LASTEXITCODE -ne 0) { Remove-Item $gz -Force -EA SilentlyContinue; throw "scp of $f failed" }
+  Remove-Item $gz -Force -EA SilentlyContinue
+
+  # gunzip removes the .gz as it writes, so the two never both sit at full size.
+  # Only once the decompressed file exists does it replace the live one.
+  # The restart is what actually reclaims the replaced file: until the service
+  # closes it, the old inode still occupies disk even though `mv` unlinked it.
+  Write-Host "[publish] Unpacking, swapping and reloading for $f ..."
+  & ssh @sshArgs $target "set -e; cd $VPS_DATA/_incoming && gzip -df $f.gz && mv -f $f $VPS_DATA/$f && rm -f $VPS_DATA/$f-wal $VPS_DATA/$f-shm && sudo systemctl restart $VPS_SERVICE"
+  if ($LASTEXITCODE -ne 0) { throw "remote unpack/swap of $f failed" }
+}
 
 Write-Host "[publish] Done - live data updated at https://$VPS_HOST"
