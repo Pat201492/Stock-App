@@ -50,6 +50,7 @@ if (Test-Path ".\publish.config.ps1") {
   Write-Host "[update] No publish.config.ps1 found - building data locally only (no push)."
   $env:PYTHONUTF8 = "1"
   & $py run.py
+  & $py ingest_commodities.py --recent
   & $py pol_refresh.py
   Write-Host "[update] Built locally. Copy publish.config.ps1.example -> publish.config.ps1 and edit it to push live."
 }

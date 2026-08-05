@@ -43,6 +43,7 @@ fi
 
 echo "[update] Refreshing data ..."
 PYTHONUTF8=1 "$PY" run.py
+PYTHONUTF8=1 "$PY" ingest_commodities.py --recent
 PYTHONUTF8=1 "$PY" pol_refresh.py
 
 if [ -n "${STOCKAPP_VPS_HOST:-}" ]; then
